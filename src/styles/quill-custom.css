@@ -1,0 +1,336 @@
+/* Custom Quill Editor Styles for CMS */
+
+/* RTL Support */
+.rtl-editor .ql-editor {
+  direction: rtl;
+  text-align: right;
+  font-family: 'Sahel', sans-serif !important;
+}
+
+.ltr-editor .ql-editor {
+  direction: ltr;
+  text-align: left;
+  font-family: 'Inter', sans-serif !important;
+}
+
+/* Enhanced Toolbar Styling */
+.ql-toolbar.ql-snow {
+  border: none !important;
+  border-bottom: 1px solid hsl(var(--border)) !important;
+  background: hsl(var(--muted) / 0.3);
+  padding: 12px;
+}
+
+.ql-container.ql-snow {
+  border: none !important;
+  font-size: 1rem;
+  line-height: 1.7;
+}
+
+/* Editor Content Area */
+.ql-editor {
+  min-height: 400px;
+  padding: 24px;
+  font-size: 1rem;
+  line-height: 1.7;
+}
+
+.ql-editor:focus {
+  outline: none;
+}
+
+/* Placeholder Styling */
+.ql-editor.ql-blank::before {
+  color: hsl(var(--muted-foreground));
+  font-style: normal;
+  opacity: 0.6;
+}
+
+/* Heading Styles */
+.ql-editor h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+  line-height: 1.2;
+}
+
+.ql-editor h2 {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+  line-height: 1.3;
+}
+
+.ql-editor h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+  line-height: 1.3;
+}
+
+.ql-editor h4 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+  line-height: 1.3;
+}
+
+/* List Styling */
+.ql-editor ul,
+.ql-editor ol {
+  padding-left: 1.5em;
+  margin-bottom: 1em;
+}
+
+.rtl-editor .ql-editor ul,
+.rtl-editor .ql-editor ol {
+  padding-left: 0;
+  padding-right: 1.5em;
+}
+
+.ql-editor li {
+  margin-bottom: 0.5em;
+}
+
+/* Blockquote Styling */
+.ql-editor blockquote {
+  border-left: 4px solid hsl(var(--primary));
+  padding-left: 1em;
+  margin: 1.5em 0;
+  font-style: italic;
+  color: hsl(var(--muted-foreground));
+}
+
+.rtl-editor .ql-editor blockquote {
+  border-left: none;
+  border-right: 4px solid hsl(var(--primary));
+  padding-left: 0;
+  padding-right: 1em;
+}
+
+/* Code Block Styling */
+.ql-editor pre {
+  background: hsl(var(--muted));
+  border-radius: 8px;
+  padding: 1em;
+  margin: 1.5em 0;
+  overflow-x: auto;
+}
+
+.ql-editor code {
+  background: hsl(var(--muted));
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9em;
+}
+
+.ql-editor pre code {
+  background: transparent;
+  padding: 0;
+}
+
+/* Link Styling */
+.ql-editor a {
+  color: hsl(var(--primary));
+  text-decoration: underline;
+}
+
+.ql-editor a:hover {
+  color: hsl(var(--primary-glow));
+}
+
+/* Image Styling */
+.ql-editor img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  margin: 1.5em 0;
+}
+
+/* Video Styling */
+.ql-editor iframe {
+  max-width: 100%;
+  border-radius: 8px;
+  margin: 1.5em 0;
+}
+
+/* Toolbar Button Hover Effects */
+.ql-toolbar button:hover,
+.ql-toolbar button:focus {
+  color: hsl(var(--primary)) !important;
+}
+
+.ql-toolbar button.ql-active {
+  color: hsl(var(--primary)) !important;
+}
+
+.ql-toolbar .ql-stroke {
+  stroke: hsl(var(--foreground));
+}
+
+.ql-toolbar button:hover .ql-stroke,
+.ql-toolbar button:focus .ql-stroke,
+.ql-toolbar button.ql-active .ql-stroke {
+  stroke: hsl(var(--primary)) !important;
+}
+
+.ql-toolbar .ql-fill {
+  fill: hsl(var(--foreground));
+}
+
+.ql-toolbar button:hover .ql-fill,
+.ql-toolbar button:focus .ql-fill,
+.ql-toolbar button.ql-active .ql-fill {
+  fill: hsl(var(--primary)) !important;
+}
+
+/* Color Picker Styling */
+.ql-toolbar .ql-picker-label {
+  border: 1px solid hsl(var(--border));
+  border-radius: 4px;
+  padding: 2px 4px;
+}
+
+.ql-toolbar .ql-picker-label:hover {
+  border-color: hsl(var(--primary));
+}
+
+.ql-toolbar .ql-picker-options {
+  background: hsl(var(--background));
+  border: 1px solid hsl(var(--border));
+  border-radius: 8px;
+  padding: 8px;
+  box-shadow: 0 4px 6px hsl(var(--shadow-soft));
+}
+
+/* Dropdown Menu Styling */
+.ql-snow .ql-picker.ql-expanded .ql-picker-label {
+  border-color: hsl(var(--primary));
+}
+
+/* Font Size Options */
+.ql-snow .ql-picker.ql-size .ql-picker-label[data-value="small"]::before {
+  content: 'Small';
+}
+
+.ql-snow .ql-picker.ql-size .ql-picker-label[data-value="large"]::before {
+  content: 'Large';
+}
+
+.ql-snow .ql-picker.ql-size .ql-picker-label[data-value="huge"]::before {
+  content: 'Huge';
+}
+
+/* Alignment RTL Support */
+.rtl-editor .ql-align-right {
+  text-align: left !important;
+}
+
+.rtl-editor .ql-align-left {
+  text-align: right !important;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .ql-toolbar.ql-snow {
+    padding: 8px;
+  }
+
+  .ql-toolbar button {
+    width: 32px;
+    height: 32px;
+  }
+
+  .ql-editor {
+    padding: 16px;
+    min-height: 300px;
+  }
+}
+
+/* Print Styles */
+@media print {
+  .ql-toolbar {
+    display: none;
+  }
+
+  .ql-editor {
+    padding: 0;
+    border: none;
+  }
+}
+
+/* Dark Mode Support */
+.dark .ql-toolbar.ql-snow {
+  background: hsl(var(--muted) / 0.5);
+}
+
+.dark .ql-editor {
+  color: hsl(var(--foreground));
+}
+
+.dark .ql-editor blockquote {
+  border-left-color: hsl(var(--primary));
+}
+
+.dark .rtl-editor .ql-editor blockquote {
+  border-right-color: hsl(var(--primary));
+}
+
+/* Selection Styling */
+.ql-editor ::selection {
+  background: hsl(var(--primary) / 0.2);
+}
+
+/* Table Support (if using quill-better-table) */
+.ql-editor table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1.5em 0;
+}
+
+.ql-editor table td,
+.ql-editor table th {
+  border: 1px solid hsl(var(--border));
+  padding: 8px 12px;
+}
+
+.ql-editor table th {
+  background: hsl(var(--muted));
+  font-weight: 600;
+}
+
+/* Accessibility Improvements */
+.ql-toolbar button:focus-visible {
+  outline: 2px solid hsl(var(--primary));
+  outline-offset: 2px;
+}
+
+/* Animation for Toolbar */
+.ql-toolbar {
+  transition: all 0.2s ease;
+}
+
+/* Better Spacing */
+.ql-editor p {
+  margin-bottom: 1em;
+}
+
+.ql-editor p:last-child {
+  margin-bottom: 0;
+}
+
+/* Custom formatting for subscript and superscript */
+.ql-editor sub {
+  font-size: 0.75em;
+  vertical-align: sub;
+}
+
+.ql-editor sup {
+  font-size: 0.75em;
+  vertical-align: super;
+}
