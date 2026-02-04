@@ -418,19 +418,19 @@ const DashboardPage = () => {
     if (item.specialAccess && !item.specialAccess.includes(user?.email)) return false;
     return true;
   });
-  return <div className="min-h-screen bg-background">
+  return <div className="min-h-screen bg-background" dir="ltr">
       <Navigation />
       
       <main className="container mx-auto px-6 py-20">
-        <div className="max-w-6xl mx-auto">
+        <div className="max-w-6xl mx-auto text-left">
           {/* Welcome Header */}
           <div className="mb-8">
             <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-3xl font-display font-bold mb-2">
+              <div className="text-left">
+                <h1 className="text-3xl font-display font-bold mb-2 text-left">
                   Welcome back, {user?.email?.split('@')[0] || 'User'}!
                 </h1>
-                <p className="text-muted-foreground">
+                <p className="text-muted-foreground text-left">
                   Manage your business operations from your dashboard
                 </p>
               </div>
@@ -443,17 +443,17 @@ const DashboardPage = () => {
 
           {/* Dashboard Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-            {dashboardItems.map(item => <Card key={item.path} className="glass hover:shadow-lg transition-all duration-300 cursor-pointer hover:scale-105" onClick={() => navigate(item.path)}>
+            {dashboardItems.map(item => <Card key={item.path} className="glass hover:shadow-lg transition-all duration-300 cursor-pointer hover:scale-105 text-left" onClick={() => navigate(item.path)}>
                 <CardHeader>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center justify-start gap-3">
                     <div className={`p-2 rounded-lg bg-accent/10`}>
                       <item.icon className={`h-6 w-6 ${item.color}`} />
                     </div>
-                    <CardTitle className="text-lg">{item.title}</CardTitle>
+                    <CardTitle className="text-lg text-left">{item.title}</CardTitle>
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <CardDescription className="text-sm">
+                  <CardDescription className="text-sm text-left">
                     {item.description}
                   </CardDescription>
                 </CardContent>
