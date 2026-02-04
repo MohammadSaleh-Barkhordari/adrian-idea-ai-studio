@@ -52,7 +52,7 @@ export default function OurCalendarPage() {
     <div className="min-h-screen bg-gradient-to-br from-background via-background/95 to-background/90">
       <Navigation />
       
-      <main className="container mx-auto px-4 py-8 pt-24">
+      <main className="container mx-auto px-4 py-8 pt-24" dir="ltr">
         <div className="mb-8">
           <Button
             onClick={() => navigate("/our-life")}

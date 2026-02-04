@@ -240,10 +240,10 @@ export default function BlogDashboardPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col" dir={isRTL ? 'rtl' : 'ltr'}>
+    <div className="min-h-screen flex flex-col">
       <Navigation />
       
-      <main className="flex-1 container mx-auto px-4 py-8 mt-20">
+      <main className="flex-1 container mx-auto px-4 py-8 mt-20" dir="ltr">
         <div className="mb-8 flex justify-between items-start">
           <div>
             <h1 className="text-4xl font-bold mb-2">

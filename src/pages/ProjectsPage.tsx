@@ -168,7 +168,7 @@ const ProjectsPage = () => {
     <div className="min-h-screen bg-background">
       <Navigation />
       
-      <main className="container mx-auto px-6 py-20">
+      <main className="container mx-auto px-6 py-20" dir="ltr">
         <div className="max-w-6xl mx-auto">
           <Button
             variant="ghost"
