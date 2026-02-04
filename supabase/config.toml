@@ -1,1 +1,28 @@
 project_id = "hnszakoakrhqmojshfvk"
+
+[functions.send-push-notification]
+verify_jwt = true
+
+[functions.task-due-reminders]
+verify_jwt = false
+
+[functions.calendar-event-reminders]
+verify_jwt = false
+
+[functions.analyze-document]
+verify_jwt = false
+
+[functions.analyze-financial-document]
+verify_jwt = false
+
+[functions.analyze-letter]
+verify_jwt = false
+
+[functions.extract-our-financial-fields]
+verify_jwt = false
+
+[functions.create-letter-image]
+verify_jwt = false
+
+[functions.generate-blog-image]
+verify_jwt = false
