@@ -418,10 +418,10 @@ const DashboardPage = () => {
     if (item.specialAccess && !item.specialAccess.includes(user?.email)) return false;
     return true;
   });
-  return <div className="min-h-screen bg-background" dir="ltr">
+  return <div className="min-h-screen bg-background">
       <Navigation />
       
-      <main className="container mx-auto px-6 py-20">
+      <main className="container mx-auto px-6 py-20" dir="ltr">
         <div className="max-w-6xl mx-auto text-left">
           {/* Welcome Header */}
           <div className="mb-8">
