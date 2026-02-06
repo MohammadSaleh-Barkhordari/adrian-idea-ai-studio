@@ -1,215 +1,119 @@
 
-# Protected Pages - English LTR Layout Fix
 
-## Summary
+# Fix: Auto-Create User Role When Adding Employee
 
-Apply the same fix from `DashboardPage.tsx` to all protected pages (admin, role-based, and email-whitelisted pages). These pages should:
-- Always display in English
-- Always use Left-to-Right (LTR) layout
-- Keep the Navigation component language-aware (same as homepage)
+## Problem
 
-## Pages to Modify
+When a new employee is created via the HR Management form, the `job_type` field (admin/general_user) is saved to the `employees` table but **not** synchronized to the `user_roles` table. This means the user won't have proper access permissions until manually assigned via Role Management.
 
-### Admin-Only Pages (require admin role)
-
-| Page | File | Current Structure |
-|------|------|-------------------|
-| Projects | `src/pages/ProjectsPage.tsx` | `<div>` → `<Navigation />` → `<main>` |
-| Project Details | `src/pages/ProjectDetailsPage.tsx` | `<div>` → `<Navigation />` → `<main>` |
-| Financial Analysis | `src/pages/FinancialAnalysisPage.tsx` | `<div>` → `<Navigation />` → `<main>` |
-| HR Management | `src/pages/HRManagementPage.tsx` | `<div>` → `<Navigation />` → `<main>` |
-| Writing a Letter | `src/pages/WritingLetterPage.tsx` | `<div>` → `<Navigation />` → `<main>` |
-
-### All Users Pages (require login)
-
-| Page | File | Current Structure |
-|------|------|-------------------|
-| Create Document | `src/pages/CreateDocumentPage.tsx` | `<div>` → `<Navigation />` → `<main>` |
-| Create Request | `src/pages/CreateRequestPage.tsx` | `<div>` → `<Navigation />` → `<main>` |
-
-### Role-Based Pages (require any user role)
-
-| Page | File | Current Structure |
-|------|------|-------------------|
-| Blog Dashboard | `src/pages/BlogDashboardPage.tsx` | Already has `dir` attribute on root |
-| Blog Editor | `src/pages/BlogEditorPage.tsx` | Uses `isRTL` from context |
-
-### Email-Whitelisted Pages ("Our Life" suite)
-
-| Page | File | Current Structure |
-|------|------|-------------------|
-| Our Life | `src/pages/OurLifePage.tsx` | `<div>` → `<Navigation />` → `<main>` |
-| Our Calendar | `src/pages/OurCalendarPage.tsx` | `<div>` → `<Navigation />` → `<main>` |
-| Our Financial | `src/pages/OurFinancialPage.tsx` | `<div>` → `<Navigation />` → `<main>` |
-| Our Todo | `src/pages/OurTodoPage.tsx` | `<div>` → `<Navigation />` → `<main>` |
-
-## Implementation Pattern
-
-For each page, apply this structure:
+## Current Data Flow
 
 ```text
-┌─────────────────────────────────────────────┐
-│ <div className="min-h-screen bg-background">│  ← No dir attribute
-│   <Navigation />                            │  ← Language-aware (RTL/LTR)
-│   <main ... dir="ltr">                      │  ← Force LTR
-│     [Page Content with text-left classes]   │
-│   </main>                                   │
-│   <Footer />                                │
-│ </div>                                      │
-└─────────────────────────────────────────────┘
+Employee Form
+     │
+     ├──► employees table (job_type saved here)
+     │
+     └──► employee_sensitive_data table
+     
+     ✗ user_roles table NOT updated
 ```
 
-## Detailed Changes
+## Solution
 
-### 1. ProjectsPage.tsx (line 171)
-**Before:**
-```tsx
-<main className="container mx-auto px-6 py-20">
-```
-**After:**
-```tsx
-<main className="container mx-auto px-6 py-20" dir="ltr">
-```
+Modify the `EmployeeForm.tsx` to automatically insert/update a role in `user_roles` when creating or updating an employee, based on the selected `job_type`.
 
-### 2. ProjectDetailsPage.tsx (line 380)
-**Before:**
-```tsx
-<main className="container mx-auto px-4 pt-20 pb-8">
-```
-**After:**
-```tsx
-<main className="container mx-auto px-4 pt-20 pb-8" dir="ltr">
-```
+## Implementation
 
-### 3. FinancialAnalysisPage.tsx (line 444)
-**Before:**
-```tsx
-<main className="container mx-auto px-6 py-20">
-```
-**After:**
-```tsx
-<main className="container mx-auto px-6 py-20" dir="ltr">
-```
+### Option A: Application-Level (Recommended)
 
-### 4. HRManagementPage.tsx (line 275)
-**Before:**
-```tsx
-<main className="container mx-auto px-6 pt-20 pb-8">
-```
-**After:**
-```tsx
-<main className="container mx-auto px-6 pt-20 pb-8" dir="ltr">
+Update `src/components/EmployeeForm.tsx` to add user role logic in the `handleSubmit` function:
+
+**After line 246** (after sensitive data insert), add:
+
+```typescript
+// Create user role based on job_type
+const roleToAssign = formData.job_type === 'admin' ? 'admin' : 'general_user';
+
+const { error: roleError } = await supabase
+  .from('user_roles')
+  .upsert({
+    user_id: formData.user_id,
+    role: roleToAssign,
+  }, {
+    onConflict: 'user_id,role'
+  });
+
+if (roleError) {
+  console.error('Error assigning role:', roleError);
+  // Don't throw - employee was created successfully
+  toast({
+    title: "Warning",
+    description: "Employee created but role assignment failed. Please assign role manually.",
+    variant: "destructive",
+  });
+}
 ```
 
-### 5. WritingLetterPage.tsx (line 362)
-**Before:**
-```tsx
-<main className="container mx-auto px-6 py-20">
-```
-**After:**
-```tsx
-<main className="container mx-auto px-6 py-20" dir="ltr">
+**For updates** (after line 226), add similar logic to update the role when job_type changes.
+
+### Option B: Database Trigger (Alternative)
+
+Create a database trigger that automatically creates a user role when an employee is inserted:
+
+```sql
+CREATE OR REPLACE FUNCTION sync_employee_role()
+RETURNS TRIGGER AS $$
+BEGIN
+  -- Map job_type to app_role enum
+  IF NEW.job_type = 'admin' THEN
+    INSERT INTO user_roles (user_id, role)
+    VALUES (NEW.user_id, 'admin')
+    ON CONFLICT (user_id, role) DO NOTHING;
+  ELSIF NEW.job_type = 'general_user' THEN
+    INSERT INTO user_roles (user_id, role)
+    VALUES (NEW.user_id, 'general_user')
+    ON CONFLICT (user_id, role) DO NOTHING;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE TRIGGER sync_employee_role_trigger
+AFTER INSERT OR UPDATE OF job_type ON employees
+FOR EACH ROW
+EXECUTE FUNCTION sync_employee_role();
 ```
 
-### 6. CreateDocumentPage.tsx (line 12)
-**Before:**
-```tsx
-<main className="container mx-auto px-4 py-8 pt-24">
-```
-**After:**
-```tsx
-<main className="container mx-auto px-4 py-8 pt-24" dir="ltr">
+## My Recommendation
+
+**Option A (Application-Level)** is recommended because:
+- Provides immediate user feedback if role assignment fails
+- Easier to debug and maintain
+- Allows for more complex logic (e.g., removing old roles when job_type changes)
+
+## Files to Modify
+
+1. `src/components/EmployeeForm.tsx`
+   - Add role upsert logic after employee creation (new employees)
+   - Add role update logic after employee update (existing employees)
+   - Handle edge case: when job_type changes from admin to general_user, update the role
+
+## Additional Consideration
+
+When **updating** an employee's job_type, we should:
+1. Delete the old role if job_type changed
+2. Insert the new role
+
+This ensures users don't accumulate multiple roles unintentionally.
+
+## Fix for Existing Data
+
+For the new employee "Ramin Pishali" (user_id: `88514d79-a78c-49fe-a9a8-112fa783c2ec`), you can manually add the role by going to Role Management in HR Management and assigning the "Admin" role.
+
+Or I can execute a one-time fix:
+```sql
+INSERT INTO user_roles (user_id, role)
+VALUES ('88514d79-a78c-49fe-a9a8-112fa783c2ec', 'admin')
+ON CONFLICT (user_id, role) DO NOTHING;
 ```
 
-### 7. CreateRequestPage.tsx (line 192)
-**Before:**
-```tsx
-<main className="container mx-auto px-4 pt-20 pb-8">
-```
-**After:**
-```tsx
-<main className="container mx-auto px-4 pt-20 pb-8" dir="ltr">
-```
-
-### 8. BlogDashboardPage.tsx (line 243)
-**Current:** Uses `dir={isRTL ? 'rtl' : 'ltr'}` on root div - forces Navigation to follow interface language
-**Change:** Move `dir="ltr"` to `<main>` only
-**Before:**
-```tsx
-<div className="min-h-screen flex flex-col" dir={isRTL ? 'rtl' : 'ltr'}>
-  <Navigation />
-  <main className="flex-1 container mx-auto px-4 py-8 mt-20">
-```
-**After:**
-```tsx
-<div className="min-h-screen flex flex-col">
-  <Navigation />
-  <main className="flex-1 container mx-auto px-4 py-8 mt-20" dir="ltr">
-```
-
-### 9. OurLifePage.tsx (line 92)
-**Before:**
-```tsx
-<main className="container mx-auto px-6 py-20">
-```
-**After:**
-```tsx
-<main className="container mx-auto px-6 py-20" dir="ltr">
-```
-
-### 10. OurCalendarPage.tsx (line 55)
-**Before:**
-```tsx
-<main className="container mx-auto px-4 py-8 pt-24">
-```
-**After:**
-```tsx
-<main className="container mx-auto px-4 py-8 pt-24" dir="ltr">
-```
-
-### 11. OurFinancialPage.tsx (line 314)
-**Before:**
-```tsx
-<main className="container mx-auto px-6 py-20">
-```
-**After:**
-```tsx
-<main className="container mx-auto px-6 py-20" dir="ltr">
-```
-
-### 12. OurTodoPage.tsx (line 163)
-**Before:**
-```tsx
-<main className="container mx-auto px-4 py-8 pt-24">
-```
-**After:**
-```tsx
-<main className="container mx-auto px-4 py-8 pt-24" dir="ltr">
-```
-
-## Expected Outcome
-
-After implementation:
-
-| Component | Behavior |
-|-----------|----------|
-| Navigation | Follows language context (RTL for Persian routes, LTR for English routes) - same as homepage |
-| All protected page content | Always LTR with English text alignment |
-| Cards, forms, tables | Flow from left to right |
-| Text | Aligned left |
-| Icons | Appear on the left of text |
-
-## Files Modified (12 total)
-
-1. `src/pages/ProjectsPage.tsx`
-2. `src/pages/ProjectDetailsPage.tsx`
-3. `src/pages/FinancialAnalysisPage.tsx`
-4. `src/pages/HRManagementPage.tsx`
-5. `src/pages/WritingLetterPage.tsx`
-6. `src/pages/CreateDocumentPage.tsx`
-7. `src/pages/CreateRequestPage.tsx`
-8. `src/pages/BlogDashboardPage.tsx`
-9. `src/pages/OurLifePage.tsx`
-10. `src/pages/OurCalendarPage.tsx`
-11. `src/pages/OurFinancialPage.tsx`
-12. `src/pages/OurTodoPage.tsx`
