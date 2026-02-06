@@ -224,6 +224,38 @@ const EmployeeForm = ({ employee, onSuccess, onCancel }: EmployeeFormProps) => {
           });
         
         if (sensitiveUpdateError) throw sensitiveUpdateError;
+
+        // Update user role based on job_type (handles job_type changes)
+        if (formData.user_id && formData.job_type) {
+          const roleToAssign = formData.job_type === 'admin' ? 'admin' : 'general_user';
+          const roleToRemove = formData.job_type === 'admin' ? 'general_user' : 'admin';
+          
+          // Remove old role first
+          await supabase
+            .from('user_roles')
+            .delete()
+            .eq('user_id', formData.user_id)
+            .eq('role', roleToRemove);
+          
+          // Upsert new role
+          const { error: roleError } = await supabase
+            .from('user_roles')
+            .upsert({
+              user_id: formData.user_id,
+              role: roleToAssign,
+            }, {
+              onConflict: 'user_id,role'
+            });
+
+          if (roleError) {
+            console.error('Error updating role:', roleError);
+            toast({
+              title: "Warning",
+              description: "Employee updated but role assignment failed. Please assign role manually.",
+              variant: "destructive",
+            });
+          }
+        }
       } else {
         // Insert new employee
         const { data: newEmployee, error: insertError } = await supabase
@@ -244,6 +276,29 @@ const EmployeeForm = ({ employee, onSuccess, onCancel }: EmployeeFormProps) => {
           });
         
         if (sensitiveInsertError) throw sensitiveInsertError;
+
+        // Create user role based on job_type
+        if (formData.user_id && formData.job_type) {
+          const roleToAssign = formData.job_type === 'admin' ? 'admin' : 'general_user';
+          
+          const { error: roleError } = await supabase
+            .from('user_roles')
+            .upsert({
+              user_id: formData.user_id,
+              role: roleToAssign,
+            }, {
+              onConflict: 'user_id,role'
+            });
+
+          if (roleError) {
+            console.error('Error assigning role:', roleError);
+            toast({
+              title: "Warning",
+              description: "Employee created but role assignment failed. Please assign role manually.",
+              variant: "destructive",
+            });
+          }
+        }
       }
 
       toast({
