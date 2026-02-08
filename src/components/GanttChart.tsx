@@ -81,6 +81,7 @@ const GanttChart: React.FC<GanttChartProps> = ({ tasks }) => {
     switch (status) {
       case 'completed': return 'hsl(142 76% 36%)';
       case 'in_progress': return 'hsl(var(--primary))'; 
+      case 'todo':
       case 'pending': return 'hsl(var(--gold))';
       case 'cancelled': return 'hsl(0 84% 60%)';
       default: return 'hsl(var(--muted-foreground))';
@@ -272,7 +273,7 @@ const GanttChart: React.FC<GanttChartProps> = ({ tasks }) => {
               </div>
               <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/30 rounded-full">
                 <div className="w-2.5 h-2.5 bg-gold rounded-full"></div>
-                <span className="font-body text-muted-foreground">Pending</span>
+                <span className="font-body text-muted-foreground">To Do</span>
               </div>
               <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/30 rounded-full">
                 <div className="w-2.5 h-2.5 bg-red-500 rounded-full"></div>
