@@ -25,6 +25,8 @@ export const NotificationBell = () => {
     isSubscribed,
     permission,
     loading,
+    isIOS,
+    isStandalone,
     subscribe,
     unsubscribe
   } = usePushNotifications();
@@ -127,6 +129,21 @@ export const NotificationBell = () => {
       </PopoverTrigger>
       <PopoverContent className="w-80" align="end">
         <div className="space-y-4">
+          {/* iOS Guidance */}
+          {isIOS && !isStandalone && (
+            <div className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
+              <p className="text-sm text-amber-700 dark:text-amber-300 font-medium">
+                📱 To enable notifications on iPhone/iPad:
+              </p>
+              <ol className="text-xs text-amber-600 dark:text-amber-400 mt-2 list-decimal list-inside space-y-1">
+                <li>Tap the Share button (□↑) in Safari</li>
+                <li>Select "Add to Home Screen"</li>
+                <li>Open the app from your Home Screen</li>
+                <li>Then enable notifications</li>
+              </ol>
+            </div>
+          )}
+
           <div className="flex items-center justify-between">
             <div>
               <h4 className="font-medium">Push Notifications</h4>
@@ -138,7 +155,7 @@ export const NotificationBell = () => {
               variant={isSubscribed ? 'outline' : 'default'}
               size="sm"
               onClick={handleToggleNotifications}
-              disabled={loading}
+              disabled={loading || (isIOS && !isStandalone)}
             >
               {loading ? 'Loading...' : isSubscribed ? 'Disable' : 'Enable'}
             </Button>
