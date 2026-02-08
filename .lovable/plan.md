@@ -1,195 +1,342 @@
 
 
-# Add Edit and Delete Buttons to Tasks Section
+# Add Filter and Sort Controls to Projects Page
 
 ## Overview
 
-Add edit and delete icon buttons to each task in the Tasks section of the Project Details page. The delete action will show a confirmation dialog before permanently removing the task from the database.
+Add filter and sort functionality to the `/projects` page, allowing users to filter projects by status, priority, and client name, and sort by various fields like created date, project name, budget, and start/end dates.
 
 ## Current State
 
-- Tasks are displayed in a card list format (lines 508-547 in `ProjectDetailsPage.tsx`)
-- Each task card shows: title, status badge, priority badge, assigned user, due date, description, and creation date
-- `TaskEditDialog` component exists but is not imported in `ProjectDetailsPage.tsx`
-- `AlertDialog` component is available for delete confirmation
+- Projects are fetched from `adrian_projects` table and displayed in a grid
+- Default sort is by `created_at` descending (newest first)
+- No filtering or sorting UI exists
+- Available project fields: `status`, `priority`, `client_name`, `project_name`, `budget`, `created_at`, `start_date`, `end_date`, `project_manager`
+
+## Database Schema Reference
+
+The `adrian_projects` table has these relevant columns:
+- `status`: text (planning, in_progress, on_hold, completed, cancelled)
+- `priority`: text (low, medium, high)
+- `client_name`: text
+- `project_name`: text
+- `budget`: numeric
+- `created_at`: timestamp
+- `start_date`: date
+- `end_date`: date
 
 ## Implementation
 
 ### 1. Add Required Imports
 
-Add to `src/pages/ProjectDetailsPage.tsx`:
-
 ```typescript
-import { Trash2 } from 'lucide-react';  // Add to existing lucide imports
-import { TaskEditDialog } from '@/components/TaskEditDialog';
+import { Filter, SortAsc, SortDesc, Search, X } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 ```
 
 ### 2. Add State Variables
 
-Add new state for managing the edit dialog and delete confirmation:
-
 ```typescript
-const [taskEditDialogOpen, setTaskEditDialogOpen] = useState(false);
-const [selectedTask, setSelectedTask] = useState<Task | null>(null);
-const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
-const [deleting, setDeleting] = useState(false);
+// Filter states
+const [statusFilter, setStatusFilter] = useState<string>('all');
+const [priorityFilter, setPriorityFilter] = useState<string>('all');
+const [searchQuery, setSearchQuery] = useState<string>('');
+
+// Sort states
+const [sortField, setSortField] = useState<string>('created_at');
+const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 ```
 
-### 3. Add Delete Handler Function
+### 3. Add Filtering and Sorting Logic
+
+Create a computed variable that applies filters and sorting to the projects array:
 
 ```typescript
-const handleDeleteTask = async () => {
-  if (!taskToDelete) return;
+const filteredAndSortedProjects = useMemo(() => {
+  let result = [...projects];
   
-  setDeleting(true);
-  try {
-    const { error } = await supabase
-      .from('tasks')
-      .delete()
-      .eq('id', taskToDelete.id);
-    
-    if (error) throw error;
-    
-    setTasks(tasks.filter(t => t.id !== taskToDelete.id));
-    toast({
-      title: "Success",
-      description: "Task deleted successfully",
-    });
-  } catch (error) {
-    console.error('Error deleting task:', error);
-    toast({
-      title: "Error",
-      description: "Failed to delete task",
-      variant: "destructive",
-    });
-  } finally {
-    setDeleting(false);
-    setDeleteConfirmOpen(false);
-    setTaskToDelete(null);
+  // Apply status filter
+  if (statusFilter !== 'all') {
+    result = result.filter(p => p.status === statusFilter);
   }
+  
+  // Apply priority filter
+  if (priorityFilter !== 'all') {
+    result = result.filter(p => p.priority === priorityFilter);
+  }
+  
+  // Apply search filter (searches project name, client name, project ID)
+  if (searchQuery.trim()) {
+    const query = searchQuery.toLowerCase();
+    result = result.filter(p => 
+      p.project_name?.toLowerCase().includes(query) ||
+      p.client_name?.toLowerCase().includes(query) ||
+      p.project_id?.toLowerCase().includes(query) ||
+      p.description?.toLowerCase().includes(query)
+    );
+  }
+  
+  // Apply sorting
+  result.sort((a, b) => {
+    let aVal = a[sortField];
+    let bVal = b[sortField];
+    
+    // Handle null values
+    if (aVal === null || aVal === undefined) aVal = '';
+    if (bVal === null || bVal === undefined) bVal = '';
+    
+    // Handle date/string comparison
+    if (sortField.includes('date') || sortField === 'created_at') {
+      aVal = aVal ? new Date(aVal).getTime() : 0;
+      bVal = bVal ? new Date(bVal).getTime() : 0;
+    } else if (typeof aVal === 'string') {
+      aVal = aVal.toLowerCase();
+      bVal = bVal.toLowerCase();
+    }
+    
+    if (sortDirection === 'asc') {
+      return aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
+    } else {
+      return aVal < bVal ? 1 : aVal > bVal ? -1 : 0;
+    }
+  });
+  
+  return result;
+}, [projects, statusFilter, priorityFilter, searchQuery, sortField, sortDirection]);
+```
+
+### 4. Add Clear Filters Function
+
+```typescript
+const clearFilters = () => {
+  setStatusFilter('all');
+  setPriorityFilter('all');
+  setSearchQuery('');
+  setSortField('created_at');
+  setSortDirection('desc');
 };
+
+const hasActiveFilters = statusFilter !== 'all' || priorityFilter !== 'all' || searchQuery.trim() !== '';
 ```
 
-### 4. Update Task Card UI
+### 5. Add Filter/Sort UI Section
 
-Modify the task card (lines 509-547) to include edit and delete buttons:
-
-```tsx
-{tasks.map((task) => (
-  <div key={task.id} className="border rounded-lg p-3">
-    <div className="flex items-start justify-between">
-      <div className="flex-1">
-        {/* Existing task content */}
-      </div>
-      
-      {/* NEW: Action buttons */}
-      <div className="flex items-center gap-1 ml-2">
-        <Button
-          size="icon"
-          variant="ghost"
-          onClick={() => {
-            setSelectedTask(task);
-            setTaskEditDialogOpen(true);
-          }}
-          title="Edit task"
-        >
-          <Pencil className="w-4 h-4" />
-        </Button>
-        <Button
-          size="icon"
-          variant="ghost"
-          onClick={() => {
-            setTaskToDelete(task);
-            setDeleteConfirmOpen(true);
-          }}
-          title="Delete task"
-          className="text-destructive hover:text-destructive"
-        >
-          <Trash2 className="w-4 h-4" />
-        </Button>
-      </div>
-    </div>
-  </div>
-))}
-```
-
-### 5. Add TaskEditDialog Component
-
-Add after the existing dialogs at the bottom of the component:
+Insert this section between the header and the projects grid:
 
 ```tsx
-{selectedTask && (
-  <TaskEditDialog
-    open={taskEditDialogOpen}
-    onOpenChange={setTaskEditDialogOpen}
-    task={selectedTask}
-    userRole={userRole || 'general_user'}
-    onTaskUpdated={() => {
-      if (projectId && user) {
-        loadProjectData(projectId, user.id);
-      }
-      setSelectedTask(null);
-    }}
-  />
-)}
-```
-
-### 6. Add Delete Confirmation Dialog
-
-Add the AlertDialog for delete confirmation:
-
-```tsx
-<AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
-  <AlertDialogContent>
-    <AlertDialogHeader>
-      <AlertDialogTitle>Delete Task</AlertDialogTitle>
-      <AlertDialogDescription>
-        Are you sure you want to delete "{taskToDelete?.title}"? 
-        This action cannot be undone and will permanently remove the task.
-      </AlertDialogDescription>
-    </AlertDialogHeader>
-    <AlertDialogFooter>
-      <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
-      <AlertDialogAction
-        onClick={handleDeleteTask}
-        disabled={deleting}
-        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+{/* Filter and Sort Controls */}
+<div className="mb-6 space-y-4">
+  {/* Search Bar */}
+  <div className="relative">
+    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+    <Input
+      placeholder="Search projects by name, client, or ID..."
+      value={searchQuery}
+      onChange={(e) => setSearchQuery(e.target.value)}
+      className="pl-10 pr-10"
+    />
+    {searchQuery && (
+      <Button
+        variant="ghost"
+        size="icon"
+        className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8"
+        onClick={() => setSearchQuery('')}
       >
-        {deleting ? 'Deleting...' : 'Delete'}
-      </AlertDialogAction>
-    </AlertDialogFooter>
-  </AlertDialogContent>
-</AlertDialog>
+        <X className="h-4 w-4" />
+      </Button>
+    )}
+  </div>
+
+  {/* Filter and Sort Row */}
+  <div className="flex flex-wrap items-center gap-3">
+    {/* Status Filter */}
+    <div className="flex items-center gap-2">
+      <Filter className="h-4 w-4 text-muted-foreground" />
+      <Select value={statusFilter} onValueChange={setStatusFilter}>
+        <SelectTrigger className="w-[140px]">
+          <SelectValue placeholder="Status" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All Status</SelectItem>
+          <SelectItem value="planning">Planning</SelectItem>
+          <SelectItem value="in_progress">In Progress</SelectItem>
+          <SelectItem value="on_hold">On Hold</SelectItem>
+          <SelectItem value="completed">Completed</SelectItem>
+          <SelectItem value="cancelled">Cancelled</SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
+
+    {/* Priority Filter */}
+    <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+      <SelectTrigger className="w-[140px]">
+        <SelectValue placeholder="Priority" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="all">All Priority</SelectItem>
+        <SelectItem value="high">High</SelectItem>
+        <SelectItem value="medium">Medium</SelectItem>
+        <SelectItem value="low">Low</SelectItem>
+      </SelectContent>
+    </Select>
+
+    {/* Sort Field */}
+    <div className="flex items-center gap-2 ml-auto">
+      <Select value={sortField} onValueChange={setSortField}>
+        <SelectTrigger className="w-[160px]">
+          <SelectValue placeholder="Sort by" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="created_at">Created Date</SelectItem>
+          <SelectItem value="project_name">Project Name</SelectItem>
+          <SelectItem value="client_name">Client Name</SelectItem>
+          <SelectItem value="start_date">Start Date</SelectItem>
+          <SelectItem value="end_date">End Date</SelectItem>
+          <SelectItem value="budget">Budget</SelectItem>
+          <SelectItem value="status">Status</SelectItem>
+          <SelectItem value="priority">Priority</SelectItem>
+        </SelectContent>
+      </Select>
+
+      {/* Sort Direction Toggle */}
+      <Button
+        variant="outline"
+        size="icon"
+        onClick={() => setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc')}
+        title={sortDirection === 'asc' ? 'Ascending' : 'Descending'}
+      >
+        {sortDirection === 'asc' ? (
+          <SortAsc className="h-4 w-4" />
+        ) : (
+          <SortDesc className="h-4 w-4" />
+        )}
+      </Button>
+    </div>
+
+    {/* Clear Filters Button */}
+    {hasActiveFilters && (
+      <Button variant="ghost" size="sm" onClick={clearFilters}>
+        <X className="h-4 w-4 mr-1" />
+        Clear Filters
+      </Button>
+    )}
+  </div>
+
+  {/* Results Count */}
+  <div className="text-sm text-muted-foreground">
+    Showing {filteredAndSortedProjects.length} of {projects.length} projects
+  </div>
+</div>
+```
+
+### 6. Update Projects Grid
+
+Change the grid to use `filteredAndSortedProjects` instead of `projects`:
+
+```tsx
+// Before
+{projects.map((project) => (
+
+// After
+{filteredAndSortedProjects.map((project) => (
+```
+
+Also update the empty state check:
+
+```tsx
+// Before
+{projects.length === 0 ? (
+
+// After  
+{projects.length === 0 ? (
+  // Show "No Projects Yet" - original empty state
+) : filteredAndSortedProjects.length === 0 ? (
+  // Show "No matching projects" - filtered empty state
+  <Card className="glass">
+    <CardContent className="text-center py-12">
+      <Filter className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+      <h3 className="text-lg font-semibold mb-2">No Matching Projects</h3>
+      <p className="text-muted-foreground mb-6">
+        No projects match your current filters. Try adjusting your search or filters.
+      </p>
+      <Button variant="outline" onClick={clearFilters}>
+        Clear Filters
+      </Button>
+    </CardContent>
+  </Card>
+) : (
+  // Show projects grid
+)}
 ```
 
 ## Files to Modify
 
 | File | Changes |
 |------|---------|
-| `src/pages/ProjectDetailsPage.tsx` | Add imports, state, delete handler, UI buttons, and dialogs |
+| `src/pages/ProjectsPage.tsx` | Add imports, state, filtering/sorting logic, and UI controls |
 
-## Visual Result
+## Visual Layout
 
-Each task card will now have two icon buttons on the right side:
-- Pencil icon - Opens the TaskEditDialog for editing
-- Trash icon (red) - Opens confirmation dialog, then deletes on confirm
+```text
++------------------------------------------------------------------+
+|  [Back to Dashboard]                                              |
+|                                                                   |
+|  Projects                                    [+ New Project]      |
+|  Manage and track your ongoing projects                           |
+|                                                                   |
+|  +--------------------------------------------------------------+ |
+|  | [🔍] Search projects by name, client, or ID...          [X] | |
+|  +--------------------------------------------------------------+ |
+|                                                                   |
+|  [Filter] [Status ▼] [Priority ▼]    [Sort by ▼] [↑↓] [Clear]    |
+|                                                                   |
+|  Showing 5 of 12 projects                                         |
+|                                                                   |
+|  +----------------+  +----------------+  +----------------+       |
+|  | Project Card 1 |  | Project Card 2 |  | Project Card 3 |       |
+|  +----------------+  +----------------+  +----------------+       |
++------------------------------------------------------------------+
+```
 
-## Technical Details
+## Filter Options Summary
 
-- The `Pencil` icon is already imported (line 16)
-- `Trash2` icon needs to be added to imports
-- `TaskEditDialog` requires `task`, `userRole`, `open`, `onOpenChange`, and `onTaskUpdated` props
-- Delete operation uses Supabase `.delete()` with task ID filter
-- Local state is updated after successful deletion to avoid refetching
+| Filter | Options |
+|--------|---------|
+| Status | All, Planning, In Progress, On Hold, Completed, Cancelled |
+| Priority | All, High, Medium, Low |
+| Search | Free text (searches name, client, ID, description) |
+
+## Sort Options Summary
+
+| Sort Field | Type |
+|------------|------|
+| Created Date | Date (default) |
+| Project Name | Alphabetical |
+| Client Name | Alphabetical |
+| Start Date | Date |
+| End Date | Date |
+| Budget | Numeric |
+| Status | Alphabetical |
+| Priority | Alphabetical |
+
+## Technical Notes
+
+- Filtering is done client-side using `useMemo` for performance
+- All filters can be combined (AND logic)
+- Sort direction toggles between ascending and descending
+- "Clear Filters" button only appears when filters are active
+- Results count shows filtered vs total projects
+- Search is case-insensitive
 
