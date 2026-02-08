@@ -1,119 +1,99 @@
 
-
-# Fix: Auto-Create User Role When Adding Employee
+# Fix: Task Creation Fails - Email Used Instead of UUID
 
 ## Problem
 
-When a new employee is created via the HR Management form, the `job_type` field (admin/general_user) is saved to the `employees` table but **not** synchronized to the `user_roles` table. This means the user won't have proper access permissions until manually assigned via Role Management.
+The task creation is failing because the **Assigned To** dropdown is storing the user's **email** as the value instead of their **UUID**.
 
-## Current Data Flow
+**Database Error:**
+```
+invalid input syntax for type uuid: "teimourialireza@yahoo.com"
+```
 
-```text
-Employee Form
-     │
-     ├──► employees table (job_type saved here)
-     │
-     └──► employee_sensitive_data table
-     
-     ✗ user_roles table NOT updated
+**Root Cause:** In `NewTaskDialog.tsx` (line 617), the SelectItem uses `user.email` as the value:
+```tsx
+<SelectItem key={user.id} value={user.email}>  // ← Bug: email instead of UUID
+  {user.email}
+</SelectItem>
 ```
 
 ## Solution
 
-Modify the `EmployeeForm.tsx` to automatically insert/update a role in `user_roles` when creating or updating an employee, based on the selected `job_type`.
-
-## Implementation
-
-### Option A: Application-Level (Recommended)
-
-Update `src/components/EmployeeForm.tsx` to add user role logic in the `handleSubmit` function:
-
-**After line 246** (after sensitive data insert), add:
-
-```typescript
-// Create user role based on job_type
-const roleToAssign = formData.job_type === 'admin' ? 'admin' : 'general_user';
-
-const { error: roleError } = await supabase
-  .from('user_roles')
-  .upsert({
-    user_id: formData.user_id,
-    role: roleToAssign,
-  }, {
-    onConflict: 'user_id,role'
-  });
-
-if (roleError) {
-  console.error('Error assigning role:', roleError);
-  // Don't throw - employee was created successfully
-  toast({
-    title: "Warning",
-    description: "Employee created but role assignment failed. Please assign role manually.",
-    variant: "destructive",
-  });
-}
-```
-
-**For updates** (after line 226), add similar logic to update the role when job_type changes.
-
-### Option B: Database Trigger (Alternative)
-
-Create a database trigger that automatically creates a user role when an employee is inserted:
-
-```sql
-CREATE OR REPLACE FUNCTION sync_employee_role()
-RETURNS TRIGGER AS $$
-BEGIN
-  -- Map job_type to app_role enum
-  IF NEW.job_type = 'admin' THEN
-    INSERT INTO user_roles (user_id, role)
-    VALUES (NEW.user_id, 'admin')
-    ON CONFLICT (user_id, role) DO NOTHING;
-  ELSIF NEW.job_type = 'general_user' THEN
-    INSERT INTO user_roles (user_id, role)
-    VALUES (NEW.user_id, 'general_user')
-    ON CONFLICT (user_id, role) DO NOTHING;
-  END IF;
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
-CREATE TRIGGER sync_employee_role_trigger
-AFTER INSERT OR UPDATE OF job_type ON employees
-FOR EACH ROW
-EXECUTE FUNCTION sync_employee_role();
-```
-
-## My Recommendation
-
-**Option A (Application-Level)** is recommended because:
-- Provides immediate user feedback if role assignment fails
-- Easier to debug and maintain
-- Allows for more complex logic (e.g., removing old roles when job_type changes)
+Change the `value` prop from `user.email` to `user.id` in all user selection dropdowns within `NewTaskDialog.tsx`.
 
 ## Files to Modify
 
-1. `src/components/EmployeeForm.tsx`
-   - Add role upsert logic after employee creation (new employees)
-   - Add role update logic after employee update (existing employees)
-   - Handle edge case: when job_type changes from admin to general_user, update the role
+1. `src/components/NewTaskDialog.tsx`
 
-## Additional Consideration
+## Detailed Changes
 
-When **updating** an employee's job_type, we should:
-1. Delete the old role if job_type changed
-2. Insert the new role
+### 1. Fix Assigned To dropdown (line 617)
 
-This ensures users don't accumulate multiple roles unintentionally.
-
-## Fix for Existing Data
-
-For the new employee "Ramin Pishali" (user_id: `88514d79-a78c-49fe-a9a8-112fa783c2ec`), you can manually add the role by going to Role Management in HR Management and assigning the "Admin" role.
-
-Or I can execute a one-time fix:
-```sql
-INSERT INTO user_roles (user_id, role)
-VALUES ('88514d79-a78c-49fe-a9a8-112fa783c2ec', 'admin')
-ON CONFLICT (user_id, role) DO NOTHING;
+**Before:**
+```tsx
+{authUsers.map((user) => (
+  <SelectItem key={user.id} value={user.email}>
+    {user.email}
+  </SelectItem>
+))}
 ```
 
+**After:**
+```tsx
+{authUsers.map((user) => (
+  <SelectItem key={user.id} value={user.id}>
+    {user.email}
+  </SelectItem>
+))}
+```
+
+### 2. Fix Follow Up By dropdown (line 636)
+
+**Before:**
+```tsx
+{authUsers.map((user) => (
+  <SelectItem key={user.id} value={user.email}>
+    {user.email}
+  </SelectItem>
+))}
+```
+
+**After:**
+```tsx
+{authUsers.map((user) => (
+  <SelectItem key={user.id} value={user.id}>
+    {user.email}
+  </SelectItem>
+))}
+```
+
+## Technical Explanation
+
+| Component | Current Behavior | Required Behavior |
+|-----------|-----------------|-------------------|
+| SelectItem value | `user.email` (string) | `user.id` (UUID) |
+| Database column `assigned_to` | Expects UUID | Receives email → Error |
+
+## Expected Outcome
+
+After this fix:
+- Task creation will succeed
+- The `assigned_to` field will store the correct UUID
+- The user will still see email addresses in the dropdown (for readability)
+- Notifications will work correctly (already expects UUID)
+
+## Additional Considerations
+
+The code at line 391-399 already expects `formData.assignedTo` to be a UUID:
+```tsx
+if (formData.assignedTo && formData.assignedTo !== 'unassigned' && formData.assignedTo !== user.id) {
+  await sendNotification(
+    '📋 New Task Assigned',
+    ...
+    [formData.assignedTo],  // ← Expects UUID, currently receives email
+    ...
+  );
+}
+```
+
+This fix will also make notifications work correctly.
