@@ -421,16 +421,16 @@ const DashboardPage = () => {
   return <div className="min-h-screen bg-background">
       <Navigation />
       
-      <main className="container mx-auto px-6 py-20" dir="ltr">
+      <main className="container mx-auto px-4 sm:px-6 py-16 sm:py-20" dir="ltr">
         <div className="max-w-6xl mx-auto text-left">
           {/* Welcome Header */}
-          <div className="mb-8">
-            <div className="flex items-center justify-between">
+          <div className="mb-6 sm:mb-8">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="text-left">
-                <h1 className="text-3xl font-display font-bold mb-2 text-left">
+                <h1 className="text-2xl sm:text-3xl font-display font-bold mb-1 sm:mb-2 text-left">
                   Welcome back, {user?.email?.split('@')[0] || 'User'}!
                 </h1>
-                <p className="text-muted-foreground text-left">
+                <p className="text-sm sm:text-base text-muted-foreground text-left">
                   Manage your business operations from your dashboard
                 </p>
               </div>
@@ -442,14 +442,14 @@ const DashboardPage = () => {
           </div>
 
           {/* Dashboard Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-            {dashboardItems.map(item => <Card key={item.path} className="glass hover:shadow-lg transition-all duration-300 cursor-pointer hover:scale-105 text-left" onClick={() => navigate(item.path)}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
+            {dashboardItems.map(item => <Card key={item.path} className="glass hover:shadow-lg transition-all duration-300 cursor-pointer hover:scale-105 text-left min-h-[100px]" onClick={() => navigate(item.path)}>
                 <CardHeader>
                   <div className="flex items-center justify-start gap-3">
                     <div className={`p-2 rounded-lg bg-accent/10`}>
-                      <item.icon className={`h-6 w-6 ${item.color}`} />
+                      <item.icon className={`h-5 w-5 sm:h-6 sm:w-6 ${item.color}`} />
                     </div>
-                    <CardTitle className="text-lg text-left">{item.title}</CardTitle>
+                    <CardTitle className="text-base sm:text-lg text-left">{item.title}</CardTitle>
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -462,31 +462,31 @@ const DashboardPage = () => {
 
 
           {/* My Tasks */}
-          <div className="mb-8">
-            <div className="flex items-center gap-3 mb-6">
-              <CheckSquare className="h-6 w-6 text-primary" />
-              <h2 className="text-2xl font-display font-bold">My Tasks</h2>
+          <div className="mb-6 sm:mb-8">
+            <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
+              <CheckSquare className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+              <h2 className="text-xl sm:text-2xl font-display font-bold">My Tasks</h2>
             </div>
 
             {/* Search and Filter Controls */}
-            <Card className="glass mb-6">
-              <CardContent className="p-4">
-                <div className="flex flex-col md:flex-row gap-4 mb-4">
+            <Card className="glass mb-4 sm:mb-6">
+              <CardContent className="p-3 sm:p-4">
+                <div className="flex flex-col gap-3 sm:gap-4 mb-4">
                   {/* Search Bar */}
                   <div className="relative flex-1">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
-                      placeholder="Search tasks, projects, or notes..."
+                      placeholder="Search tasks..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10"
+                      className="pl-10 min-h-[44px]"
                     />
                   </div>
                   
                   {/* Filter Controls */}
-                  <div className="flex flex-col sm:flex-row gap-4">
+                  <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                     <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-                      <SelectTrigger className="w-full sm:w-32">
+                      <SelectTrigger className="w-full sm:w-32 min-h-[44px]">
                         <Filter className="h-4 w-4 mr-2" />
                         <SelectValue />
                       </SelectTrigger>
@@ -499,7 +499,7 @@ const DashboardPage = () => {
                     </Select>
 
                     <Select value={statusFilter} onValueChange={setStatusFilter}>
-                      <SelectTrigger className="w-full sm:w-32">
+                      <SelectTrigger className="w-full sm:w-32 min-h-[44px]">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -511,25 +511,25 @@ const DashboardPage = () => {
                   </div>
                 </div>
 
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div className="flex items-center gap-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
                     <div className="flex items-center space-x-2">
                       <Switch
                         id="overdue-only"
                         checked={showOverdueOnly}
                         onCheckedChange={setShowOverdueOnly}
                       />
-                      <Label htmlFor="overdue-only" className="text-sm">Show overdue only</Label>
+                      <Label htmlFor="overdue-only" className="text-sm">Overdue only</Label>
                     </div>
                     
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={clearFilters}
-                      className="flex items-center gap-2"
+                      className="flex items-center gap-2 min-h-[36px]"
                     >
                       <X className="h-4 w-4" />
-                      Clear Filters
+                      Clear
                     </Button>
                   </div>
 
@@ -543,7 +543,7 @@ const DashboardPage = () => {
             {/* Tasks Table - Organized by Role */}
             {tasksLoading ? (
               <Card className="glass">
-                <CardContent className="p-6">
+                <CardContent className="p-4 sm:p-6">
                   <div className="space-y-4">
                     {[1, 2, 3, 4, 5].map(i => (
                       <div key={i} className="flex items-center space-x-4">
@@ -559,25 +559,26 @@ const DashboardPage = () => {
               </Card>
             ) : tasks.length === 0 ? (
               <Card className="glass">
-                <CardContent className="text-center py-12">
-                  <CheckSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No pending tasks</h3>
-                  <p className="text-muted-foreground">
+                <CardContent className="text-center py-8 sm:py-12">
+                  <CheckSquare className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-base sm:text-lg font-semibold mb-2">No pending tasks</h3>
+                  <p className="text-sm sm:text-base text-muted-foreground">
                     You don't have any tasks at the moment.
                   </p>
                 </CardContent>
               </Card>
             ) : (
-              <div className="space-y-6">
+              <div className="space-y-4 sm:space-y-6">
                 {/* Tasks Assigned By Me */}
                 {filteredAndSortedTasksByRole.assignedByMe.length > 0 && (
                   <Card className="glass">
                     <CardHeader>
-                      <CardTitle className="text-lg">Tasks Created By Me ({filteredAndSortedTasksByRole.assignedByMe.length})</CardTitle>
-                      <CardDescription>Tasks you have assigned to others</CardDescription>
+                      <CardTitle className="text-base sm:text-lg">Tasks Created By Me ({filteredAndSortedTasksByRole.assignedByMe.length})</CardTitle>
+                      <CardDescription className="text-sm">Tasks you have assigned to others</CardDescription>
                     </CardHeader>
-                    <div className="overflow-x-auto">
-                      <Table>
+                    <div className="overflow-x-auto -mx-4 sm:mx-0">
+                      <div className="min-w-[700px] sm:min-w-0 px-4 sm:px-0">
+                        <Table>
                         <TableHeader>
                           <TableRow>
                             <TableHead>Task Name</TableHead>
@@ -626,6 +627,7 @@ const DashboardPage = () => {
                           })}
                         </TableBody>
                       </Table>
+                      </div>
                     </div>
                   </Card>
                 )}
@@ -634,11 +636,12 @@ const DashboardPage = () => {
                 {filteredAndSortedTasksByRole.assignedToMe.length > 0 && (
                   <Card className="glass">
                     <CardHeader>
-                      <CardTitle className="text-lg">Tasks Assigned To Me ({filteredAndSortedTasksByRole.assignedToMe.length})</CardTitle>
-                      <CardDescription>Tasks you need to work on</CardDescription>
+                      <CardTitle className="text-base sm:text-lg">Tasks Assigned To Me ({filteredAndSortedTasksByRole.assignedToMe.length})</CardTitle>
+                      <CardDescription className="text-sm">Tasks you need to work on</CardDescription>
                     </CardHeader>
-                    <div className="overflow-x-auto">
-                      <Table>
+                    <div className="overflow-x-auto -mx-4 sm:mx-0">
+                      <div className="min-w-[700px] sm:min-w-0 px-4 sm:px-0">
+                        <Table>
                         <TableHeader>
                           <TableRow>
                             <TableHead>Task Name</TableHead>
@@ -687,6 +690,7 @@ const DashboardPage = () => {
                           })}
                         </TableBody>
                       </Table>
+                      </div>
                     </div>
                   </Card>
                 )}
@@ -695,9 +699,9 @@ const DashboardPage = () => {
                 {(filteredAndSortedTasksByRole.assignedByMe.length === 0 && 
                   filteredAndSortedTasksByRole.assignedToMe.length === 0) && (
                   <Card className="glass">
-                    <CardContent className="text-center py-12">
-                      <Search className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="text-lg font-semibold mb-2">No tasks found</h3>
+                    <CardContent className="text-center py-8 sm:py-12">
+                      <Search className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground mx-auto mb-4" />
+                      <h3 className="text-base sm:text-lg font-semibold mb-2">No tasks found</h3>
                       <p className="text-muted-foreground">
                         No tasks match your current search and filter criteria.
                       </p>

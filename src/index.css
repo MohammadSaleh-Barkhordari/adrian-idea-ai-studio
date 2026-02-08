@@ -352,4 +352,23 @@
   .hover-lift:hover {
     transform: translateY(-5px) scale(1.02);
   }
+
+  /* Touch-friendly minimum size */
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px];
+  }
+  
+  /* Safe area padding for notched devices */
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top);
+  }
+  
+  /* Dynamic viewport height for mobile browsers */
+  .min-h-dvh {
+    min-height: 100dvh;
+  }
 }
