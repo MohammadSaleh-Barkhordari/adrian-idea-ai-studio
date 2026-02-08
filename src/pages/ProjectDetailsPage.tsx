@@ -13,7 +13,18 @@ import GanttChart from '@/components/GanttChart';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Calendar, DollarSign, Building, User, FileText, Clock, Plus, Edit3, Download, CheckSquare, File, Pencil } from 'lucide-react';
+import { ArrowLeft, Calendar, DollarSign, Building, User, FileText, Clock, Plus, Edit3, Download, CheckSquare, File, Pencil, Trash2 } from 'lucide-react';
+import { TaskEditDialog } from '@/components/TaskEditDialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -115,6 +126,11 @@ const ProjectDetailsPage = () => {
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
   const [fileDialogOpen, setFileDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [taskEditDialogOpen, setTaskEditDialogOpen] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -288,6 +304,37 @@ const ProjectDetailsPage = () => {
   const handleProjectUpdated = () => {
     if (projectId && user?.id) {
       loadProjectData(projectId, user.id);
+    }
+  };
+
+  const handleDeleteTask = async () => {
+    if (!taskToDelete) return;
+    
+    setDeleting(true);
+    try {
+      const { error } = await supabase
+        .from('tasks')
+        .delete()
+        .eq('id', taskToDelete.id);
+      
+      if (error) throw error;
+      
+      setTasks(tasks.filter(t => t.id !== taskToDelete.id));
+      toast({
+        title: "Success",
+        description: "Task deleted successfully",
+      });
+    } catch (error) {
+      console.error('Error deleting task:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete task",
+        variant: "destructive",
+      });
+    } finally {
+      setDeleting(false);
+      setDeleteConfirmOpen(false);
+      setTaskToDelete(null);
     }
   };
 
@@ -542,6 +589,32 @@ const ProjectDetailsPage = () => {
                           <p className="text-xs text-muted-foreground">
                             Created: {formatDate(task.created_at)}
                           </p>
+                        </div>
+                        
+                        <div className="flex items-center gap-1 ml-2">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => {
+                              setSelectedTask(task);
+                              setTaskEditDialogOpen(true);
+                            }}
+                            title="Edit task"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => {
+                              setTaskToDelete(task);
+                              setDeleteConfirmOpen(true);
+                            }}
+                            title="Delete task"
+                            className="text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
                         </div>
                       </div>
                     </div>
@@ -912,6 +985,43 @@ const ProjectDetailsPage = () => {
         project={project}
         onProjectUpdated={handleProjectUpdated}
       />
+      
+      {selectedTask && (
+        <TaskEditDialog
+          open={taskEditDialogOpen}
+          onOpenChange={setTaskEditDialogOpen}
+          task={selectedTask}
+          userRole={userRole || 'general_user'}
+          onTaskUpdated={() => {
+            if (projectId && user) {
+              loadProjectData(projectId, user.id);
+            }
+            setSelectedTask(null);
+          }}
+        />
+      )}
+      
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Task</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{taskToDelete?.title}"? 
+              This action cannot be undone and will permanently remove the task.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteTask}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? 'Deleting...' : 'Delete'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
