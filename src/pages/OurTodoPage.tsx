@@ -242,11 +242,11 @@ const OurTodoPage = () => {
   };
 
   if (loading) {
-    return <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center text-foreground">Loading...</div>;
+    return <div className="min-h-screen bg-background flex items-center justify-center text-foreground">Loading...</div>;
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
+    <div className="min-h-screen bg-background">
       <Navigation />
       
       <main className="container mx-auto px-4 py-8 pt-24" dir="ltr">
