@@ -1,12 +1,18 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  buildPushPayload,
+  type PushSubscription,
+  type PushMessage,
+  type VapidKeys,
+} from "npm:@block65/webcrypto-web-push@1.0.2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-interface PushPayload {
+interface PushPayloadInput {
   title: string;
   body: string;
   url?: string;
@@ -15,13 +21,8 @@ interface PushPayload {
   notification_type?: 'task' | 'project' | 'calendar' | 'financial' | 'general';
 }
 
-// Web Push requires VAPID keys - we'll use a simple approach
-// In production, you'd generate proper VAPID keys
-const VAPID_PUBLIC_KEY = Deno.env.get('VAPID_PUBLIC_KEY') || '';
-const VAPID_PRIVATE_KEY = Deno.env.get('VAPID_PRIVATE_KEY') || '';
-
 serve(async (req) => {
-  // Handle CORS preflight requests
+  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -45,7 +46,7 @@ serve(async (req) => {
       throw new Error('Unauthorized');
     }
 
-    const payload: PushPayload = await req.json();
+    const payload: PushPayloadInput = await req.json();
     console.log('Received push notification request:', payload);
 
     const { title, body, url, icon, user_ids, notification_type } = payload;
@@ -53,6 +54,20 @@ serve(async (req) => {
     if (!title || !body) {
       throw new Error('Title and body are required');
     }
+
+    // Get VAPID keys from environment
+    const publicKey = Deno.env.get('VAPID_PUBLIC_KEY');
+    const privateKey = Deno.env.get('VAPID_PRIVATE_KEY');
+
+    if (!publicKey || !privateKey) {
+      throw new Error('VAPID keys not configured in Edge Function secrets');
+    }
+
+    const vapid: VapidKeys = {
+      subject: 'mailto:adrianidea.ir@gmail.com',
+      publicKey,
+      privateKey,
+    };
 
     // Get subscriptions based on user_ids or all if not specified
     let query = supabase
@@ -113,9 +128,8 @@ serve(async (req) => {
 
     console.log(`Sending notifications to ${filteredSubscriptions.length} subscriptions`);
 
-    // For now, we'll store notification data and let the service worker handle display
-    // In a full implementation, you'd use the web-push library with VAPID keys
-    const notificationPayload = JSON.stringify({
+    // Prepare notification payload
+    const notificationData = JSON.stringify({
       title,
       body,
       icon: icon || '/adrian-idea-favicon-512.png',
@@ -125,41 +139,70 @@ serve(async (req) => {
 
     let successCount = 0;
     let failCount = 0;
+    const results = [];
+    const removedSubscriptions = [];
 
     for (const subscription of filteredSubscriptions) {
       try {
-        // Send push notification using Web Push API
-        const pushEndpoint = subscription.endpoint;
-        
-        // Create the push message
-        const response = await fetch(pushEndpoint, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'TTL': '86400', // 24 hours
+        // Build proper PushSubscription object for Web Push Protocol
+        const pushSubscription: PushSubscription = {
+          endpoint: subscription.endpoint,
+          keys: {
+            p256dh: subscription.p256dh,
+            auth: subscription.auth,
           },
-          body: notificationPayload
-        });
+        };
 
-        if (response.ok) {
+        const message: PushMessage = {
+          data: notificationData,
+          options: {
+            ttl: 86400, // 24 hours
+          },
+        };
+
+        // Build the encrypted payload with VAPID auth
+        const pushPayload = await buildPushPayload(message, pushSubscription, vapid);
+
+        // Send the request to the push service
+        const response = await fetch(subscription.endpoint, pushPayload);
+
+        if (response.ok || response.status === 201) {
           successCount++;
           console.log(`Successfully sent to subscription ${subscription.id}`);
+          results.push({ subscription_id: subscription.id, user_id: subscription.user_id, success: true });
         } else {
           failCount++;
-          console.error(`Failed to send to subscription ${subscription.id}:`, response.status);
-          
-          // If subscription is no longer valid, remove it
+          const errorText = await response.text();
+          console.error(`Failed to send to subscription ${subscription.id}: ${response.status} - ${errorText}`);
+
+          // If subscription is no longer valid (410 Gone or 404), remove it
           if (response.status === 404 || response.status === 410) {
             await supabase
               .from('push_subscriptions')
               .delete()
               .eq('id', subscription.id);
             console.log(`Removed invalid subscription ${subscription.id}`);
+            removedSubscriptions.push(subscription.id);
           }
+
+          results.push({ 
+            subscription_id: subscription.id, 
+            user_id: subscription.user_id, 
+            success: false, 
+            error: `${response.status}: ${errorText}`,
+            removed: response.status === 404 || response.status === 410
+          });
         }
-      } catch (error) {
+
+      } catch (error: any) {
         failCount++;
         console.error(`Error sending to subscription ${subscription.id}:`, error);
+        results.push({ 
+          subscription_id: subscription.id, 
+          user_id: subscription.user_id, 
+          success: false, 
+          error: error.message 
+        });
       }
     }
 
@@ -168,12 +211,14 @@ serve(async (req) => {
         success: true, 
         message: `Sent ${successCount} notifications, ${failCount} failed`,
         sent: successCount,
-        failed: failCount
+        failed: failCount,
+        removed_expired: removedSubscriptions.length,
+        details: results
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in send-push-notification:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
