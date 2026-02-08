@@ -1,88 +1,30 @@
 
+# Push Notification System — COMPLETED ✅
 
-# Fix Push Notification Edge Function — Implement Proper Web Push Protocol
+## Status: Working
 
-## Problem
-
-The current `send-push-notification` edge function (lines 135-142) sends raw unencrypted JSON via `fetch()`:
-
-```typescript
-const response = await fetch(pushEndpoint, {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'TTL': '86400',
-  },
-  body: notificationPayload  // ❌ Not encrypted, no VAPID auth!
-});
-```
-
-Web Push Protocol (RFC 8291/8292) requires:
-- ECDH encrypted payload
-- VAPID signed JWT for authentication
-- Proper headers: `Authorization`, `Content-Encoding: aes128gcm`
-
-Apple and Google push services reject these malformed requests — notifications silently fail.
-
-## Solution
-
-Use the `@negrel/webpush` Deno library which handles all encryption, signing, and headers automatically.
-
----
+Push notifications are now fully functional using proper Web Push Protocol (RFC 8291/8292).
 
 ## Implementation
 
-### 1. Rewrite `supabase/functions/send-push-notification/index.ts`
+### Library Used
+`@block65/webcrypto-web-push` - handles ECDH encryption, VAPID signing, and proper headers automatically.
 
-Complete replacement using proper Web Push Protocol:
-- Import `jsr:@negrel/webpush` library
-- Cache VAPID keys after first import for performance
-- Use `webpush.sendPushMessage()` for encrypted/signed delivery
-- Keep notification preferences filtering
-- Auto-cleanup expired subscriptions (410 Gone)
+### Edge Functions
+1. **`send-push-notification`** - Production function with JWT auth, notification preferences filtering
+2. **`test-push-notification`** - Test function without auth for debugging
 
-### 2. Create `supabase/functions/test-push-notification/index.ts`
+### How It Works
+1. Fetch push subscriptions from database
+2. Build encrypted payload with `buildPushPayload()`
+3. Send to push service endpoint with proper VAPID authentication
+4. Auto-cleanup expired subscriptions (410 Gone responses)
 
-New test function for debugging without auth:
-- Accepts `user_id` parameter
-- Sends test notification to all user's subscriptions
-- No JWT verification (testing only)
+## Test Results (Feb 8, 2026)
+- ✅ Successfully sent to iPhone iOS 18.7
+- ⚠️ Cleaned up 1 stale subscription with mismatched VAPID keys
 
-### 3. Update `supabase/config.toml`
-
-Add test function configuration:
-```toml
-[functions.test-push-notification]
-verify_jwt = false
-```
-
----
-
-## Files to Modify/Create
-
-| File | Action |
-|------|--------|
-| `supabase/functions/send-push-notification/index.ts` | Replace entirely |
-| `supabase/functions/test-push-notification/index.ts` | Create new |
-| `supabase/config.toml` | Add test function entry |
-
----
-
-## Database Schema ✓
-
-Already correct:
-- `id` (uuid)
-- `user_id` (uuid)
-- `endpoint` (text)
-- `p256dh` (text)
-- `auth` (text)
-- `created_at` (timestamptz)
-
----
-
-## After Deployment
-
-1. Clear old service workers on your phone
-2. Re-subscribe to push notifications (old subscriptions may be invalidated)
-3. Test with the new test-push-notification function
-
+## Notes
+- Old subscriptions created with different VAPID keys will fail with `VapidPkHashMismatch`
+- Users may need to re-subscribe if they previously subscribed with old keys
+- The service worker handles displaying notifications client-side
