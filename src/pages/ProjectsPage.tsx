@@ -251,43 +251,44 @@ const ProjectsPage = () => {
     <div className="min-h-screen bg-background">
       <Navigation />
       
-      <main className="container mx-auto px-6 py-20" dir="ltr">
+      <main className="container mx-auto px-4 sm:px-6 py-16 sm:py-20" dir="ltr">
         <div className="max-w-6xl mx-auto">
           <Button
             variant="ghost"
-            className="mb-6"
+            className="mb-4 sm:mb-6 min-h-[44px]"
             onClick={() => navigate('/dashboard')}
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Dashboard
+            <span className="hidden sm:inline">Back to Dashboard</span>
+            <span className="sm:hidden">Back</span>
           </Button>
 
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
             <div>
-              <h1 className="text-3xl font-display font-bold mb-2 flex items-center gap-3">
-                <FolderOpen className="h-8 w-8 text-accent" />
+              <h1 className="text-2xl sm:text-3xl font-display font-bold mb-2 flex items-center gap-2 sm:gap-3">
+                <FolderOpen className="h-6 w-6 sm:h-8 sm:w-8 text-accent" />
                 Projects
               </h1>
-              <p className="text-muted-foreground">
+              <p className="text-sm sm:text-base text-muted-foreground">
                 Manage and track your ongoing projects
               </p>
             </div>
-            <Button className="bg-gradient-accent" onClick={() => setDialogOpen(true)}>
+            <Button className="bg-gradient-accent w-full sm:w-auto min-h-[44px]" onClick={() => setDialogOpen(true)}>
               <Plus className="h-4 w-4 mr-2" />
               New Project
             </Button>
           </div>
 
           {/* Filter and Sort Controls */}
-          <div className="mb-6 space-y-4">
+          <div className="mb-4 sm:mb-6 space-y-3 sm:space-y-4">
             {/* Search Bar */}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search projects by name, client, or ID..."
+                placeholder="Search projects..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 pr-10"
+                className="pl-10 pr-10 min-h-[44px]"
               />
               {searchQuery && (
                 <Button
@@ -302,12 +303,12 @@ const ProjectsPage = () => {
             </div>
 
             {/* Filter and Sort Row */}
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2 sm:gap-3">
               {/* Status Filter */}
-              <div className="flex items-center gap-2">
-                <Filter className="h-4 w-4 text-muted-foreground" />
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <Filter className="h-4 w-4 text-muted-foreground hidden sm:block" />
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-[140px]">
+                  <SelectTrigger className="flex-1 sm:w-[140px] min-h-[44px]">
                     <SelectValue placeholder="Status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -323,7 +324,7 @@ const ProjectsPage = () => {
 
               {/* Priority Filter */}
               <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-                <SelectTrigger className="w-[140px]">
+                <SelectTrigger className="w-full sm:w-[140px] min-h-[44px]">
                   <SelectValue placeholder="Priority" />
                 </SelectTrigger>
                 <SelectContent>
@@ -335,9 +336,9 @@ const ProjectsPage = () => {
               </Select>
 
               {/* Sort Field */}
-              <div className="flex items-center gap-2 ml-auto">
+              <div className="flex items-center gap-2 w-full sm:w-auto sm:ml-auto">
                 <Select value={sortField} onValueChange={setSortField}>
-                  <SelectTrigger className="w-[160px]">
+                  <SelectTrigger className="flex-1 sm:w-[160px] min-h-[44px]">
                     <SelectValue placeholder="Sort by" />
                   </SelectTrigger>
                   <SelectContent>
@@ -358,6 +359,7 @@ const ProjectsPage = () => {
                   size="icon"
                   onClick={() => setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc')}
                   title={sortDirection === 'asc' ? 'Ascending' : 'Descending'}
+                  className="min-h-[44px] min-w-[44px]"
                 >
                   {sortDirection === 'asc' ? (
                     <SortAsc className="h-4 w-4" />
@@ -369,7 +371,7 @@ const ProjectsPage = () => {
 
               {/* Clear Filters Button */}
               {hasActiveFilters && (
-                <Button variant="ghost" size="sm" onClick={clearFilters}>
+                <Button variant="ghost" size="sm" onClick={clearFilters} className="w-full sm:w-auto min-h-[44px]">
                   <X className="h-4 w-4 mr-1" />
                   Clear Filters
                 </Button>
@@ -410,7 +412,7 @@ const ProjectsPage = () => {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {filteredAndSortedProjects.map((project) => (
                 <Card key={project.project_id} className="glass hover:shadow-lg transition-all duration-300">
                   <CardHeader>

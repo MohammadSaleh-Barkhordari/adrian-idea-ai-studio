@@ -89,26 +89,27 @@ const OurLifePage = () => {
     <div className="min-h-screen bg-background">
       <Navigation />
       
-      <main className="container mx-auto px-6 py-20" dir="ltr">
+      <main className="container mx-auto px-4 sm:px-6 py-16 sm:py-20" dir="ltr">
         <div className="max-w-4xl mx-auto">
           {/* Header with Back Button */}
-          <div className="mb-8">
+          <div className="mb-6 sm:mb-8">
             <Button 
               variant="ghost" 
               onClick={() => navigate('/dashboard')}
-              className="mb-4 hover:bg-accent"
+              className="mb-3 sm:mb-4 hover:bg-accent min-h-[44px]"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Dashboard
+              <span className="hidden sm:inline">Back to Dashboard</span>
+              <span className="sm:hidden">Back</span>
             </Button>
             
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-3 rounded-lg bg-rose-500/10">
-                <CheckSquare className="h-8 w-8 text-rose-500" />
+            <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+              <div className="p-2 sm:p-3 rounded-lg bg-rose-500/10">
+                <CheckSquare className="h-6 w-6 sm:h-8 sm:w-8 text-rose-500" />
               </div>
               <div>
-                <h1 className="text-3xl font-display font-bold">Our Life</h1>
-                <p className="text-muted-foreground">
+                <h1 className="text-2xl sm:text-3xl font-display font-bold">Our Life</h1>
+                <p className="text-sm sm:text-base text-muted-foreground">
                   Personal management tools for {user?.email?.split('@')[0]}
                 </p>
               </div>
@@ -116,7 +117,7 @@ const OurLifePage = () => {
           </div>
 
           {/* Our Life Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
             {ourLifeItems.map((item, index) => (
               <Card 
                 key={index} 

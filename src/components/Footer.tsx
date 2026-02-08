@@ -48,9 +48,9 @@ const Footer = () => {
   ];
 
   return (
-    <footer className="py-12 bg-background border-t border-border">
-      <div className="container mx-auto px-6">
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
+    <footer className="py-8 sm:py-12 bg-background border-t border-border">
+      <div className="container mx-auto px-4 sm:px-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 mb-8 sm:mb-12">
           {/* Brand Section */}
           <div className="lg:col-span-2">
             <Link to={langPrefix || '/'} className={`flex items-center ${isRTL ? 'space-x-reverse' : ''} space-x-2 mb-4`}>
@@ -69,7 +69,7 @@ const Footer = () => {
             </p>
             
             {/* Social Links */}
-            <div className={`flex items-center ${isRTL ? 'space-x-reverse' : ''} space-x-3`}>
+            <div className={`flex items-center justify-center sm:justify-start flex-wrap gap-2 sm:gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
               {socialLinks.map((social) => {
                 const IconComponent = social.icon;
                 return (
@@ -78,10 +78,10 @@ const Footer = () => {
                     href={social.href}
                     target={social.href.startsWith('http') ? '_blank' : undefined}
                     rel={social.href.startsWith('http') ? 'noopener noreferrer' : undefined}
-                    className={`w-11 h-11 glass rounded-lg flex items-center justify-center border border-glass-border hover:border-accent/30 hover:shadow-glow transition-all duration-300 ${social.color}`}
+                    className={`w-10 h-10 sm:w-11 sm:h-11 glass rounded-lg flex items-center justify-center border border-glass-border hover:border-accent/30 hover:shadow-glow transition-all duration-300 touch-target ${social.color}`}
                     aria-label={social.name}
                   >
-                    <IconComponent className="h-5 w-5" />
+                    <IconComponent className="h-4 w-4 sm:h-5 sm:w-5" />
                   </a>
                 );
               })}

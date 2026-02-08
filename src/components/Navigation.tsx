@@ -74,18 +74,18 @@ const Navigation = () => {
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 glass border-b border-glass-border">
-      <div className="container mx-auto px-6 py-4">
+      <div className="container mx-auto px-4 sm:px-6 py-3 sm:py-4">
         <div className="flex items-center justify-between">
           {/* Logo */}
           <Link to={langPrefix || '/'} className={`flex items-center ${isRTL ? 'space-x-reverse' : ''} space-x-2`}>
             <img 
               src="/lovable-uploads/38598e63-607e-4758-bb3d-7fb4e170eae0.png" 
               alt={`${t?.companyName || 'Adrian Idea'} Logo`}
-              className="w-8 h-8 object-contain"
+              className="w-7 h-7 sm:w-8 sm:h-8 object-contain"
               width="32"
               height="32"
             />
-            <span className="text-xl font-display font-bold">{t?.companyName || 'Adrian Idea'}</span>
+            <span className="text-lg sm:text-xl font-display font-bold">{t?.companyName || 'Adrian Idea'}</span>
           </Link>
 
           {/* Desktop Navigation */}
@@ -184,16 +184,16 @@ const Navigation = () => {
 
         {/* Mobile Menu */}
         {isOpen && (
-          <div className="md:hidden mt-4 pb-4 border-t border-glass-border">
-            <div className="flex flex-col space-y-3 pt-4">
+          <div className="md:hidden mt-4 pb-4 border-t border-glass-border animate-fade-in">
+            <div className="flex flex-col space-y-1 pt-4">
               {navItems.map((item) => (
                 <Link
                   key={item.name}
                   to={item.href}
-                  className={`transition-colors duration-300 font-medium ${
+                  className={`py-3 px-4 rounded-lg transition-colors duration-300 font-medium min-h-[44px] flex items-center ${
                     isActive(item.href) 
-                      ? 'text-golden font-semibold' 
-                      : 'text-muted-foreground hover:text-foreground'
+                      ? 'text-golden font-semibold bg-accent/10' 
+                      : 'text-muted-foreground hover:text-foreground hover:bg-accent/5'
                   }`}
                   onClick={() => setIsOpen(false)}
                 >
@@ -202,20 +202,20 @@ const Navigation = () => {
               ))}
               {user ? (
                 <div className="mt-4 space-y-2">
-                  <div className="flex items-center space-x-3 p-3 rounded-md bg-background/50 border border-border">
-                    <Avatar className="h-8 w-8">
+                  <div className="flex items-center space-x-3 p-3 rounded-lg bg-background/50 border border-border">
+                    <Avatar className="h-10 w-10">
                       <AvatarFallback className="bg-gradient-accent text-primary-foreground">
                         {user.email?.charAt(0).toUpperCase() || 'U'}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex flex-col">
                       <p className="text-sm font-medium">{t?.nav?.account || 'Account'}</p>
-                      <p className="text-xs text-muted-foreground">{user.email}</p>
+                      <p className="text-xs text-muted-foreground truncate max-w-[200px]">{user.email}</p>
                     </div>
                   </div>
                   <Button 
                     variant="ghost" 
-                    className="w-full justify-start"
+                    className="w-full justify-start min-h-[44px]"
                     onClick={() => {
                       setIsOpen(false);
                       navigate('/dashboard');
@@ -226,14 +226,14 @@ const Navigation = () => {
                   </Button>
                   <Button 
                     variant="ghost" 
-                    className="w-full justify-start"
+                    className="w-full justify-start min-h-[44px]"
                   >
                     <Settings className="mr-2 h-4 w-4" />
                     {t?.nav?.settings || 'Settings'}
                   </Button>
                   <Button 
                     variant="ghost" 
-                    className="w-full justify-start"
+                    className="w-full justify-start min-h-[44px]"
                     onClick={() => {
                       setIsOpen(false);
                       handleSignOut();
@@ -245,7 +245,7 @@ const Navigation = () => {
                 </div>
               ) : (
                 <Button 
-                  className="mt-4 bg-gradient-accent w-full"
+                  className="mt-4 bg-gradient-accent w-full min-h-[48px]"
                   onClick={() => {
                     setIsOpen(false);
                     navigate('/auth');

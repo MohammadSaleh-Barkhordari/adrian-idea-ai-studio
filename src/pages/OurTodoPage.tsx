@@ -249,20 +249,21 @@ const OurTodoPage = () => {
     <div className="min-h-screen bg-background">
       <Navigation />
       
-      <main className="container mx-auto px-4 py-8 pt-24" dir="ltr">
-        <div className="flex items-center gap-4 mb-8">
+      <main className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 pt-20 sm:pt-24" dir="ltr">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 mb-6 sm:mb-8">
           <Button
             onClick={() => navigate('/our-life')}
             variant="ghost"
-            className="text-foreground hover:bg-accent"
+            className="text-foreground hover:bg-accent w-full sm:w-auto justify-start min-h-[44px]"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Our Life
+            <span className="hidden sm:inline">Back to Our Life</span>
+            <span className="sm:hidden">Back</span>
           </Button>
-          <h1 className="text-4xl font-bold text-foreground flex-1">Our To-Do List</h1>
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground">Our To-Do List</h1>
           <Button
             onClick={() => setIsDialogOpen(true)}
-            className="glass-button text-foreground border-border hover:bg-accent"
+            className="glass-button text-foreground border-border hover:bg-accent sm:ml-auto w-full sm:w-auto min-h-[44px]"
             variant="outline"
           >
             <Plus className="w-4 h-4 mr-2" />
@@ -270,7 +271,7 @@ const OurTodoPage = () => {
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           <TodoSection title="High Priority" todos={todos.filter(t => t.priority === 'high')} />
           <TodoSection title="Medium Priority" todos={todos.filter(t => t.priority === 'medium')} />
           <TodoSection title="Low Priority" todos={todos.filter(t => t.priority === 'low')} />
