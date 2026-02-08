@@ -2,17 +2,13 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
-interface PushSubscription {
-  endpoint: string;
-  p256dh: string;
-  auth: string;
-}
-
 export const usePushNotifications = () => {
   const [isSupported, setIsSupported] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [permission, setPermission] = useState<NotificationPermission>('default');
   const [loading, setLoading] = useState(false);
+  const [isIOS, setIsIOS] = useState(false);
+  const [isStandalone, setIsStandalone] = useState(false);
 
   useEffect(() => {
     // Check if push notifications are supported
@@ -25,6 +21,13 @@ export const usePushNotifications = () => {
       setPermission(Notification.permission);
       checkExistingSubscription();
     }
+
+    // iOS detection
+    const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+    const standalone = window.matchMedia('(display-mode: standalone)').matches 
+      || (window.navigator as any).standalone === true;
+    setIsIOS(iOS);
+    setIsStandalone(standalone);
   }, []);
 
   const checkExistingSubscription = async () => {
@@ -82,12 +85,26 @@ export const usePushNotifications = () => {
       return false;
     }
 
+    // iOS requires PWA mode for push notifications
+    if (isIOS && !isStandalone) {
+      toast.error('On iPhone/iPad, please add this app to your Home Screen first, then open it from there to enable notifications.');
+      return false;
+    }
+
     setLoading(true);
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         toast.error('Please log in to enable notifications');
+        return false;
+      }
+
+      // Check VAPID key exists
+      const vapidPublicKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+      if (!vapidPublicKey) {
+        console.error('VITE_VAPID_PUBLIC_KEY is not configured in .env');
+        toast.error('Push notifications not configured. Please contact support.');
         return false;
       }
 
@@ -99,18 +116,15 @@ export const usePushNotifications = () => {
 
       // Register service worker if not already registered
       const registration = await navigator.serviceWorker.ready;
-
-      // Get VAPID public key from environment
-      const vapidPublicKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
-      if (!vapidPublicKey) {
-        throw new Error('VAPID public key not configured');
-      }
+      console.log('Service worker ready:', registration.scope);
 
       // Subscribe to push notifications
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
       });
+
+      console.log('Push subscription created:', subscription.endpoint);
 
       // Get subscription details
       const subscriptionJson = subscription.toJSON();
@@ -155,16 +169,29 @@ export const usePushNotifications = () => {
         });
 
       setIsSubscribed(true);
-      toast.success('Push notifications enabled');
+      toast.success('Push notifications enabled!');
       return true;
-    } catch (error) {
-      console.error('Error subscribing to push notifications:', error);
-      toast.error('Failed to enable push notifications');
+    } catch (error: any) {
+      console.error('Push notification subscription error:', error);
+
+      // Provide specific, helpful error messages
+      if (error.name === 'NotAllowedError') {
+        toast.error('Please allow notifications in your browser settings');
+      } else if (error.message?.includes('VAPID')) {
+        toast.error('Push notification configuration error. Please contact support.');
+      } else if (error.name === 'AbortError') {
+        toast.error('Could not connect to push service. Check your internet connection.');
+      } else if (error.name === 'InvalidStateError') {
+        toast.error('Push subscription already exists. Try disabling and re-enabling.');
+      } else {
+        toast.error('Failed to enable push notifications. Please try again.');
+      }
+
       return false;
     } finally {
       setLoading(false);
     }
-  }, [isSupported, permission, requestPermission]);
+  }, [isSupported, isIOS, isStandalone, permission, requestPermission]);
 
   const unsubscribe = useCallback(async () => {
     setLoading(true);
@@ -204,6 +231,8 @@ export const usePushNotifications = () => {
     isSubscribed,
     permission,
     loading,
+    isIOS,
+    isStandalone,
     requestPermission,
     subscribe,
     unsubscribe
