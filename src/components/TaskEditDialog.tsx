@@ -73,7 +73,7 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
       task_name: task?.task_name || '',
       project_id: task?.project_id || '',
       priority: task?.priority || 'medium',
-      status: task?.status || 'pending',
+      status: task?.status || 'todo',
       assigned_to: task?.assigned_to || '',
       assigned_by: task?.assigned_by || '',
       task_type: task?.task_type || 'general',
@@ -93,7 +93,7 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
         task_name: task.task_name || '',
         project_id: task.project_id || '',
         priority: task.priority || 'medium',
-        status: task.status || 'pending',
+        status: task.status || 'todo',
         assigned_to: task.assigned_to || '',
         assigned_by: task.assigned_by || '',
         task_type: task.task_type || 'general',
@@ -411,7 +411,7 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="pending">Pending</SelectItem>
+                          <SelectItem value="todo">To Do</SelectItem>
                           <SelectItem value="in_progress">In Progress</SelectItem>
                           <SelectItem value="completed">Completed</SelectItem>
                           <SelectItem value="cancelled">Cancelled</SelectItem>

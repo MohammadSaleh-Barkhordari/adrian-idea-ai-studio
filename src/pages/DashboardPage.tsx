@@ -121,7 +121,7 @@ const DashboardPage = () => {
         .from('tasks')
         .select('*')
         .or(`assigned_to.eq.${user.id},created_by.eq.${user.id},assigned_by.eq.${user.id}`)
-        .in('status', ['todo', 'in_progress', 'pending'])
+        .in('status', ['todo', 'in_progress'])
         .order('due_date', { ascending: true, nullsFirst: false })
         .order('created_at', { ascending: false });
 

@@ -98,7 +98,7 @@ export const NewTaskDialog: React.FC<NewTaskDialogProps> = ({
     priority: 'medium',
     outcome: '',
     notes: '',
-    status: 'pending',
+    status: 'todo',
     relatedTaskId: ''
   });
   const { toast } = useToast();
@@ -429,7 +429,7 @@ export const NewTaskDialog: React.FC<NewTaskDialogProps> = ({
       priority: 'medium',
       outcome: '',
       notes: '',
-      status: 'pending',
+      status: 'todo',
       relatedTaskId: ''
     });
     setSelectedFiles([]);
@@ -720,7 +720,7 @@ export const NewTaskDialog: React.FC<NewTaskDialogProps> = ({
                     <SelectValue placeholder="Select status" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="todo">To Do</SelectItem>
                     <SelectItem value="in_progress">In Progress</SelectItem>
                     <SelectItem value="completed">Completed</SelectItem>
                     <SelectItem value="cancelled">Cancelled</SelectItem>
