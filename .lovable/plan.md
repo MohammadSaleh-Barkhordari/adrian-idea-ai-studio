@@ -1,43 +1,88 @@
 
 
-# Update VAPID Keys for Push Notifications
+# Fix Push Notification Edge Function — Implement Proper Web Push Protocol
 
-## Overview
+## Problem
 
-Update the VAPID key pair across both frontend and backend to enable push notifications on mobile devices.
+The current `send-push-notification` edge function (lines 135-142) sends raw unencrypted JSON via `fetch()`:
 
-## Changes Required
-
-### 1. Update Frontend Environment Variable
-
-**File:** `.env`
-
-Update the VAPID public key from the old value to the new one:
-
+```typescript
+const response = await fetch(pushEndpoint, {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'TTL': '86400',
+  },
+  body: notificationPayload  // ❌ Not encrypted, no VAPID auth!
+});
 ```
-VITE_VAPID_PUBLIC_KEY="BFsWMv1qi_UV3aWL-FROEJDmMMvGYpeox9z-9s8VS0lbgjRQVNGM6G_qAwufLaLCxEYUlDW6e_BB4YICpOlz1lM"
+
+Web Push Protocol (RFC 8291/8292) requires:
+- ECDH encrypted payload
+- VAPID signed JWT for authentication
+- Proper headers: `Authorization`, `Content-Encoding: aes128gcm`
+
+Apple and Google push services reject these malformed requests — notifications silently fail.
+
+## Solution
+
+Use the `@negrel/webpush` Deno library which handles all encryption, signing, and headers automatically.
+
+---
+
+## Implementation
+
+### 1. Rewrite `supabase/functions/send-push-notification/index.ts`
+
+Complete replacement using proper Web Push Protocol:
+- Import `jsr:@negrel/webpush` library
+- Cache VAPID keys after first import for performance
+- Use `webpush.sendPushMessage()` for encrypted/signed delivery
+- Keep notification preferences filtering
+- Auto-cleanup expired subscriptions (410 Gone)
+
+### 2. Create `supabase/functions/test-push-notification/index.ts`
+
+New test function for debugging without auth:
+- Accepts `user_id` parameter
+- Sends test notification to all user's subscriptions
+- No JWT verification (testing only)
+
+### 3. Update `supabase/config.toml`
+
+Add test function configuration:
+```toml
+[functions.test-push-notification]
+verify_jwt = false
 ```
 
-### 2. Update Backend Secrets
+---
 
-Update two secrets in the backend:
+## Files to Modify/Create
 
-| Secret Name | New Value |
-|-------------|-----------|
-| `VAPID_PUBLIC_KEY` | `BFsWMv1qi_UV3aWL-FROEJDmMMvGYpeox9z-9s8VS0lbgjRQVNGM6G_qAwufLaLCxEYUlDW6e_BB4YICpOlz1lM` |
-| `VAPID_PRIVATE_KEY` | `83nAS5ymKauVJzBLQOJpD8pmJXg_jBJ8Gwe2xmcpM8E` |
+| File | Action |
+|------|--------|
+| `supabase/functions/send-push-notification/index.ts` | Replace entirely |
+| `supabase/functions/test-push-notification/index.ts` | Create new |
+| `supabase/config.toml` | Add test function entry |
 
-## Important Notes
+---
 
-- After updating these keys, any existing push subscriptions from users will become invalid
-- Users will need to re-enable notifications after this change
-- The private key should be kept secure and not shared publicly
+## Database Schema ✓
 
-## Files to Modify
+Already correct:
+- `id` (uuid)
+- `user_id` (uuid)
+- `endpoint` (text)
+- `p256dh` (text)
+- `auth` (text)
+- `created_at` (timestamptz)
 
-| Item | Type | Action |
-|------|------|--------|
-| `.env` | File | Update `VITE_VAPID_PUBLIC_KEY` |
-| `VAPID_PUBLIC_KEY` | Secret | Update value |
-| `VAPID_PRIVATE_KEY` | Secret | Update value |
+---
+
+## After Deployment
+
+1. Clear old service workers on your phone
+2. Re-subscribe to push notifications (old subscriptions may be invalidated)
+3. Test with the new test-push-notification function
 
