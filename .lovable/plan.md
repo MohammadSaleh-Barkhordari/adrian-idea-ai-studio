@@ -1,74 +1,195 @@
 
-## What the log means (why task creation fails)
-Your browser log shows:
 
-- `new row for relation "tasks" violates check constraint "tasks_status_check"` (code `23514`)
+# Add Edit and Delete Buttons to Tasks Section
 
-Your database only allows these task `status` values:
-- `todo`, `in_progress`, `completed`, `cancelled`
+## Overview
 
-But the Task Creation form currently sends:
-- `status: "pending"` (default in `NewTaskDialog.tsx`), which is not allowed, so the insert is rejected.
+Add edit and delete icon buttons to each task in the Tasks section of the Project Details page. The delete action will show a confirmation dialog before permanently removing the task from the database.
 
-I confirmed this by checking the database constraint definition (`tasks_status_check`) and by reading `src/components/NewTaskDialog.tsx`, which currently renders a Status dropdown containing `pending`.
+## Current State
 
-## Goal
-Make task creation succeed by ensuring the UI only sends allowed status values (and displays them correctly across the app).
+- Tasks are displayed in a card list format (lines 508-547 in `ProjectDetailsPage.tsx`)
+- Each task card shows: title, status badge, priority badge, assigned user, due date, description, and creation date
+- `TaskEditDialog` component exists but is not imported in `ProjectDetailsPage.tsx`
+- `AlertDialog` component is available for delete confirmation
 
-## Changes to implement (no database changes needed)
+## Implementation
 
-### 1) Fix the task creation dialog to use valid status values
-File: `src/components/NewTaskDialog.tsx`
+### 1. Add Required Imports
 
-- Change default `formData.status` from `pending` → `todo`
-- Update the Status dropdown options:
-  - Replace `pending` with `todo` (label “To Do”)
-- Update the form reset in `handleClose()` similarly (`status: 'todo'`)
+Add to `src/pages/ProjectDetailsPage.tsx`:
 
-Result: creating a task for a project will no longer violate `tasks_status_check`.
+```typescript
+import { Trash2 } from 'lucide-react';  // Add to existing lucide imports
+import { TaskEditDialog } from '@/components/TaskEditDialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+```
 
-### 2) Fix the task edit dialog (currently also uses invalid “pending”)
-File: `src/components/TaskEditDialog.tsx`
+### 2. Add State Variables
 
-- Change react-hook-form default status fallback from `pending` → `todo`
-- Update the Status select items:
-  - Replace `pending` with `todo` (label “To Do”)
+Add new state for managing the edit dialog and delete confirmation:
 
-Why this matters: even after task creation is fixed, editing a task could still fail if the UI tries to set `pending`.
+```typescript
+const [taskEditDialogOpen, setTaskEditDialogOpen] = useState(false);
+const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
+const [deleting, setDeleting] = useState(false);
+```
 
-### 3) Update task status display helpers to recognize `todo`
-File: `src/pages/ProjectDetailsPage.tsx`
+### 3. Add Delete Handler Function
 
-- Update `getTaskStatusColor()` to handle `todo` explicitly (so “To Do” tasks don’t fall into the default/gray styling)
-- Optional polish: adjust `formatStatus()` so `todo` displays as “To Do” (instead of “Todo”)
+```typescript
+const handleDeleteTask = async () => {
+  if (!taskToDelete) return;
+  
+  setDeleting(true);
+  try {
+    const { error } = await supabase
+      .from('tasks')
+      .delete()
+      .eq('id', taskToDelete.id);
+    
+    if (error) throw error;
+    
+    setTasks(tasks.filter(t => t.id !== taskToDelete.id));
+    toast({
+      title: "Success",
+      description: "Task deleted successfully",
+    });
+  } catch (error) {
+    console.error('Error deleting task:', error);
+    toast({
+      title: "Error",
+      description: "Failed to delete task",
+      variant: "destructive",
+    });
+  } finally {
+    setDeleting(false);
+    setDeleteConfirmOpen(false);
+    setTaskToDelete(null);
+  }
+};
+```
 
-### 4) Update dashboard filtering & labels to use `todo` (not `pending`)
-File: `src/pages/DashboardPage.tsx`
+### 4. Update Task Card UI
 
-- Replace any filtering logic that includes `pending` with `todo`
-  - Example: `.in('status', ['todo', 'in_progress', ...])` should not reference `pending`
-- Update any Status filter dropdown items:
-  - Replace “Pending” with “To Do” (value `todo`)
-- Update empty-state copy like “No pending tasks” to “No to-do tasks” (or “No tasks” depending on intent)
+Modify the task card (lines 509-547) to include edit and delete buttons:
 
-### 5) Update Gantt chart status mapping/legend
-File: `src/components/GanttChart.tsx`
+```tsx
+{tasks.map((task) => (
+  <div key={task.id} className="border rounded-lg p-3">
+    <div className="flex items-start justify-between">
+      <div className="flex-1">
+        {/* Existing task content */}
+      </div>
+      
+      {/* NEW: Action buttons */}
+      <div className="flex items-center gap-1 ml-2">
+        <Button
+          size="icon"
+          variant="ghost"
+          onClick={() => {
+            setSelectedTask(task);
+            setTaskEditDialogOpen(true);
+          }}
+          title="Edit task"
+        >
+          <Pencil className="w-4 h-4" />
+        </Button>
+        <Button
+          size="icon"
+          variant="ghost"
+          onClick={() => {
+            setTaskToDelete(task);
+            setDeleteConfirmOpen(true);
+          }}
+          title="Delete task"
+          className="text-destructive hover:text-destructive"
+        >
+          <Trash2 className="w-4 h-4" />
+        </Button>
+      </div>
+    </div>
+  </div>
+))}
+```
 
-- Replace color mapping and legend entries using `pending` with `todo`
-- Ensure `todo`, `in_progress`, `completed`, `cancelled` all map to sensible colors
+### 5. Add TaskEditDialog Component
 
-## Backward compatibility (safety)
-Even though your database currently has no `pending` statuses, I’ll add a small defensive mapping in the UI where appropriate:
-- If any task status is unexpectedly `pending` (from old data), display it as “To Do”
-- Never write `pending` back to the database
+Add after the existing dialogs at the bottom of the component:
 
-## Test plan (end-to-end)
-1. Go to a project details page (like `/projects/PROJ-20251012-660`)
-2. Click “Add Task”
-3. Create a task with default status (should save successfully)
-4. Create tasks with each status: To Do, In Progress, Completed, Cancelled
-5. Edit an existing task and change status; confirm update succeeds and UI updates correctly
-6. Confirm dashboard filters still show the expected tasks
+```tsx
+{selectedTask && (
+  <TaskEditDialog
+    open={taskEditDialogOpen}
+    onOpenChange={setTaskEditDialogOpen}
+    task={selectedTask}
+    userRole={userRole || 'general_user'}
+    onTaskUpdated={() => {
+      if (projectId && user) {
+        loadProjectData(projectId, user.id);
+      }
+      setSelectedTask(null);
+    }}
+  />
+)}
+```
 
-## Scope note
-This plan focuses on fixing the “cannot create task” blocker shown in the log (invalid status). Your previous “email vs UUID” fix was correct, but the status constraint is a separate issue that still prevents inserts.
+### 6. Add Delete Confirmation Dialog
+
+Add the AlertDialog for delete confirmation:
+
+```tsx
+<AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+  <AlertDialogContent>
+    <AlertDialogHeader>
+      <AlertDialogTitle>Delete Task</AlertDialogTitle>
+      <AlertDialogDescription>
+        Are you sure you want to delete "{taskToDelete?.title}"? 
+        This action cannot be undone and will permanently remove the task.
+      </AlertDialogDescription>
+    </AlertDialogHeader>
+    <AlertDialogFooter>
+      <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+      <AlertDialogAction
+        onClick={handleDeleteTask}
+        disabled={deleting}
+        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+      >
+        {deleting ? 'Deleting...' : 'Delete'}
+      </AlertDialogAction>
+    </AlertDialogFooter>
+  </AlertDialogContent>
+</AlertDialog>
+```
+
+## Files to Modify
+
+| File | Changes |
+|------|---------|
+| `src/pages/ProjectDetailsPage.tsx` | Add imports, state, delete handler, UI buttons, and dialogs |
+
+## Visual Result
+
+Each task card will now have two icon buttons on the right side:
+- Pencil icon - Opens the TaskEditDialog for editing
+- Trash icon (red) - Opens confirmation dialog, then deletes on confirm
+
+## Technical Details
+
+- The `Pencil` icon is already imported (line 16)
+- `Trash2` icon needs to be added to imports
+- `TaskEditDialog` requires `task`, `userRole`, `open`, `onOpenChange`, and `onTaskUpdated` props
+- Delete operation uses Supabase `.delete()` with task ID filter
+- Local state is updated after successful deletion to avoid refetching
+
