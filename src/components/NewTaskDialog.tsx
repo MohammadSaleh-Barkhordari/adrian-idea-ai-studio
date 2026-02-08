@@ -614,7 +614,7 @@ export const NewTaskDialog: React.FC<NewTaskDialogProps> = ({
                   <SelectContent>
                     <SelectItem value="unassigned">Unassigned</SelectItem>
                     {authUsers.map((user) => (
-                      <SelectItem key={user.id} value={user.email}>
+                      <SelectItem key={user.id} value={user.id}>
                         {user.email}
                       </SelectItem>
                     ))}
@@ -633,7 +633,7 @@ export const NewTaskDialog: React.FC<NewTaskDialogProps> = ({
                 <SelectContent>
                   <SelectItem value="unassigned">Unassigned</SelectItem>
                   {authUsers.map((user) => (
-                    <SelectItem key={user.id} value={user.email}>
+                    <SelectItem key={user.id} value={user.id}>
                       {user.email}
                     </SelectItem>
                   ))}
