@@ -1,99 +1,74 @@
 
-# Fix: Task Creation Fails - Email Used Instead of UUID
+## What the log means (why task creation fails)
+Your browser log shows:
 
-## Problem
+- `new row for relation "tasks" violates check constraint "tasks_status_check"` (code `23514`)
 
-The task creation is failing because the **Assigned To** dropdown is storing the user's **email** as the value instead of their **UUID**.
+Your database only allows these task `status` values:
+- `todo`, `in_progress`, `completed`, `cancelled`
 
-**Database Error:**
-```
-invalid input syntax for type uuid: "teimourialireza@yahoo.com"
-```
+But the Task Creation form currently sends:
+- `status: "pending"` (default in `NewTaskDialog.tsx`), which is not allowed, so the insert is rejected.
 
-**Root Cause:** In `NewTaskDialog.tsx` (line 617), the SelectItem uses `user.email` as the value:
-```tsx
-<SelectItem key={user.id} value={user.email}>  // ← Bug: email instead of UUID
-  {user.email}
-</SelectItem>
-```
+I confirmed this by checking the database constraint definition (`tasks_status_check`) and by reading `src/components/NewTaskDialog.tsx`, which currently renders a Status dropdown containing `pending`.
 
-## Solution
+## Goal
+Make task creation succeed by ensuring the UI only sends allowed status values (and displays them correctly across the app).
 
-Change the `value` prop from `user.email` to `user.id` in all user selection dropdowns within `NewTaskDialog.tsx`.
+## Changes to implement (no database changes needed)
 
-## Files to Modify
+### 1) Fix the task creation dialog to use valid status values
+File: `src/components/NewTaskDialog.tsx`
 
-1. `src/components/NewTaskDialog.tsx`
+- Change default `formData.status` from `pending` → `todo`
+- Update the Status dropdown options:
+  - Replace `pending` with `todo` (label “To Do”)
+- Update the form reset in `handleClose()` similarly (`status: 'todo'`)
 
-## Detailed Changes
+Result: creating a task for a project will no longer violate `tasks_status_check`.
 
-### 1. Fix Assigned To dropdown (line 617)
+### 2) Fix the task edit dialog (currently also uses invalid “pending”)
+File: `src/components/TaskEditDialog.tsx`
 
-**Before:**
-```tsx
-{authUsers.map((user) => (
-  <SelectItem key={user.id} value={user.email}>
-    {user.email}
-  </SelectItem>
-))}
-```
+- Change react-hook-form default status fallback from `pending` → `todo`
+- Update the Status select items:
+  - Replace `pending` with `todo` (label “To Do”)
 
-**After:**
-```tsx
-{authUsers.map((user) => (
-  <SelectItem key={user.id} value={user.id}>
-    {user.email}
-  </SelectItem>
-))}
-```
+Why this matters: even after task creation is fixed, editing a task could still fail if the UI tries to set `pending`.
 
-### 2. Fix Follow Up By dropdown (line 636)
+### 3) Update task status display helpers to recognize `todo`
+File: `src/pages/ProjectDetailsPage.tsx`
 
-**Before:**
-```tsx
-{authUsers.map((user) => (
-  <SelectItem key={user.id} value={user.email}>
-    {user.email}
-  </SelectItem>
-))}
-```
+- Update `getTaskStatusColor()` to handle `todo` explicitly (so “To Do” tasks don’t fall into the default/gray styling)
+- Optional polish: adjust `formatStatus()` so `todo` displays as “To Do” (instead of “Todo”)
 
-**After:**
-```tsx
-{authUsers.map((user) => (
-  <SelectItem key={user.id} value={user.id}>
-    {user.email}
-  </SelectItem>
-))}
-```
+### 4) Update dashboard filtering & labels to use `todo` (not `pending`)
+File: `src/pages/DashboardPage.tsx`
 
-## Technical Explanation
+- Replace any filtering logic that includes `pending` with `todo`
+  - Example: `.in('status', ['todo', 'in_progress', ...])` should not reference `pending`
+- Update any Status filter dropdown items:
+  - Replace “Pending” with “To Do” (value `todo`)
+- Update empty-state copy like “No pending tasks” to “No to-do tasks” (or “No tasks” depending on intent)
 
-| Component | Current Behavior | Required Behavior |
-|-----------|-----------------|-------------------|
-| SelectItem value | `user.email` (string) | `user.id` (UUID) |
-| Database column `assigned_to` | Expects UUID | Receives email → Error |
+### 5) Update Gantt chart status mapping/legend
+File: `src/components/GanttChart.tsx`
 
-## Expected Outcome
+- Replace color mapping and legend entries using `pending` with `todo`
+- Ensure `todo`, `in_progress`, `completed`, `cancelled` all map to sensible colors
 
-After this fix:
-- Task creation will succeed
-- The `assigned_to` field will store the correct UUID
-- The user will still see email addresses in the dropdown (for readability)
-- Notifications will work correctly (already expects UUID)
+## Backward compatibility (safety)
+Even though your database currently has no `pending` statuses, I’ll add a small defensive mapping in the UI where appropriate:
+- If any task status is unexpectedly `pending` (from old data), display it as “To Do”
+- Never write `pending` back to the database
 
-## Additional Considerations
+## Test plan (end-to-end)
+1. Go to a project details page (like `/projects/PROJ-20251012-660`)
+2. Click “Add Task”
+3. Create a task with default status (should save successfully)
+4. Create tasks with each status: To Do, In Progress, Completed, Cancelled
+5. Edit an existing task and change status; confirm update succeeds and UI updates correctly
+6. Confirm dashboard filters still show the expected tasks
 
-The code at line 391-399 already expects `formData.assignedTo` to be a UUID:
-```tsx
-if (formData.assignedTo && formData.assignedTo !== 'unassigned' && formData.assignedTo !== user.id) {
-  await sendNotification(
-    '📋 New Task Assigned',
-    ...
-    [formData.assignedTo],  // ← Expects UUID, currently receives email
-    ...
-  );
-}
-```
-
-This fix will also make notifications work correctly.
+## Scope note
+This plan focuses on fixing the “cannot create task” blocker shown in the log (invalid status). Your previous “email vs UUID” fix was correct, but the status constraint is a separate issue that still prevents inserts.
