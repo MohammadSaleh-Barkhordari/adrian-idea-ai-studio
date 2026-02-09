@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Bell, BellOff, Settings } from 'lucide-react';
+import { Bell, BellOff, Settings, Bug } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Popover,
@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 interface NotificationPreferences {
   task_notifications: boolean;
@@ -39,9 +40,23 @@ export const NotificationBell = () => {
   });
   const [prefsLoading, setPrefsLoading] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [debugInfo, setDebugInfo] = useState<string>('');
+  const [showDebug, setShowDebug] = useState(false);
 
   useEffect(() => {
     loadPreferences();
+  }, [isSubscribed]);
+
+  // Load service worker debug info
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then((regs) => {
+        const info = regs.map(r => 
+          `Scope: ${r.scope}\nScript: ${r.active?.scriptURL || 'no active SW'}\nState: ${r.active?.state || 'unknown'}`
+        ).join('\n---\n');
+        setDebugInfo(`${regs.length} SW(s) registered:\n${info}`);
+      });
+    }
   }, [isSubscribed]);
 
   const loadPreferences = async () => {
@@ -236,6 +251,21 @@ export const NotificationBell = () => {
               Notifications are blocked. Please enable them in your browser settings.
             </p>
           )}
+
+          {/* Debug Info Section */}
+          <Collapsible open={showDebug} onOpenChange={setShowDebug}>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" size="sm" className="w-full justify-start text-xs text-muted-foreground mt-2">
+                <Bug className="h-3 w-3 mr-1" />
+                {showDebug ? 'Hide' : 'Show'} Debug Info
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <pre className="text-xs text-muted-foreground mt-2 p-2 bg-muted rounded overflow-x-auto whitespace-pre-wrap">
+                {debugInfo || 'Loading SW info...'}
+              </pre>
+            </CollapsibleContent>
+          </Collapsible>
         </div>
       </PopoverContent>
     </Popover>

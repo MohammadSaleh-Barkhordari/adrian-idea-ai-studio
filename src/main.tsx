@@ -12,13 +12,15 @@ createRoot(document.getElementById("root")!).render(
   </StrictMode>
 );
 
-// Register custom push notification service worker alongside VitePWA
+// VitePWA handles service worker registration automatically via registerType: 'autoUpdate'
+// The combined SW in src/sw.ts includes both Workbox caching AND push notification handlers
+
+// Log registered service workers for debugging
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/sw.js', { scope: '/' })
-    .then((registration) => {
-      console.log('Push notification SW registered:', registration.scope);
-    })
-    .catch((error) => {
-      console.error('Push notification SW registration failed:', error);
-    });
+  navigator.serviceWorker.getRegistrations().then((registrations) => {
+    console.log('[App] Service workers registered:', registrations.length);
+    for (const registration of registrations) {
+      console.log('[App] SW scope:', registration.scope, 'script:', registration.active?.scriptURL);
+    }
+  });
 }
