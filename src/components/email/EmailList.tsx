@@ -15,6 +15,7 @@ interface EmailListProps {
   selectedEmailId: string | null;
   onSelectEmail: (id: string) => void;
   userId: string;
+  userEmail: string;
   refreshKey: number;
   onRefresh: () => void;
 }
@@ -38,7 +39,7 @@ interface Email {
 
 const PAGE_SIZE = 20;
 
-const EmailList = ({ folder, searchQuery, onSearchChange, selectedEmailId, onSelectEmail, userId, refreshKey, onRefresh }: EmailListProps) => {
+const EmailList = ({ folder, searchQuery, onSearchChange, selectedEmailId, onSelectEmail, userId, userEmail, refreshKey, onRefresh }: EmailListProps) => {
   const [emails, setEmails] = useState<Email[]>([]);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(false);
@@ -56,7 +57,7 @@ const EmailList = ({ folder, searchQuery, onSearchChange, selectedEmailId, onSel
       // Folder filters
       switch (folder) {
         case 'inbox':
-          query = query.eq('direction', 'inbound').eq('is_deleted', false).eq('is_archived', false);
+          query = query.eq('direction', 'inbound').eq('is_deleted', false).eq('is_archived', false).eq('to_email', userEmail);
           break;
         case 'sent':
           query = query.eq('direction', 'outbound').eq('is_deleted', false).neq('status', 'draft');
@@ -93,7 +94,7 @@ const EmailList = ({ folder, searchQuery, onSearchChange, selectedEmailId, onSel
     } finally {
       setLoading(false);
     }
-  }, [folder, searchQuery, userId, emails.length]);
+  }, [folder, searchQuery, userId, userEmail, emails.length]);
 
   useEffect(() => {
     fetchEmails();
