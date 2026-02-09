@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import html2canvas from 'html2canvas';
+import domtoimage from 'dom-to-image-more';
 import { supabase } from '@/integrations/supabase/client';
 import CustomDraggable from './CustomDraggable';
 import LetterTemplate from './LetterTemplate';
@@ -84,6 +84,33 @@ const LetterBuilder: React.FC<LetterBuilderProps> = ({
   const [hasAttachment, setHasAttachment] = useState(false);
   const [letterNumber, setLetterNumber] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+
+  // Auto-generate letter number on mount
+  useEffect(() => {
+    const generateLetterNumber = async () => {
+      try {
+        const now = new Date();
+        const yy = String(now.getFullYear()).slice(-2);
+        const mm = String(now.getMonth() + 1).padStart(2, '0');
+        const yymm = `${yy}${mm}`;
+
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+        const startOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1).toISOString();
+
+        const { count } = await supabase
+          .from('letters')
+          .select('*', { count: 'exact', head: true })
+          .gte('created_at', startOfMonth)
+          .lt('created_at', startOfNextMonth);
+
+        const generatedNumber = `AI-${yymm}-${String((count || 0) + 1).padStart(3, '0')}`;
+        setLetterNumber(generatedNumber);
+      } catch (error) {
+        console.error('Error generating letter number:', error);
+      }
+    };
+    generateLetterNumber();
+  }, []);
 
   // Template URL state
   const [signatureUrl, setSignatureUrl] = useState<string>('');
@@ -176,21 +203,26 @@ const LetterBuilder: React.FC<LetterBuilderProps> = ({
 
       const letterElement = document.getElementById('letter-canvas');
       if (letterElement) {
-        const canvas = await html2canvas(letterElement, {
-          scale: 2,
-          useCORS: true,
-          allowTaint: true,
-          backgroundColor: '#ffffff',
-          width: 794,
-          height: 1123
+        // Wait for fonts to load
+        await document.fonts.ready;
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        // Capture with dom-to-image-more
+        const dataUrl = await domtoimage.toPng(letterElement, {
+          quality: 1,
+          width: letterElement.scrollWidth * 2,
+          height: letterElement.scrollHeight * 2,
+          style: {
+            transform: 'scale(2)',
+            transformOrigin: 'top left',
+            width: `${letterElement.scrollWidth}px`,
+            height: `${letterElement.scrollHeight}px`,
+          },
         });
 
-        // Convert canvas to blob for upload
-        const blob = await new Promise<Blob>(resolve => {
-          canvas.toBlob(blob => {
-            if (blob) resolve(blob);
-          }, 'image/png');
-        });
+        // Convert data URL to blob
+        const fetchResp = await fetch(dataUrl);
+        const blob = await fetchResp.blob();
 
         if (blob) {
           // Get project name from project_id
@@ -198,7 +230,7 @@ const LetterBuilder: React.FC<LetterBuilderProps> = ({
             .from('adrian_projects')
             .select('project_name')
             .eq('project_id', letterData.project_id)
-            .single();
+            .maybeSingle();
 
           // Upload with structure: {project_name}/{id}/letter.png
           const projectName = project?.project_name || letterData.project_id;
@@ -221,22 +253,18 @@ const LetterBuilder: React.FC<LetterBuilderProps> = ({
               })
               .eq('id', letterData.id);
           }
-        }
 
-        // Download the image
-        canvas.toBlob(blob => {
-          if (blob) {
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `Letter-${letterData.recipientName}-${new Date().toISOString().split('T')[0]}.png`;
-            link.click();
-            URL.revokeObjectURL(url);
-            if (onLetterGenerated) {
-              onLetterGenerated();
-            }
+          // Download the image
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `Letter-${letterData.recipientName}-${new Date().toISOString().split('T')[0]}.png`;
+          link.click();
+          URL.revokeObjectURL(url);
+          if (onLetterGenerated) {
+            onLetterGenerated();
           }
-        }, 'image/png');
+        }
       }
     } catch (error) {
       console.error('Error generating letter:', error);
@@ -327,7 +355,9 @@ const LetterBuilder: React.FC<LetterBuilderProps> = ({
       <div className="flex justify-center overflow-auto">
         <div id="letter-canvas" className="relative border-2 border-gray-300 bg-white shadow-xl overflow-hidden flex-shrink-0" style={{
         width: '794px',
-        height: '1123px'
+        height: '1123px',
+        fontFeatureSettings: 'normal',
+        textRendering: 'geometricPrecision' as const,
       }}>
           {/* Background Template */}
           <LetterTemplate />
@@ -348,7 +378,7 @@ const LetterBuilder: React.FC<LetterBuilderProps> = ({
             <div className="text-sm text-right space-y-1" style={{
             direction: 'rtl'
           }}>
-              {letterData.letter_number && <div>شماره: {letterData.letter_number}</div>}
+              {(letterNumber || letterData.letter_number) && <div>شماره: {letterNumber || letterData.letter_number}</div>}
               <div>تاریخ: {formatPersianDate(letterData.date)}</div>
               <div>پیوست: {hasAttachment ? 'دارد' : 'ندارد'}</div>
             </div>
