@@ -4,66 +4,64 @@
 
 ## Problem
 
-When non-admin users open the task edit dialog, they only see Notes, Outcome, and File upload fields. Important task context like Task Name, Project, Assigned By, Priority, Status, and Due Date are hidden because they are wrapped in `canEditAllFields` (admin-only) blocks.
+When opening the task edit dialog, users cannot see key task details like Task Name, Project, Assigned By, Priority, Status, and Due Date. These should always be visible as read-only context at the top of the dialog, regardless of user role.
 
-Users need to see these details as **read-only information** so they have context about the task they are updating.
+The task in question ("بررسی پلان کارخانه") stores its name in the `title` column (not `task_name`), so the display must check both fields.
 
 ## Changes
 
 ### `src/components/TaskEditDialog.tsx`
 
-Add a read-only "Task Details" summary section at the top of the dialog that is visible to **all users** (not just admins). This section will display:
+1. Add a read-only "Task Details" summary card at the **top of the form** that is visible to **all users** (admins and non-admins alike).
 
-| Field | Display |
-|-------|---------|
-| Task Name | Text |
-| Project | Project name (from `task.project_name`) |
-| Assigned By | User name (resolved from profiles) |
-| Priority | Badge |
-| Status | Badge |
+2. This card will display:
+
+| Field | Source |
+|-------|--------|
+| Task Name | `task.task_name` or `task.title` |
+| Project | `task.project_id` (or `task.project_name` if available) |
+| Assigned To | Resolved from `users` via `getUserDisplayName()` |
+| Assigned By | Resolved from `users` via `getUserDisplayName()` |
+| Priority | Badge component |
+| Status | Badge component |
 | Due Date | Formatted date |
+| Start Time | Formatted date/time |
 
-This summary section will only appear for non-admin users (since admins already see all editable fields). It will be rendered as a read-only card/grid above the Notes and Outcome fields.
+3. This section is **display-only** -- no form inputs, just text and badges.
 
-Additionally, resolve the `assigned_by` UUID to a display name using the already-fetched `users` array and the existing `getUserDisplayName()` helper function.
+4. The existing editable fields (admin-only fields and notes/outcome for all users) remain unchanged below this summary.
+
+### Layout
+
+```text
++------------------------------------------+
+| Edit Task / Update Task Outcome          |
++------------------------------------------+
+| Task Details (read-only card)            |
+| Task Name: بررسی پلان کارخانه            |
+| Project: PROJ-20250921-950               |
+| Assigned To: [name]  | Assigned By: ---  |
+| Priority: [medium]   | Status: [todo]    |
+| Due Date: Feb 9, 2026| Start: Feb 9 ...  |
++------------------------------------------+
+| [Admin-only editable fields if admin]    |
+| Notes (editable textarea)               |
+| Outcome (editable textarea)             |
+| File Upload                             |
++------------------------------------------+
+```
 
 ### Technical Details
 
-1. Move the `fetchUsers()` call outside the `canEditAllFields` guard so it runs for all users (it already does -- the `useEffect` runs unconditionally).
-
-2. Add a read-only section before the editable fields when `canEditOutcomeOnly` is true:
-   ```
-   if (canEditOutcomeOnly) {
-     Render a grid showing:
-     - Task Name: task.task_name or task.title
-     - Project: task.project_name
-     - Assigned By: getUserDisplayName(task.assigned_by)
-     - Priority: Badge with task.priority
-     - Status: Badge with task.status
-     - Due Date: formatted task.due_date
-   }
-   ```
-
-3. These fields are display-only (no form inputs), using simple text and Badge components.
-
-### Layout for Non-Admin Users
-
-```
-+----------------------------------+
-| Task Details (read-only card)    |
-| Task Name: ...   | Project: ...  |
-| Assigned By: ... | Priority: ... |
-| Status: ...      | Due Date: ... |
-+----------------------------------+
-| Notes (editable textarea)        |
-| Outcome (editable textarea)      |
-| File Upload                      |
-+----------------------------------+
-```
+- Replace the current `canEditOutcomeOnly`-gated read-only section with one that shows for **all users**
+- Use `task.task_name || task.title || '—'` to handle both column names
+- Use the existing `getUserDisplayName()` helper to resolve user IDs
+- Use `Badge` for priority and status display
+- Use `format()` from date-fns for date formatting
 
 ### Files Changed
 
 | File | Change |
 |------|--------|
-| `src/components/TaskEditDialog.tsx` | Add read-only task details section for non-admin users |
+| `src/components/TaskEditDialog.tsx` | Replace conditional read-only section with an always-visible task details card at top of dialog |
 
