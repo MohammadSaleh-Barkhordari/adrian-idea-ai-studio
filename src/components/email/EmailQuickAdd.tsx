@@ -11,10 +11,11 @@ interface EmailQuickAddProps {
   isOpen: boolean;
   onClose: () => void;
   userId: string;
+  userEmail: string;
   onAdded: () => void;
 }
 
-const EmailQuickAdd = ({ isOpen, onClose, userId, onAdded }: EmailQuickAddProps) => {
+const EmailQuickAdd = ({ isOpen, onClose, userId, userEmail, onAdded }: EmailQuickAddProps) => {
   const [fromEmail, setFromEmail] = useState('');
   const [fromName, setFromName] = useState('');
   const [subject, setSubject] = useState('');
@@ -33,7 +34,7 @@ const EmailQuickAdd = ({ isOpen, onClose, userId, onAdded }: EmailQuickAddProps)
         user_id: userId,
         from_email: fromEmail,
         from_name: fromName || null,
-        to_email: 'm.barkhordari@adrianidea.ir',
+        to_email: userEmail,
         subject,
         body_text: body || null,
         direction: 'inbound',

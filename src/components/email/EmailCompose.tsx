@@ -15,10 +15,11 @@ interface EmailComposeProps {
   mode: 'new' | 'reply' | 'forward';
   replyToEmail?: any;
   userId: string;
+  userEmail: string;
   onSent: () => void;
 }
 
-const EmailCompose = ({ isOpen, onClose, mode, replyToEmail, userId, onSent }: EmailComposeProps) => {
+const EmailCompose = ({ isOpen, onClose, mode, replyToEmail, userId, userEmail, onSent }: EmailComposeProps) => {
   const [to, setTo] = useState('');
   const [toName, setToName] = useState('');
   const [subject, setSubject] = useState('');
@@ -75,6 +76,7 @@ const EmailCompose = ({ isOpen, onClose, mode, replyToEmail, userId, onSent }: E
           subject,
           body_html: `<p>${body.replace(/\n/g, '<br/>')}</p>`,
           body_text: body,
+          from_email: userEmail,
           from_name: 'Adrian Idea',
           reply_to_id: replyToEmail?.id || undefined,
         },
@@ -98,7 +100,7 @@ const EmailCompose = ({ isOpen, onClose, mode, replyToEmail, userId, onSent }: E
     try {
       await supabase.from('emails').insert({
         user_id: userId,
-        from_email: 'noreply@send.adrianidea.ir',
+        from_email: userEmail,
         from_name: 'Adrian Idea',
         to_email: to || '',
         to_name: toName || null,
@@ -138,7 +140,7 @@ const EmailCompose = ({ isOpen, onClose, mode, replyToEmail, userId, onSent }: E
           <div className="space-y-3 flex-1 overflow-y-auto">
             <div>
               <Label className="text-xs text-muted-foreground">From</Label>
-              <Input value="noreply@send.adrianidea.ir" disabled className="bg-muted" />
+              <Input value={userEmail} disabled className="bg-muted" />
             </div>
 
             <div className="relative">

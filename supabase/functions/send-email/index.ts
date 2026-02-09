@@ -43,7 +43,7 @@ serve(async (req: Request) => {
     }
 
     const userId = claimsData.claims.sub;
-    const { to, to_name, subject, body_html, body_text, from_name, reply_to_id } = await req.json();
+    const { to, to_name, subject, body_html, body_text, from_email, from_name, reply_to_id } = await req.json();
 
     if (!to || !subject) {
       return new Response(JSON.stringify({ error: "Missing required fields: to, subject" }), {
@@ -54,6 +54,17 @@ serve(async (req: Request) => {
 
     const senderName = from_name || "Adrian Idea";
 
+    // Resolve the user's real email for reply_to and storage
+    let userEmail = from_email;
+    if (!userEmail) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("email")
+        .eq("id", userId)
+        .maybeSingle();
+      userEmail = profile?.email || "noreply@send.adrianidea.ir";
+    }
+
     // Send via Resend API
     const resendResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -63,6 +74,7 @@ serve(async (req: Request) => {
       },
       body: JSON.stringify({
         from: `${senderName} <noreply@send.adrianidea.ir>`,
+        reply_to: [userEmail],
         to: [to],
         subject,
         html: body_html || undefined,
@@ -83,7 +95,7 @@ serve(async (req: Request) => {
       .from("emails")
       .insert({
         user_id: userId,
-        from_email: "noreply@send.adrianidea.ir",
+        from_email: userEmail,
         from_name: senderName,
         to_email: to,
         to_name: to_name || null,

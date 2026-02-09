@@ -16,6 +16,7 @@ const EmailPage = () => {
   const isMobile = useIsMobile();
   const { toast } = useToast();
   const [user, setUser] = useState<any>(null);
+  const [userEmail, setUserEmail] = useState('');
   const [loading, setLoading] = useState(true);
 
   // State
@@ -34,6 +35,7 @@ const EmailPage = () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { navigate('/auth'); return; }
       setUser(session.user);
+      setUserEmail(session.user.email || '');
       setLoading(false);
     };
     init();
@@ -145,6 +147,7 @@ const EmailPage = () => {
               selectedEmailId={selectedEmailId}
               onSelectEmail={handleSelectEmail}
               userId={user.id}
+              userEmail={userEmail}
               refreshKey={refreshKey}
               onRefresh={handleRefresh}
             />
@@ -189,6 +192,7 @@ const EmailPage = () => {
         mode={composeMode}
         replyToEmail={replyToEmail}
         userId={user.id}
+        userEmail={userEmail}
         onSent={handleRefresh}
       />
 
@@ -196,6 +200,7 @@ const EmailPage = () => {
         isOpen={showQuickAdd}
         onClose={() => setShowQuickAdd(false)}
         userId={user.id}
+        userEmail={userEmail}
         onAdded={handleRefresh}
       />
     </div>
