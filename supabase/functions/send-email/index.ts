@@ -73,8 +73,7 @@ serve(async (req: Request) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: `${senderName} <noreply@send.adrianidea.ir>`,
-        reply_to: [userEmail],
+        from: `${senderName} <${userEmail}>`,
         to: [to],
         subject,
         html: body_html || undefined,
