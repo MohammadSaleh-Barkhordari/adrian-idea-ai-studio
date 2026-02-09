@@ -1,100 +1,227 @@
 
-# Fix PWA Home Screen Icon — Use Company Logo
 
-## Problem
+# Push Notification System Enhancement — 4 New Notification Types
 
-When adding the web app to the home screen, the icon shows a **blue square with "AI" text** instead of the actual company logo. 
+## Overview
 
-**Root Cause:**
-- The PWA manifest icons and apple-touch-icon point to `/adrian-idea-favicon-512.png` — a placeholder with blue background and "AI" text
-- The actual company logo is at `/lovable-uploads/38598e63-607e-4758-bb3d-7fb4e170eae0.png` — correctly used in Navigation and Footer
+This plan implements 4 new push notification types to enhance user engagement:
 
-## Solution
+1. **Overdue Task Reminders** — Daily morning check for past-due tasks
+2. **Daily Agenda Summary** — Morning digest of today's events and tasks
+3. **Task Comment Notifications** — Real-time alerts for comments/mentions
+4. **Project Deadline Approaching** — 3-day and 1-day warnings
 
-Update all PWA icon references to use the actual company logo file.
-
----
-
-## Files to Modify
-
-| File | Changes |
-|------|---------|
-| `vite.config.ts` | Update manifest icons to use company logo |
-| `index.html` | Update apple-touch-icon and favicon references |
-| `src/sw.ts` | Update notification icons |
+All implementations follow existing patterns from `task-due-reminders` and `calendar-event-reminders` edge functions, using the same web-push library (`npm:web-push@3.6.7`) and notification preferences system.
 
 ---
 
-## Implementation Details
+## Database Changes
 
-### 1. Update `vite.config.ts`
+### New Table: `task_comments`
 
-Change the PWA manifest icons from `/adrian-idea-favicon-512.png` to `/lovable-uploads/38598e63-607e-4758-bb3d-7fb4e170eae0.png`:
+Since no comments table exists, we need to create one:
+
+```sql
+CREATE TABLE task_comments (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  task_id UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL,
+  content TEXT NOT NULL,
+  mentioned_users UUID[] DEFAULT '{}',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Enable RLS
+ALTER TABLE task_comments ENABLE ROW LEVEL SECURITY;
+
+-- Policies
+CREATE POLICY "Users can view comments on their assigned tasks" ON task_comments
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM tasks 
+      WHERE tasks.id = task_comments.task_id 
+      AND (tasks.assigned_to = auth.uid() OR has_role(auth.uid(), 'admin'::app_role))
+    )
+    OR user_id = auth.uid()
+  );
+
+CREATE POLICY "Users can create comments" ON task_comments
+  FOR INSERT WITH CHECK (user_id = auth.uid());
+
+CREATE POLICY "Users can update own comments" ON task_comments
+  FOR UPDATE USING (user_id = auth.uid());
+
+CREATE POLICY "Admins can manage all comments" ON task_comments
+  FOR ALL USING (has_role(auth.uid(), 'admin'::app_role));
+```
+
+---
+
+## Edge Functions
+
+### 1. `send-overdue-reminders/index.ts` (NEW)
+
+Runs daily at **07:00 Iran time (03:30 UTC)**
+
+| Feature | Details |
+|---------|---------|
+| Query | Tasks where `due_date < today`, `status != 'completed'`, `status != 'cancelled'` |
+| Grouping | By `assigned_to` user |
+| Notification | Title: `⚠️ Overdue Tasks`, Body: `You have X overdue task(s). Oldest: "[title]" was due [date].` |
+| URL | `/dashboard` |
+
+### 2. `send-daily-agenda/index.ts` (NEW)
+
+Runs daily at **06:30 Iran time (03:00 UTC)**
+
+| Feature | Details |
+|---------|---------|
+| Query | Calendar events AND tasks due TODAY for each user |
+| Skip | Users with no events and no tasks today |
+| Notification | Title: `📅 Today's Agenda`, Body: `X event(s) and Y task(s) today. First: "[title]" at [time].` |
+| URL | `/dashboard` |
+
+### 3. `send-comment-notification/index.ts` (NEW)
+
+Triggered via HTTP call when a comment is added (called from frontend)
+
+| Feature | Details |
+|---------|---------|
+| Recipients | Task assignee (if different from commenter) + mentioned users |
+| Skip | The commenter themselves |
+| Notification | Title: `💬 New Comment`, Body: `[name] commented on "[task]": "[first 50 chars]..."` |
+| URL | `/projects/[project_id]` or `/dashboard` |
+
+### 4. `send-deadline-reminders/index.ts` (NEW)
+
+Runs daily at **08:00 Iran time (04:30 UTC)**
+
+| Feature | Details |
+|---------|---------|
+| Query | Projects where `end_date` is exactly 3 days OR 1 day from now |
+| Recipients | Project `assigned_to`, `created_by`, and `user_id` |
+| Notifications | **3 days:** `📋 Deadline in 3 Days` / **1 day:** `🔴 Deadline Tomorrow!` |
+| Body | `Project "[name]" is due on [date]. [X] tasks remaining.` |
+| URL | `/projects/[project_id]` |
+
+---
+
+## Cron Job Setup
+
+All cron jobs use `net.http_post` to invoke edge functions:
+
+| Job Name | Schedule | Iran Time | Edge Function |
+|----------|----------|-----------|---------------|
+| `daily-agenda-summary` | `0 3 * * *` | 06:30 | `send-daily-agenda` |
+| `overdue-task-reminders` | `30 3 * * *` | 07:00 | `send-overdue-reminders` |
+| `project-deadline-reminders` | `30 4 * * *` | 08:00 | `send-deadline-reminders` |
+
+**Note:** Task comment notifications are triggered in real-time from frontend, not via cron.
+
+---
+
+## Config Updates
+
+### `supabase/config.toml`
+
+Add entries for new edge functions:
+
+```toml
+[functions.send-overdue-reminders]
+verify_jwt = false
+
+[functions.send-daily-agenda]
+verify_jwt = false
+
+[functions.send-deadline-reminders]
+verify_jwt = false
+
+[functions.send-comment-notification]
+verify_jwt = false
+```
+
+---
+
+## Frontend Changes
+
+### Comment Submission Hook
+
+When a user submits a comment on a task, call the `send-comment-notification` edge function:
 
 ```typescript
-icons: [
-  {
-    src: '/lovable-uploads/38598e63-607e-4758-bb3d-7fb4e170eae0.png',
-    sizes: '192x192',
-    type: 'image/png'
-  },
-  {
-    src: '/lovable-uploads/38598e63-607e-4758-bb3d-7fb4e170eae0.png',
-    sizes: '512x512',
-    type: 'image/png'
-  },
-  {
-    src: '/lovable-uploads/38598e63-607e-4758-bb3d-7fb4e170eae0.png',
-    sizes: '512x512',
-    type: 'image/png',
-    purpose: 'maskable'
+// After successfully inserting comment
+await supabase.functions.invoke('send-comment-notification', {
+  body: {
+    task_id: taskId,
+    comment_content: content,
+    commenter_id: currentUserId,
+    mentioned_user_ids: extractMentions(content)
   }
-]
-```
-
-Also update `includeAssets` to reference the correct file.
-
-### 2. Update `index.html`
-
-Change all icon references:
-
-```html
-<!-- Update these lines -->
-<link rel="icon" type="image/png" sizes="32x32" href="/lovable-uploads/38598e63-607e-4758-bb3d-7fb4e170eae0.png">
-<link rel="icon" type="image/png" sizes="192x192" href="/lovable-uploads/38598e63-607e-4758-bb3d-7fb4e170eae0.png">
-<link rel="apple-touch-icon" sizes="180x180" href="/lovable-uploads/38598e63-607e-4758-bb3d-7fb4e170eae0.png">
-<link rel="shortcut icon" type="image/png" href="/lovable-uploads/38598e63-607e-4758-bb3d-7fb4e170eae0.png">
-<meta name="msapplication-TileImage" content="/lovable-uploads/38598e63-607e-4758-bb3d-7fb4e170eae0.png" />
-```
-
-### 3. Update `src/sw.ts`
-
-Change notification icon references:
-
-```typescript
-icon: '/lovable-uploads/38598e63-607e-4758-bb3d-7fb4e170eae0.png',
-// ...
-badge: '/lovable-uploads/38598e63-607e-4758-bb3d-7fb4e170eae0.png',
+});
 ```
 
 ---
 
-## Why This Happens
+## Technical Architecture
 
-The `adrian-idea-favicon-512.png` file in the public folder is just a placeholder — a blue square with "AI" text. The actual company logo was uploaded to `lovable-uploads/` and is correctly used in the Navigation and Footer components, but the PWA configuration was never updated to use it.
+```text
++------------------+          +-------------------------+
+|   pg_cron Jobs   |          |   Frontend Comment      |
+|   (3 jobs)       |          |   Submission            |
++--------+---------+          +------------+------------+
+         |                                 |
+         | net.http_post                   | supabase.functions.invoke
+         v                                 v
++--------+---------+          +------------+------------+
+| Edge Functions   |          | send-comment-           |
+| - send-overdue   |          | notification            |
+| - send-daily     |          +------------+------------+
+| - send-deadline  |                       |
++--------+---------+                       |
+         |                                 |
+         +----------------+----------------+
+                          |
+                          v
+              +-----------+-----------+
+              | push_subscriptions    |
+              | + notification_prefs  |
+              +-----------+-----------+
+                          |
+                          v
+              +-----------+-----------+
+              | Web Push API          |
+              | (VAPID authentication)|
+              +-----------------------+
+```
 
 ---
 
-## After Deployment
+## Files to Create/Modify
 
-To see the new icon on your home screen:
+| File | Action | Description |
+|------|--------|-------------|
+| `supabase/functions/send-overdue-reminders/index.ts` | CREATE | Overdue tasks cron function |
+| `supabase/functions/send-daily-agenda/index.ts` | CREATE | Daily agenda cron function |
+| `supabase/functions/send-deadline-reminders/index.ts` | CREATE | Project deadline cron function |
+| `supabase/functions/send-comment-notification/index.ts` | CREATE | Comment notification function |
+| `supabase/config.toml` | MODIFY | Add verify_jwt=false for new functions |
+| Database migration | RUN | Create task_comments table + cron jobs |
 
-1. **Delete the PWA** from your iPhone Home Screen
-2. Go to Safari and navigate to your app
-3. **Add to Home Screen** again
-4. The new icon (company logo) should appear
+---
 
-**Note:** iOS caches PWA icons aggressively. If the old icon persists, you may need to:
-- Clear Safari cache and website data
-- Wait a few minutes before re-adding
-- Restart your device
+## Notification Icon
+
+All notifications will use the updated company logo:
+`/lovable-uploads/38598e63-607e-4758-bb3d-7fb4e170eae0.png`
+
+---
+
+## Implementation Order
+
+1. Create database table `task_comments` with RLS policies
+2. Create all 4 edge functions
+3. Update `supabase/config.toml`
+4. Set up 3 cron jobs via SQL
+5. (Optional) Add comment UI component to task details
+
