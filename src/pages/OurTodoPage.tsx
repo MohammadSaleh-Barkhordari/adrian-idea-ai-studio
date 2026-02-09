@@ -10,6 +10,7 @@ import { useToast } from "@/components/ui/use-toast";
 import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import NewTodoDialog from "@/components/NewTodoDialog";
+import { sendNotification, getOtherOurLifeUser, getOurLifeUserName } from "@/lib/notifications";
 
 interface Todo {
   id: string;
@@ -67,7 +68,7 @@ const OurTodoPage = () => {
     }
   };
 
-  const toggleTodoStatus = async (todoId: string, currentCompleted: boolean) => {
+  const toggleTodoStatus = async (todoId: string, currentCompleted: boolean, todoTitle?: string) => {
     const newCompleted = !currentCompleted;
 
     try {
@@ -78,9 +79,20 @@ const OurTodoPage = () => {
 
       if (error) throw error;
       
-      fetchTodos();
-
-      if (error) throw error;
+      // Send notification to the other Our Life user
+      if (user) {
+        const otherUserId = getOtherOurLifeUser(user.id);
+        if (otherUserId) {
+          const actorName = getOurLifeUserName(user.id);
+          await sendNotification(
+            '✅ Task Updated',
+            `${actorName} marked "${todoTitle || 'a task'}" as ${newCompleted ? 'completed' : 'reopened'}`,
+            [otherUserId],
+            'task',
+            '/our-todo'
+          );
+        }
+      }
       
       fetchTodos();
       toast({
@@ -97,7 +109,7 @@ const OurTodoPage = () => {
     }
   };
 
-  const deleteTodo = async (todoId: string) => {
+  const deleteTodo = async (todoId: string, todoTitle?: string) => {
     try {
       const { error } = await supabase
         .from('our_todos')
@@ -105,6 +117,21 @@ const OurTodoPage = () => {
         .eq('id', todoId);
 
       if (error) throw error;
+      
+      // Send notification to the other Our Life user
+      if (user) {
+        const otherUserId = getOtherOurLifeUser(user.id);
+        if (otherUserId) {
+          const actorName = getOurLifeUserName(user.id);
+          await sendNotification(
+            '✅ Task Removed',
+            `${actorName} removed: "${todoTitle || 'a task'}"`,
+            [otherUserId],
+            'task',
+            '/our-todo'
+          );
+        }
+      }
       
       fetchTodos();
       toast({
@@ -177,7 +204,7 @@ const OurTodoPage = () => {
                   <div className="flex items-start gap-3">
                     <Checkbox
                       checked={todo.completed}
-                      onCheckedChange={() => toggleTodoStatus(todo.id, todo.completed)}
+                      onCheckedChange={() => toggleTodoStatus(todo.id, todo.completed, todo.title)}
                       className="mt-1 border-border"
                     />
                     <div className="flex-1 min-w-0">
@@ -192,7 +219,7 @@ const OurTodoPage = () => {
                       )}
                     </div>
                     <Button
-                      onClick={() => deleteTodo(todo.id)}
+                      onClick={() => deleteTodo(todo.id, todo.title)}
                       variant="ghost"
                       size="sm"
                       className="text-muted-foreground hover:text-destructive"
@@ -212,7 +239,7 @@ const OurTodoPage = () => {
                       <div className="flex items-start gap-3">
                         <Checkbox
                           checked={true}
-                          onCheckedChange={() => toggleTodoStatus(todo.id, todo.completed)}
+                          onCheckedChange={() => toggleTodoStatus(todo.id, todo.completed, todo.title)}
                           className="mt-1 border-border"
                         />
                         <div className="flex-1">
@@ -222,7 +249,7 @@ const OurTodoPage = () => {
                           )}
                         </div>
                         <Button
-                          onClick={() => deleteTodo(todo.id)}
+                          onClick={() => deleteTodo(todo.id, todo.title)}
                           variant="ghost"
                           size="sm"
                           className="text-muted-foreground hover:text-destructive"

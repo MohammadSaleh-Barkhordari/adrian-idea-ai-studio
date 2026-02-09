@@ -2,6 +2,24 @@ import { supabase } from "@/integrations/supabase/client";
 
 export type NotificationType = 'task' | 'project' | 'calendar' | 'financial' | 'general';
 
+// The two Our Life users
+const OUR_LIFE_USERS = {
+  mohammad: '19db583e-1e4a-4a20-9f3c-591cb2ca3dc7',
+  raiana: '8dd0bb2f-2768-4c1c-9e62-495f36b882d4'
+};
+
+export function getOtherOurLifeUser(currentUserId: string): string | null {
+  if (currentUserId === OUR_LIFE_USERS.mohammad) return OUR_LIFE_USERS.raiana;
+  if (currentUserId === OUR_LIFE_USERS.raiana) return OUR_LIFE_USERS.mohammad;
+  return null;
+}
+
+export function getOurLifeUserName(userId: string): string {
+  if (userId === OUR_LIFE_USERS.mohammad) return 'Mohammad';
+  if (userId === OUR_LIFE_USERS.raiana) return 'Raiana';
+  return 'Someone';
+}
+
 export async function sendNotification(
   title: string,
   body: string,

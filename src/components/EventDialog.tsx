@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { format, parse } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
-import { sendNotification } from "@/lib/notifications";
+import { sendNotification, getOtherOurLifeUser, getOurLifeUserName } from "@/lib/notifications";
 
 interface CalendarEvent {
   id: string;
@@ -134,6 +134,19 @@ export function EventDialog({
           .eq('id', editingEvent.id);
         
         if (error) throw error;
+
+        // Send notification for event update
+        const otherUserId = getOtherOurLifeUser(user.id);
+        if (otherUserId) {
+          const actorName = getOurLifeUserName(user.id);
+          await sendNotification(
+            '📅 Event Updated',
+            `${actorName} updated "${eventTitle}" on ${format(selectedDate, 'MMM d')} at ${startTime}`,
+            [otherUserId],
+            'calendar',
+            '/our-calendar'
+          );
+        }
         
         toast({
           title: "Success",
@@ -146,19 +159,14 @@ export function EventDialog({
         
         if (error) throw error;
 
-        // Get the other person's user ID to notify them about the new event using secure RPC
-        const otherPersonEmail = personName === 'Mohammad' 
-          ? 'raianasattari@gmail.com' 
-          : 'mosba1991@gmail.com';
-        
-        const { data: otherProfileId } = await supabase
-          .rpc('get_user_id_by_email', { lookup_email: otherPersonEmail });
-
-        if (otherProfileId) {
+        // Send notification for new event using helper functions
+        const otherUserId = getOtherOurLifeUser(user.id);
+        if (otherUserId) {
+          const actorName = getOurLifeUserName(user.id);
           await sendNotification(
-            '📅 New Calendar Event',
-            `${personName} added: "${eventTitle}" on ${format(selectedDate, 'MMM d')} at ${startTime}`,
-            [otherProfileId],
+            '📅 New Event Added',
+            `${actorName} added "${eventTitle}" on ${format(selectedDate, 'MMM d')} at ${startTime}`,
+            [otherUserId],
             'calendar',
             '/our-calendar'
           );

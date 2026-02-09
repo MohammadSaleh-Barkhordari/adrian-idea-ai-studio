@@ -6,6 +6,7 @@ import { Plus, Edit, Trash2 } from "lucide-react";
 import { EventDialog } from "@/components/EventDialog";
 import { format, parse } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+import { sendNotification, getOtherOurLifeUser, getOurLifeUserName } from "@/lib/notifications";
 
 interface CalendarEvent {
   id: string;
@@ -184,14 +185,31 @@ export function TimeSlotView({ selectedDate, personName }: TimeSlotViewProps) {
     setIsDialogOpen(true);
   };
 
-  const handleDeleteEvent = async (eventId: string) => {
+  const handleDeleteEvent = async (eventId: string, eventTitle?: string) => {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
       const { error } = await supabase
         .from('our_calendar')
         .delete()
         .eq('id', eventId);
 
       if (error) throw error;
+
+      // Send notification for event deletion
+      if (user) {
+        const otherUserId = getOtherOurLifeUser(user.id);
+        if (otherUserId) {
+          const actorName = getOurLifeUserName(user.id);
+          await sendNotification(
+            '📅 Event Removed',
+            `${actorName} removed "${eventTitle || 'an event'}" from ${format(selectedDate, 'MMM d')}`,
+            [otherUserId],
+            'calendar',
+            '/our-calendar'
+          );
+        }
+      }
       
       toast({
         title: "Success",
@@ -305,7 +323,7 @@ export function TimeSlotView({ selectedDate, personName }: TimeSlotViewProps) {
                     size="sm"
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleDeleteEvent(mainEvent.id);
+                      handleDeleteEvent(mainEvent.id, mainEvent.title);
                     }}
                   >
                     <Trash2 className="h-3 w-3" />
