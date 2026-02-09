@@ -317,7 +317,7 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
         updateData.description = values.description;
         updateData.notes = values.notes;
         updateData.outcome = values.outcome;
-        updateData.related_task_id = values.related_task_id || null;
+        updateData.related_task_id = values.related_task_id && values.related_task_id !== 'none' ? values.related_task_id : null;
         updateData.due_date = dueDate ? dueDate.toISOString().split('T')[0] : null;
         updateData.start_time = startTime ? startTime.toISOString() : null;
       } else if (canEditOutcomeOnly) {
@@ -594,7 +594,7 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="">None</SelectItem>
+                          <SelectItem value="none">None</SelectItem>
                           {relatedTasks.map(t => (
                             <SelectItem key={t.id} value={t.id}>
                               {t.task_name || t.title}
