@@ -233,7 +233,7 @@ const LetterBuilder: React.FC<LetterBuilderProps> = ({
     addEl(baseShort, positions.recipientInfo, recipientInfoHtml, 'white-space:normal;text-align:right;font-size:16px;');
 
     // Subject — long text, pre-wrap
-    addEl(baseLong, positions.subject, `<span style="font-weight:bold;border:none;outline:none;background:none;">موضوع: </span><span>${letterData.generatedSubject}</span>`, 'text-align:right;font-size:16px;max-width:580px;');
+    addEl(baseLong, positions.subject, `<span style="font-weight:bold;border:none;outline:none;background:none;box-shadow:none;">موضوع: </span><span style="border:none;outline:none;background:none;box-shadow:none;">${letterData.generatedSubject}</span>`, 'text-align:right;font-size:16px;max-width:580px;');
 
     // Greeting — nowrap
     addEl(baseShort, positions.greeting, 'با سلام و احترام', 'text-align:right;font-weight:500;font-size:16px;');
