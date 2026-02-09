@@ -79,6 +79,7 @@ serve(async (req) => {
       body: `Push notifications are working! Sent at ${new Date().toLocaleTimeString()}`,
       icon: '/adrian-idea-favicon-512.png',
       url: '/',
+      type: 'general',
       timestamp: new Date().toISOString()
     });
 

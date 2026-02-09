@@ -13,6 +13,16 @@ precacheAndRoute(self.__WB_MANIFEST);
 
 // ===== PUSH NOTIFICATION HANDLERS =====
 
+// Vibration patterns for different notification types
+const vibrationPatterns: Record<string, number[]> = {
+  calendar: [200, 100, 200, 100, 200],  // Triple pulse — Our Life
+  financial: [200, 100, 200, 100, 200], // Triple pulse — Our Life
+  todo: [200, 100, 200, 100, 200],      // Triple pulse — Our Life
+  task: [200, 100, 200],                // Double pulse
+  project: [300],                       // Single pulse
+  general: [200],                       // Short pulse
+};
+
 self.addEventListener('push', function(event) {
   console.log('[SW] Push event received');
 
@@ -21,6 +31,7 @@ self.addEventListener('push', function(event) {
     body: 'You have a new notification',
     icon: '/lovable-uploads/38598e63-607e-4758-bb3d-7fb4e170eae0.png',
     url: '/',
+    type: 'general',
   };
 
   if (event.data) {
@@ -32,6 +43,7 @@ self.addEventListener('push', function(event) {
         body: payload.body || payload.message || data.body,
         icon: payload.icon || data.icon,
         url: payload.url || data.url,
+        type: payload.type || 'general',
       };
     } catch (e) {
       console.error('[SW] Error parsing push data:', e);
@@ -46,6 +58,9 @@ self.addEventListener('push', function(event) {
       badge: '/lovable-uploads/38598e63-607e-4758-bb3d-7fb4e170eae0.png',
       tag: 'notification-' + Date.now(),
       renotify: true,
+      silent: false,
+      vibrate: vibrationPatterns[data.type] || vibrationPatterns.general,
+      requireInteraction: ['calendar', 'financial', 'todo'].includes(data.type),
       data: {
         url: data.url,
         dateOfArrival: Date.now(),

@@ -128,12 +128,13 @@ serve(async (req) => {
 
     console.log(`Sending notifications to ${filteredSubscriptions.length} subscriptions`);
 
-    // Prepare notification payload
+    // Prepare notification payload with type for vibration patterns
     const notificationData = JSON.stringify({
       title,
       body,
       icon: icon || '/adrian-idea-favicon-512.png',
       url: url || '/',
+      type: notification_type || 'general',
       timestamp: new Date().toISOString()
     });
 

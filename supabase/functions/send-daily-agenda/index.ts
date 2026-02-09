@@ -138,6 +138,7 @@ Deno.serve(async (req) => {
         body: `${eventCount} event(s) and ${taskCount} task(s) today. First: "${firstItemTitle}" at ${firstItemTime}.`,
         icon: '/lovable-uploads/38598e63-607e-4758-bb3d-7fb4e170eae0.png',
         url: '/dashboard',
+        type: 'calendar',
       });
 
       for (const subscription of userSubscriptions) {
