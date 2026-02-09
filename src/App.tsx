@@ -43,6 +43,7 @@ const CookiePolicyPageFa = lazy(() => import("./pages/fa/CookiePolicyPage"));
 const DataProcessingPageFa = lazy(() => import("./pages/fa/DataProcessingPage"));
 const InstallAppPage = lazy(() => import("./pages/InstallAppPage"));
 const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
+const EmailPage = lazy(() => import("./pages/EmailPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
@@ -103,6 +104,7 @@ const App = () => (
                 <Route path="/our-todo" element={<OurTodoPage />} />
                 <Route path="/install" element={<InstallAppPage />} />
                 <Route path="/reset-password" element={<ResetPasswordPage />} />
+                <Route path="/email" element={<EmailPage />} />
                 
                 {/* Blog Dashboard routes */}
                 <Route path="/dashboard/blog" element={<BlogDashboardPage />} />
