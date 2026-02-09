@@ -313,14 +313,19 @@ export const NewTaskDialog: React.FC<NewTaskDialogProps> = ({
       // Create task first
       const taskData = {
         title: formData.taskName.trim(),
+        task_name: formData.taskName.trim(),
         description: formData.notes.trim() || null,
         assigned_to: formData.assignedTo === 'unassigned' ? null : formData.assignedTo || null,
+        assigned_by: formData.assignedBy || null,
         created_by: user.id,
+        user_id: user.id,
         due_date: dueDate ? format(dueDate, 'yyyy-MM-dd') : null,
         start_time: startDate ? startDate.toISOString() : null,
         priority: formData.priority,
         status: formData.status,
         project_id: projectId,
+        outcome: formData.outcome || null,
+        follow_by: formData.followBy === 'unassigned' ? null : formData.followBy || null,
         related_task_id: formData.relatedTaskId === 'none' ? null : formData.relatedTaskId || null,
       };
 
