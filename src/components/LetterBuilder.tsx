@@ -337,7 +337,7 @@ const LetterBuilder: React.FC<LetterBuilderProps> = ({
         const filePath = `${projectName}/${letterData.id}/letter.png`;
         
         const { error: uploadError } = await supabase.storage
-          .from('documents')
+          .from('Letters')
           .upload(filePath, blob, { upsert: true });
 
         if (!uploadError) {
@@ -348,7 +348,15 @@ const LetterBuilder: React.FC<LetterBuilderProps> = ({
               final_generated_at: new Date().toISOString(),
               final_image_url: filePath,
               file_url: filePath,
-              mime_type: 'image/png'
+              mime_type: 'image/png',
+              letter_title: letterData.generatedSubject,
+              generated_subject: letterData.generatedSubject,
+              generated_body: letterData.generatedBody,
+              letter_number: letterNumber || letterData.letter_number || null,
+              has_attachment: hasAttachment,
+              needs_signature: includeSignature,
+              needs_stamp: includeStamp,
+              writer_name: letterData.writerName
             })
             .eq('id', letterData.id);
         }

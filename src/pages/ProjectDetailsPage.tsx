@@ -62,15 +62,20 @@ interface Document {
 
 interface Letter {
   id: string;
+  letter_title?: string;
+  letter_number?: string;
   recipient_name?: string;
   recipient_position?: string;
   recipient_company?: string;
-  subject?: string;
-  body?: string;
+  generated_subject?: string;
+  generated_body?: string;
   user_request?: string;
+  writer_name?: string;
   file_url?: string;
+  final_image_url?: string;
   mime_type?: string;
   status: string;
+  has_attachment?: boolean;
   project_id?: string;
   document_id?: string;
   created_by?: string;
@@ -231,12 +236,11 @@ const ProjectDetailsPage = () => {
         setDocuments(documentsData || []);
       }
 
-      // Load letters - only show final_generated letters
+      // Load all letters for this project
       const { data: lettersData, error: lettersError } = await supabase
         .from('letters')
         .select('*')
         .eq('project_id', id)
-        .eq('status', 'final_generated')
         .order('created_at', { ascending: false });
 
       if (lettersError) {
@@ -661,39 +665,39 @@ const ProjectDetailsPage = () => {
                   {letters.map((letter) => (
                     <div key={letter.id} className="border rounded-lg p-3">
                       <div className="flex justify-between items-start mb-2">
-                        <h4 className="font-medium flex items-center gap-2">
-                          {letter.file_url ? (
-                            <>
-                              <FileText className="w-4 h-4" />
-                              {letter.subject || `To: ${letter.recipient_name}`}
-                            </>
-                          ) : (
-                            <>
-                              <Edit3 className="w-4 h-4" />
-                              To: {letter.recipient_name}
-                            </>
+                        <div>
+                          <h4 className="font-medium flex items-center gap-2">
+                            <FileText className="w-4 h-4" />
+                            {letter.letter_title || letter.generated_subject || `To: ${letter.recipient_name || 'Unknown'}`}
+                          </h4>
+                          {letter.letter_number && (
+                            <span className="text-xs text-muted-foreground">#{letter.letter_number}</span>
                           )}
-                        </h4>
+                        </div>
                         <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-xs">
+                            {formatStatus(letter.status)}
+                          </Badge>
                           <span className="text-xs text-muted-foreground">
                             {formatDate(letter.created_at)}
                           </span>
-                          {letter.file_url && (
+                          {(letter.final_image_url || letter.file_url) && (
                             <Button
                               size="sm"
                               variant="outline"
                               onClick={async () => {
                                 try {
+                                  const downloadPath = letter.final_image_url || letter.file_url!;
                                   const { data, error } = await supabase.storage
                                     .from('Letters')
-                                    .download(letter.file_url!);
+                                    .download(downloadPath);
                                   
                                   if (error) throw error;
                                   
                                   const url = URL.createObjectURL(data);
                                   const a = document.createElement('a');
                                   a.href = url;
-                                  a.download = `letter-${letter.id}`;
+                                  a.download = `letter-${letter.letter_number || letter.id}.png`;
                                   document.body.appendChild(a);
                                   a.click();
                                   document.body.removeChild(a);
@@ -710,35 +714,25 @@ const ProjectDetailsPage = () => {
                               className="flex items-center gap-1"
                             >
                               <Download className="w-4 h-4" />
-                              Download
                             </Button>
                           )}
                         </div>
                       </div>
                       
-                      {!letter.file_url && (
-                        <p className="text-sm text-muted-foreground">
-                          {letter.recipient_position} at {letter.recipient_company}
-                        </p>
-                      )}
-                      
-                      {letter.file_url ? (
-                        <div className="mt-2 space-y-1">
-                          <p className="text-sm text-muted-foreground">
-                            Type: {letter.mime_type || 'Unknown'}
-                          </p>
-                        </div>
-                      ) : (
-                        letter.subject && (
-                          <p className="text-sm mt-1">
-                            <span className="font-medium">Subject:</span> {letter.subject}
-                          </p>
-                        )
-                      )}
-                      
-                      <p className="text-xs text-muted-foreground mt-2">
-                        {letter.file_url ? 'Summary:' : 'Request:'} {letter.user_request}
-                      </p>
+                      <div className="text-sm text-muted-foreground space-y-1">
+                        {letter.recipient_name && (
+                          <p>To: {letter.recipient_name}{letter.recipient_company ? ` — ${letter.recipient_company}` : ''}</p>
+                        )}
+                        {letter.writer_name && (
+                          <p>From: {letter.writer_name}</p>
+                        )}
+                        {letter.generated_subject && (
+                          <p><span className="font-medium">Subject:</span> {letter.generated_subject}</p>
+                        )}
+                        {letter.user_request && (
+                          <p className="text-xs mt-1">Request: {letter.user_request}</p>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
