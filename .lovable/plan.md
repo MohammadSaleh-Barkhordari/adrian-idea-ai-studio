@@ -1,64 +1,69 @@
 
 
-# Fix Task Edit Dialog - Show All Task Details
+# Show Task Details in Edit Dialog for All Users
 
 ## Problem
 
-When editing a task, several important fields are missing from the edit form even though they exist in the database. The dialog only shows task name, priority, status, due date, notes, outcome, and files. Missing fields include: assigned_to, assigned_by, task_type, description, related_task_id, follow_by, and start_time.
+When non-admin users open the task edit dialog, they only see Notes, Outcome, and File upload fields. Important task context like Task Name, Project, Assigned By, Priority, Status, and Due Date are hidden because they are wrapped in `canEditAllFields` (admin-only) blocks.
+
+Users need to see these details as **read-only information** so they have context about the task they are updating.
 
 ## Changes
 
 ### `src/components/TaskEditDialog.tsx`
 
-Add the following form fields to the admin section of the edit dialog (inside the `canEditAllFields` blocks):
+Add a read-only "Task Details" summary section at the top of the dialog that is visible to **all users** (not just admins). This section will display:
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `description` | Textarea | Task description |
-| `assigned_to` | Select dropdown | User assigned to the task (populated from profiles table) |
-| `assigned_by` | Select dropdown | User who assigned the task (populated from profiles table) |
-| `follow_by` | Select dropdown | User responsible for follow-up (populated from profiles table) |
-| `task_type` | Select dropdown | Task type (general, meeting, review, etc.) |
-| `related_task_id` | Select dropdown | Link to another task in the same project |
-| `start_time` | Date/Time picker | Task start time (already has state, just needs UI) |
+| Field | Display |
+|-------|---------|
+| Task Name | Text |
+| Project | Project name (from `task.project_name`) |
+| Assigned By | User name (resolved from profiles) |
+| Priority | Badge |
+| Status | Badge |
+| Due Date | Formatted date |
 
-For the user dropdowns (`assigned_to`, `assigned_by`, `follow_by`), fetch the list of users from the `profiles` table on dialog open.
+This summary section will only appear for non-admin users (since admins already see all editable fields). It will be rendered as a read-only card/grid above the Notes and Outcome fields.
 
-For the `related_task_id` dropdown, fetch tasks from the same project to allow linking.
+Additionally, resolve the `assigned_by` UUID to a display name using the already-fetched `users` array and the existing `getUserDisplayName()` helper function.
 
 ### Technical Details
 
-1. Add a `useEffect` to fetch profiles when the dialog opens:
+1. Move the `fetchUsers()` call outside the `canEditAllFields` guard so it runs for all users (it already does -- the `useEffect` runs unconditionally).
+
+2. Add a read-only section before the editable fields when `canEditOutcomeOnly` is true:
    ```
-   Fetch from profiles table: id, email, full_name
-   Store in a users state array
+   if (canEditOutcomeOnly) {
+     Render a grid showing:
+     - Task Name: task.task_name or task.title
+     - Project: task.project_name
+     - Assigned By: getUserDisplayName(task.assigned_by)
+     - Priority: Badge with task.priority
+     - Status: Badge with task.status
+     - Due Date: formatted task.due_date
+   }
    ```
 
-2. Add a `useEffect` to fetch project tasks for the related task dropdown:
-   ```
-   Fetch from tasks table where project_id matches, exclude current task
-   ```
+3. These fields are display-only (no form inputs), using simple text and Badge components.
 
-3. Add `description` and `follow_by` to the form's `defaultValues` and `form.reset()`
+### Layout for Non-Admin Users
 
-4. Render all missing fields in the admin-only grid section, using Select components for dropdowns and showing user names (not UUIDs)
-
-### Layout
-
-The form grid will be organized as:
-- Row 1: Task Name, Task Type
-- Row 2: Priority, Status
-- Row 3: Assigned To, Assigned By
-- Row 4: Follow Up By, Related Task
-- Row 5: Due Date, Start Time
-- Full width: Description
-- Full width: Notes
-- Full width: Outcome
-- Full width: File upload
+```
++----------------------------------+
+| Task Details (read-only card)    |
+| Task Name: ...   | Project: ...  |
+| Assigned By: ... | Priority: ... |
+| Status: ...      | Due Date: ... |
++----------------------------------+
+| Notes (editable textarea)        |
+| Outcome (editable textarea)      |
+| File Upload                      |
++----------------------------------+
+```
 
 ### Files Changed
 
 | File | Change |
 |------|--------|
-| `src/components/TaskEditDialog.tsx` | Add missing form fields, fetch profiles and related tasks |
+| `src/components/TaskEditDialog.tsx` | Add read-only task details section for non-admin users |
 
