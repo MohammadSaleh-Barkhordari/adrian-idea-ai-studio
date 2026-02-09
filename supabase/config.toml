@@ -29,3 +29,15 @@ verify_jwt = false
 
 [functions.test-push-notification]
 verify_jwt = false
+
+[functions.send-overdue-reminders]
+verify_jwt = false
+
+[functions.send-daily-agenda]
+verify_jwt = false
+
+[functions.send-deadline-reminders]
+verify_jwt = false
+
+[functions.send-comment-notification]
+verify_jwt = false
