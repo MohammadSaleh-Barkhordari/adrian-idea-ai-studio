@@ -137,6 +137,7 @@ Deno.serve(async (req) => {
           body,
           icon: '/lovable-uploads/38598e63-607e-4758-bb3d-7fb4e170eae0.png',
           url: `/projects/${project.id}`,
+          type: 'project',
         });
 
         for (const subscription of subscriptions) {

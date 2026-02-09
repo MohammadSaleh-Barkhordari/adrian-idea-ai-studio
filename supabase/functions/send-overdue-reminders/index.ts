@@ -117,6 +117,7 @@ Deno.serve(async (req) => {
         body: `You have ${userTasks.length} overdue task(s). Oldest: "${oldestTask.title}" was due ${formattedDate}.`,
         icon: '/lovable-uploads/38598e63-607e-4758-bb3d-7fb4e170eae0.png',
         url: '/dashboard',
+        type: 'task',
       });
 
       for (const subscription of subscriptions) {
