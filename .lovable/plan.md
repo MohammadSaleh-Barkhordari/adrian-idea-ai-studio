@@ -1,112 +1,100 @@
 
-# Execute Push Notification Fix — Service Worker Merge
+# Fix PWA Home Screen Icon — Use Company Logo
 
-## Overview
-Merge push notification handlers into VitePWA's service worker to resolve the conflict where push events are silently swallowed.
+## Problem
 
-## Changes to Implement
+When adding the web app to the home screen, the icon shows a **blue square with "AI" text** instead of the actual company logo. 
 
-### 1. Create `src/sw.ts` (NEW FILE)
-Combined service worker with Workbox precaching + push handlers:
+**Root Cause:**
+- The PWA manifest icons and apple-touch-icon point to `/adrian-idea-favicon-512.png` — a placeholder with blue background and "AI" text
+- The actual company logo is at `/lovable-uploads/38598e63-607e-4758-bb3d-7fb4e170eae0.png` — correctly used in Navigation and Footer
 
-```typescript
-/// <reference lib="webworker" />
-import { precacheAndRoute } from 'workbox-precaching';
-import { clientsClaim } from 'workbox-core';
+## Solution
 
-declare let self: ServiceWorkerGlobalScope;
-
-self.skipWaiting();
-clientsClaim();
-
-// VitePWA injects precache manifest here
-precacheAndRoute(self.__WB_MANIFEST);
-
-// Push event handler
-self.addEventListener('push', function(event) {
-  console.log('[SW] Push event received');
-  let data = {
-    title: 'Adrian Idea',
-    body: 'You have a new notification',
-    icon: '/adrian-idea-favicon-512.png',
-    url: '/',
-  };
-  if (event.data) {
-    try {
-      const payload = event.data.json();
-      data = { ...data, ...payload };
-    } catch (e) {
-      data.body = event.data.text();
-    }
-  }
-  event.waitUntil(
-    self.registration.showNotification(data.title, {
-      body: data.body || data.message,
-      icon: data.icon,
-      badge: '/adrian-idea-favicon-192.png',
-      vibrate: [100, 50, 100],
-      tag: 'notification-' + Date.now(),
-      renotify: true,
-      data: { url: data.url, dateOfArrival: Date.now() },
-    })
-  );
-});
-
-// Notification click handler
-self.addEventListener('notificationclick', function(event) {
-  event.notification.close();
-  const urlToOpen = event.notification.data?.url || '/';
-  event.waitUntil(
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(clientList) {
-      for (const client of clientList) {
-        if (client.url.includes(self.location.origin) && 'focus' in client) {
-          client.navigate(urlToOpen);
-          return client.focus();
-        }
-      }
-      return self.clients.openWindow(urlToOpen);
-    })
-  );
-});
-
-// Install/activate handlers
-self.addEventListener('install', () => { console.log('[SW] Installed with push support'); self.skipWaiting(); });
-self.addEventListener('activate', (event) => { console.log('[SW] Activated'); event.waitUntil(self.clients.claim()); });
-```
-
-### 2. Modify `vite.config.ts`
-Switch VitePWA to `injectManifest` strategy:
-
-- Change `strategies: 'injectManifest'`
-- Add `srcDir: 'src'` and `filename: 'sw.ts'`
-- Move `maximumFileSizeToCacheInBytes` into `injectManifest` config
-- Add `devOptions: { enabled: true, type: 'module' }`
-- Keep all existing manifest config unchanged
-
-### 3. Delete `public/sw.js`
-Remove the old standalone service worker file.
-
-### 4. Modify `src/main.tsx`
-Remove manual service worker registration (lines 15-22) since VitePWA handles it automatically. Add debug logging for service worker registrations.
-
-### 5. Modify `src/components/NotificationBell.tsx`
-Add debug info state and display (development mode only) showing registered service workers.
+Update all PWA icon references to use the actual company logo file.
 
 ---
 
-## Technical Details
+## Files to Modify
 
-| File | Action |
-|------|--------|
-| `src/sw.ts` | Create (combined SW) |
-| `vite.config.ts` | Modify (injectManifest strategy) |
-| `public/sw.js` | Delete |
-| `src/main.tsx` | Modify (remove manual registration) |
-| `src/components/NotificationBell.tsx` | Modify (add debug info) |
+| File | Changes |
+|------|---------|
+| `vite.config.ts` | Update manifest icons to use company logo |
+| `index.html` | Update apple-touch-icon and favicon references |
+| `src/sw.ts` | Update notification icons |
 
-## Post-Deployment Steps
-1. Delete the PWA from iPhone Home Screen
-2. Clear Safari cache
-3. Re-add to Home Screen
-4. Enable notifications
-5. Test with locked screen
+---
+
+## Implementation Details
+
+### 1. Update `vite.config.ts`
+
+Change the PWA manifest icons from `/adrian-idea-favicon-512.png` to `/lovable-uploads/38598e63-607e-4758-bb3d-7fb4e170eae0.png`:
+
+```typescript
+icons: [
+  {
+    src: '/lovable-uploads/38598e63-607e-4758-bb3d-7fb4e170eae0.png',
+    sizes: '192x192',
+    type: 'image/png'
+  },
+  {
+    src: '/lovable-uploads/38598e63-607e-4758-bb3d-7fb4e170eae0.png',
+    sizes: '512x512',
+    type: 'image/png'
+  },
+  {
+    src: '/lovable-uploads/38598e63-607e-4758-bb3d-7fb4e170eae0.png',
+    sizes: '512x512',
+    type: 'image/png',
+    purpose: 'maskable'
+  }
+]
+```
+
+Also update `includeAssets` to reference the correct file.
+
+### 2. Update `index.html`
+
+Change all icon references:
+
+```html
+<!-- Update these lines -->
+<link rel="icon" type="image/png" sizes="32x32" href="/lovable-uploads/38598e63-607e-4758-bb3d-7fb4e170eae0.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/lovable-uploads/38598e63-607e-4758-bb3d-7fb4e170eae0.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/lovable-uploads/38598e63-607e-4758-bb3d-7fb4e170eae0.png">
+<link rel="shortcut icon" type="image/png" href="/lovable-uploads/38598e63-607e-4758-bb3d-7fb4e170eae0.png">
+<meta name="msapplication-TileImage" content="/lovable-uploads/38598e63-607e-4758-bb3d-7fb4e170eae0.png" />
+```
+
+### 3. Update `src/sw.ts`
+
+Change notification icon references:
+
+```typescript
+icon: '/lovable-uploads/38598e63-607e-4758-bb3d-7fb4e170eae0.png',
+// ...
+badge: '/lovable-uploads/38598e63-607e-4758-bb3d-7fb4e170eae0.png',
+```
+
+---
+
+## Why This Happens
+
+The `adrian-idea-favicon-512.png` file in the public folder is just a placeholder — a blue square with "AI" text. The actual company logo was uploaded to `lovable-uploads/` and is correctly used in the Navigation and Footer components, but the PWA configuration was never updated to use it.
+
+---
+
+## After Deployment
+
+To see the new icon on your home screen:
+
+1. **Delete the PWA** from your iPhone Home Screen
+2. Go to Safari and navigate to your app
+3. **Add to Home Screen** again
+4. The new icon (company logo) should appear
+
+**Note:** iOS caches PWA icons aggressively. If the old icon persists, you may need to:
+- Clear Safari cache and website data
+- Wait a few minutes before re-adding
+- Restart your device
