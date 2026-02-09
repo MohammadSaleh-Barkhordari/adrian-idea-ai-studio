@@ -1,67 +1,93 @@
 
 
-# Show Task Details in Edit Dialog for All Users
+# Redesign TaskEditDialog with Creation Form Layout and Role-Based Access
 
-## Problem
+## Database Migration
 
-When opening the task edit dialog, users cannot see key task details like Task Name, Project, Assigned By, Priority, Status, and Due Date. These should always be visible as read-only context at the top of the dialog, regardless of user role.
+Add two new columns to the `tasks` table:
+- `completion_notes` (text, nullable)
+- `completion_date` (date, nullable)
 
-The task in question ("بررسی پلان کارخانه") stores its name in the `title` column (not `task_name`), so the display must check both fields.
+The `outcome` column already exists.
 
-## Changes
+## TaskEditDialog.tsx -- Complete Rewrite
 
-### `src/components/TaskEditDialog.tsx`
+Rewrite the component to mirror the `NewTaskDialog` form layout exactly, with role-based behavior layered on top.
 
-1. Add a read-only "Task Details" summary card at the **top of the form** that is visible to **all users** (admins and non-admins alike).
+### Structure Changes
 
-2. This card will display:
+- Switch from `react-hook-form` + `Form`/`FormField` pattern to the simpler `useState` + `Label`/`Input` pattern used in `NewTaskDialog`
+- Use `ScrollArea` for the form body (same as NewTaskDialog)
+- Dialog size: `sm:max-w-[500px] max-h-[90vh]` (matching NewTaskDialog)
 
-| Field | Source |
-|-------|--------|
-| Task Name | `task.task_name` or `task.title` |
-| Project | `task.project_id` (or `task.project_name` if available) |
-| Assigned To | Resolved from `users` via `getUserDisplayName()` |
-| Assigned By | Resolved from `users` via `getUserDisplayName()` |
-| Priority | Badge component |
-| Status | Badge component |
-| Due Date | Formatted date |
-| Start Time | Formatted date/time |
+### Data Fetching
 
-3. This section is **display-only** -- no form inputs, just text and badges.
+Same as current, plus:
+- Fetch project name from `adrian_projects` where `project_id` matches -- display project name instead of raw ID
+- Fetch auth users via `get-auth-users` edge function (matching NewTaskDialog pattern) instead of profiles table
+- Fetch related tasks from same project
 
-4. The existing editable fields (admin-only fields and notes/outcome for all users) remain unchanged below this summary.
+### Form Fields (in NewTaskDialog order, pre-filled)
 
-### Layout
+1. **Task Name** -- text input, pre-filled with `task.task_name || task.title`
+2. **Related Task** -- dropdown from project tasks
+3. **Assigned By / Assigned To** -- side-by-side row (Assigned By as text input, Assigned To as user dropdown)
+4. **Follow Up By** -- user dropdown
+5. **Start Date / Due Date** -- side-by-side date pickers
+6. **Priority / Status** -- side-by-side dropdowns
+7. **Outcome** -- text input
+8. **Outcome File** -- file upload
+9. **Description** -- textarea
+10. **Notes** -- textarea
+
+### Role-Based Behavior
+
+**Admin (`userRole === 'admin'`):**
+- All fields are normal editable inputs/dropdowns/date pickers (identical to creation form)
+- On submit: update ALL fields in the tasks table
+- Button text: "Update Task"
+
+**Non-admin (general user):**
+- All the above fields render in the same layout but as **disabled/read-only** elements:
+  - Text inputs: `disabled` prop + style `bg-[#f5f5f5] rounded-md px-3 py-2 text-sm text-muted-foreground cursor-not-allowed`
+  - Dropdowns: `disabled` prop on SelectTrigger with same gray styling
+  - Date pickers: disabled button with same gray styling
+- Below the read-only form, a visually separated section:
+  - Wrapper: `border-l-4 border-blue-400 pl-4 mt-6`
+  - Heading: "Your Task Update" (font-medium)
+  - Editable fields:
+    - **Status** -- dropdown limited to "In Progress" and "Done" only
+    - **Outcome** -- textarea, placeholder: "Describe what you did..."
+    - **Completion Notes** -- textarea, placeholder: "Any additional notes..."
+    - **Completion Date** -- date picker
+- File upload remains available to all users
+- On submit: ONLY update `outcome`, `completion_notes`, `completion_date`, `status`, and files
+
+### Submit Logic
 
 ```text
-+------------------------------------------+
-| Edit Task / Update Task Outcome          |
-+------------------------------------------+
-| Task Details (read-only card)            |
-| Task Name: بررسی پلان کارخانه            |
-| Project: PROJ-20250921-950               |
-| Assigned To: [name]  | Assigned By: ---  |
-| Priority: [medium]   | Status: [todo]    |
-| Due Date: Feb 9, 2026| Start: Feb 9 ...  |
-+------------------------------------------+
-| [Admin-only editable fields if admin]    |
-| Notes (editable textarea)               |
-| Outcome (editable textarea)             |
-| File Upload                             |
-+------------------------------------------+
+if admin:
+  updateData = {
+    task_name, priority, status, assigned_to, assigned_by,
+    follow_by, task_type, description, notes, outcome,
+    related_task_id, due_date, start_time
+  }
+else:
+  updateData = {
+    outcome, completion_notes, completion_date, status (restricted)
+  }
 ```
 
-### Technical Details
+Both roles can upload files.
 
-- Replace the current `canEditOutcomeOnly`-gated read-only section with one that shows for **all users**
-- Use `task.task_name || task.title || '—'` to handle both column names
-- Use the existing `getUserDisplayName()` helper to resolve user IDs
-- Use `Badge` for priority and status display
-- Use `format()` from date-fns for date formatting
+### Existing Files Section
+
+Keep the existing files display and removal functionality (download/remove buttons) for all users.
 
 ### Files Changed
 
 | File | Change |
 |------|--------|
-| `src/components/TaskEditDialog.tsx` | Replace conditional read-only section with an always-visible task details card at top of dialog |
+| Database migration | Add `completion_notes` (text) and `completion_date` (date) columns to `tasks` |
+| `src/components/TaskEditDialog.tsx` | Complete rewrite to match NewTaskDialog layout with role-based read-only/editable behavior |
 
