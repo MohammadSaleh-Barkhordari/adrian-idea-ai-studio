@@ -16,10 +16,34 @@ const AuthPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [forgotPassword, setForgotPassword] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
   const { language } = useLanguage();
   const langPrefix = language === 'en' ? '/en' : '';
+
+  const handleForgotPassword = async () => {
+    if (!email) {
+      toast({ title: "Email required", description: "Please enter your email address.", variant: "destructive" });
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) {
+        toast({ title: "Error", description: error.message, variant: "destructive" });
+      } else {
+        toast({ title: "Reset link sent!", description: "Check your email for a password reset link." });
+        setForgotPassword(false);
+      }
+    } catch {
+      toast({ title: "An error occurred", description: "Please try again later.", variant: "destructive" });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
     // Check if user is already logged in
@@ -130,46 +154,88 @@ const AuthPage = () => {
                 </TabsList>
                 
                 <TabsContent value="signin" className="space-y-4 mt-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="signin-email">Email</Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="signin-email"
-                        type="email"
-                        placeholder="Enter your email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        className="pl-10"
-                        disabled={isLoading}
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="signin-password">Password</Label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="signin-password"
-                        type="password"
-                        placeholder="Enter your password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="pl-10"
-                        disabled={isLoading}
-                        onKeyPress={(e) => e.key === 'Enter' && handleSignIn()}
-                      />
-                    </div>
-                  </div>
-                  
-                  <Button 
-                    className="w-full bg-gradient-accent hover:shadow-glow-accent"
-                    onClick={handleSignIn}
-                    disabled={isLoading || !email || !password}
-                  >
-                    {isLoading ? 'Signing In...' : 'Sign In'}
-                  </Button>
+                  {forgotPassword ? (
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor="reset-email">Email</Label>
+                        <div className="relative">
+                          <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            id="reset-email"
+                            type="email"
+                            placeholder="Enter your email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            className="pl-10"
+                            disabled={isLoading}
+                            onKeyPress={(e) => e.key === 'Enter' && handleForgotPassword()}
+                          />
+                        </div>
+                      </div>
+                      <Button
+                        className="w-full bg-gradient-accent hover:shadow-glow-accent"
+                        onClick={handleForgotPassword}
+                        disabled={isLoading || !email}
+                      >
+                        {isLoading ? 'Sending...' : 'Send Reset Link'}
+                      </Button>
+                      <Button
+                        variant="link"
+                        className="w-full"
+                        onClick={() => setForgotPassword(false)}
+                      >
+                        Back to Sign In
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor="signin-email">Email</Label>
+                        <div className="relative">
+                          <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            id="signin-email"
+                            type="email"
+                            placeholder="Enter your email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            className="pl-10"
+                            disabled={isLoading}
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="signin-password">Password</Label>
+                        <div className="relative">
+                          <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            id="signin-password"
+                            type="password"
+                            placeholder="Enter your password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            className="pl-10"
+                            disabled={isLoading}
+                            onKeyPress={(e) => e.key === 'Enter' && handleSignIn()}
+                          />
+                        </div>
+                      </div>
+                      <Button
+                        className="w-full bg-gradient-accent hover:shadow-glow-accent"
+                        onClick={handleSignIn}
+                        disabled={isLoading || !email || !password}
+                      >
+                        {isLoading ? 'Signing In...' : 'Sign In'}
+                      </Button>
+                      <Button
+                        variant="link"
+                        className="w-full text-muted-foreground"
+                        onClick={() => setForgotPassword(true)}
+                      >
+                        Forgot Password?
+                      </Button>
+                    </>
+                  )}
                 </TabsContent>
                 
                 <TabsContent value="signup" className="space-y-4 mt-6">
