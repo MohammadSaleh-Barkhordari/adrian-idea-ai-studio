@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { BarChart, FileText, Calculator, FolderOpen, Users, User, LogOut, CheckSquare, Clock, AlertCircle, Search, ArrowUpDown, ArrowUp, ArrowDown, Filter, X, MessageSquare, Edit, BookOpen } from 'lucide-react';
+import { BarChart, FileText, Calculator, FolderOpen, Users, User, LogOut, CheckSquare, Clock, AlertCircle, Search, ArrowUpDown, ArrowUp, ArrowDown, Filter, X, MessageSquare, Edit, BookOpen, Mail } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { TaskEditDialog } from '@/components/TaskEditDialog';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -404,6 +404,13 @@ const DashboardPage = () => {
     color: 'text-cyan-500',
     requiresAdmin: false,
     requiresRole: true
+  }, {
+    title: 'Email',
+    description: 'Send and manage your emails',
+    icon: Mail,
+    path: '/email',
+    color: 'text-sky-500',
+    requiresAdmin: false
   }, {
     title: 'Our Life',
     description: 'Personal finance, calendar and tasks',

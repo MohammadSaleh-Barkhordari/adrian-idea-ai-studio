@@ -357,6 +357,142 @@ export type Database = {
           },
         ]
       }
+      email_attachments: {
+        Row: {
+          content_type: string | null
+          created_at: string
+          email_id: string
+          file_name: string
+          file_size: number | null
+          id: string
+          storage_path: string | null
+        }
+        Insert: {
+          content_type?: string | null
+          created_at?: string
+          email_id: string
+          file_name: string
+          file_size?: number | null
+          id?: string
+          storage_path?: string | null
+        }
+        Update: {
+          content_type?: string | null
+          created_at?: string
+          email_id?: string
+          file_name?: string
+          file_size?: number | null
+          id?: string
+          storage_path?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_attachments_email_id_fkey"
+            columns: ["email_id"]
+            isOneToOne: false
+            referencedRelation: "emails"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_contacts: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          name: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          name?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      emails: {
+        Row: {
+          body_html: string | null
+          body_text: string | null
+          created_at: string
+          direction: string
+          from_email: string
+          from_name: string | null
+          id: string
+          in_reply_to: string | null
+          is_archived: boolean
+          is_deleted: boolean
+          is_read: boolean
+          is_starred: boolean
+          resend_id: string | null
+          status: string
+          subject: string
+          to_email: string
+          to_name: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          body_html?: string | null
+          body_text?: string | null
+          created_at?: string
+          direction: string
+          from_email: string
+          from_name?: string | null
+          id?: string
+          in_reply_to?: string | null
+          is_archived?: boolean
+          is_deleted?: boolean
+          is_read?: boolean
+          is_starred?: boolean
+          resend_id?: string | null
+          status?: string
+          subject?: string
+          to_email: string
+          to_name?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          body_html?: string | null
+          body_text?: string | null
+          created_at?: string
+          direction?: string
+          from_email?: string
+          from_name?: string | null
+          id?: string
+          in_reply_to?: string | null
+          is_archived?: boolean
+          is_deleted?: boolean
+          is_read?: boolean
+          is_starred?: boolean
+          resend_id?: string | null
+          status?: string
+          subject?: string
+          to_email?: string
+          to_name?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "emails_in_reply_to_fkey"
+            columns: ["in_reply_to"]
+            isOneToOne: false
+            referencedRelation: "emails"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_sensitive_data: {
         Row: {
           bank_account_number: string | null
