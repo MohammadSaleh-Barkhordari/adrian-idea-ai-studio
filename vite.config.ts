@@ -18,7 +18,7 @@ export default defineConfig(({ mode }) => ({
       strategies: 'injectManifest',
       srcDir: 'src',
       filename: 'sw.ts',
-      includeAssets: ['adrian-idea-favicon-512.png'],
+      includeAssets: ['lovable-uploads/38598e63-607e-4758-bb3d-7fb4e170eae0.png'],
       injectManifest: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MiB limit
@@ -39,17 +39,17 @@ export default defineConfig(({ mode }) => ({
         start_url: '/',
         icons: [
           {
-            src: '/adrian-idea-favicon-512.png',
+            src: '/lovable-uploads/38598e63-607e-4758-bb3d-7fb4e170eae0.png',
             sizes: '192x192',
             type: 'image/png'
           },
           {
-            src: '/adrian-idea-favicon-512.png',
+            src: '/lovable-uploads/38598e63-607e-4758-bb3d-7fb4e170eae0.png',
             sizes: '512x512',
             type: 'image/png'
           },
           {
-            src: '/adrian-idea-favicon-512.png',
+            src: '/lovable-uploads/38598e63-607e-4758-bb3d-7fb4e170eae0.png',
             sizes: '512x512',
             type: 'image/png',
             purpose: 'maskable'
