@@ -1,114 +1,94 @@
 
-# Add Notification Sound & Vibration Patterns
+# Add Forgot Password / Reset Password Flow
 
 ## Overview
 
-Enhance push notifications with vibration patterns and sound settings to make "Our Life" notifications more noticeable. Different notification types will have distinct vibration patterns, and Our Life notifications (calendar, financial, todo) will require user interaction (won't auto-dismiss).
+Add a complete password reset flow to the auth page with two parts:
+1. A "Forgot Password?" link on the Sign In tab that shows a reset form
+2. A new `/reset-password` route where users land after clicking the email link to set a new password
+
+## How It Works
+
+1. User clicks "Forgot Password?" on the Sign In tab
+2. A view appears asking for their email
+3. They submit and receive a password reset email via `supabase.auth.resetPasswordForEmail()`
+4. The email contains a link back to `/reset-password`
+5. On that page, the user enters a new password and it's saved via `supabase.auth.updateUser()`
 
 ---
 
-## Files to Modify
+## Files to Modify/Create
 
-| File | Changes |
-|------|---------|
-| `src/sw.ts` | Add vibration patterns map, update `showNotification` options |
-| `supabase/functions/send-push-notification/index.ts` | Include `type` field in payload |
-| `supabase/functions/send-overdue-reminders/index.ts` | Add `type: 'task'` to payload |
-| `supabase/functions/send-daily-agenda/index.ts` | Add `type: 'calendar'` to payload |
-| `supabase/functions/send-deadline-reminders/index.ts` | Add `type: 'project'` to payload |
-| `supabase/functions/test-push-notification/index.ts` | Add `type: 'general'` to payload |
+### 1. `src/pages/AuthPage.tsx`
+- Add a `forgotPassword` state toggle
+- When active, show only an email field + "Send Reset Link" button instead of the sign-in form
+- Add a "Back to Sign In" link
+- Add a "Forgot Password?" button below the Sign In button
+- Use `supabase.auth.resetPasswordForEmail({ email, options: { redirectTo: window.location.origin + '/reset-password' } })`
 
----
+### 2. `src/pages/ResetPasswordPage.tsx` (NEW)
+- Simple page with Navigation + Footer
+- Two password fields (new password + confirm)
+- On submit, call `supabase.auth.updateUser({ password })`
+- On success, redirect to `/dashboard`
+- Listen for `PASSWORD_RECOVERY` auth event to confirm the token is valid
 
-## Vibration Patterns
-
-| Type | Pattern (ms) | Description |
-|------|--------------|-------------|
-| `calendar` | `[200, 100, 200, 100, 200]` | Triple pulse — Our Life |
-| `financial` | `[200, 100, 200, 100, 200]` | Triple pulse — Our Life |
-| `todo` | `[200, 100, 200, 100, 200]` | Triple pulse — Our Life |
-| `task` | `[200, 100, 200]` | Double pulse |
-| `project` | `[300]` | Single pulse |
-| `general` | `[200]` | Short pulse |
+### 3. `src/App.tsx`
+- Add lazy import for `ResetPasswordPage`
+- Add route: `<Route path="/reset-password" element={<ResetPasswordPage />} />`
 
 ---
 
-## Technical Changes
+## Technical Details
 
-### 1. Service Worker (`src/sw.ts`)
-
-Add vibration pattern mapping before push handler:
+### Forgot Password (AuthPage)
 
 ```typescript
-const vibrationPatterns: Record<string, number[]> = {
-  calendar: [200, 100, 200, 100, 200],
-  financial: [200, 100, 200, 100, 200],
-  todo: [200, 100, 200, 100, 200],
-  task: [200, 100, 200],
-  project: [300],
-  general: [200],
+const handleForgotPassword = async () => {
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${window.location.origin}/reset-password`,
+  });
+  // Show success toast: "Check your email for a reset link"
 };
 ```
 
-Update data parsing to include `type`:
+### Reset Password Page
 
 ```typescript
-data = {
-  title: payload.title || data.title,
-  body: payload.body || payload.message || data.body,
-  icon: payload.icon || data.icon,
-  url: payload.url || data.url,
-  type: payload.type || 'general',  // NEW
+// Listen for the PASSWORD_RECOVERY event
+supabase.auth.onAuthStateChange((event) => {
+  if (event === 'PASSWORD_RECOVERY') {
+    setCanReset(true);
+  }
+});
+
+const handleReset = async () => {
+  if (newPassword !== confirmPassword) { /* show error */ return; }
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
+  if (!error) navigate('/dashboard');
 };
 ```
 
-Update `showNotification` options:
+---
 
-```typescript
-{
-  body: data.body,
-  icon: data.icon,
-  badge: '/lovable-uploads/38598e63-607e-4758-bb3d-7fb4e170eae0.png',
-  tag: 'notification-' + Date.now(),
-  renotify: true,
-  silent: false,  // NEW - ensures sound plays
-  vibrate: vibrationPatterns[data.type] || vibrationPatterns.general,  // NEW
-  requireInteraction: ['calendar', 'financial', 'todo'].includes(data.type),  // NEW
-  data: { url: data.url, dateOfArrival: Date.now() },
-}
+## UI Flow
+
+```text
+Sign In Tab
+  [Email field]
+  [Password field]
+  [Sign In button]
+  [Forgot Password? link]  <-- NEW
+
+  Click "Forgot Password?" -->
+
+  [Email field]
+  [Send Reset Link button]
+  [Back to Sign In link]
+
+  User gets email --> clicks link --> /reset-password
+
+  [New Password field]
+  [Confirm Password field]
+  [Reset Password button]
 ```
-
-### 2. Edge Function Updates
-
-Each edge function's notification payload gets a `type` field:
-
-| Function | Type Value |
-|----------|------------|
-| `send-push-notification` | `notification_type || 'general'` |
-| `send-overdue-reminders` | `'task'` |
-| `send-daily-agenda` | `'calendar'` |
-| `send-deadline-reminders` | `'project'` |
-| `test-push-notification` | `'general'` |
-
----
-
-## Behavior Summary
-
-| Feature | Our Life Notifications | Other Notifications |
-|---------|------------------------|---------------------|
-| Vibration | Triple pulse (urgent) | Single/double pulse |
-| Sound | System default | System default |
-| Auto-dismiss | No (stays until tapped) | Yes |
-| Renotify | Yes | Yes |
-
----
-
-## Platform Support
-
-| Platform | Sound | Vibration |
-|----------|-------|-----------|
-| Android | Supported | Supported |
-| iOS PWA | Supported | Limited |
-| Desktop | Supported | Not supported |
-
-Note: Vibration is ignored on desktop browsers but sound still plays.
