@@ -1277,6 +1277,8 @@ export type Database = {
           assigned_by: string | null
           assigned_to: string | null
           completed_at: string | null
+          completion_date: string | null
+          completion_notes: string | null
           created_at: string
           created_by: string | null
           description: string | null
@@ -1300,6 +1302,8 @@ export type Database = {
           assigned_by?: string | null
           assigned_to?: string | null
           completed_at?: string | null
+          completion_date?: string | null
+          completion_notes?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -1323,6 +1327,8 @@ export type Database = {
           assigned_by?: string | null
           assigned_to?: string | null
           completed_at?: string | null
+          completion_date?: string | null
+          completion_notes?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
