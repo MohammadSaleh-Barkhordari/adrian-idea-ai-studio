@@ -19,7 +19,7 @@ self.addEventListener('push', function(event) {
   let data: any = {
     title: 'Adrian Idea',
     body: 'You have a new notification',
-    icon: '/adrian-idea-favicon-512.png',
+    icon: '/lovable-uploads/38598e63-607e-4758-bb3d-7fb4e170eae0.png',
     url: '/',
   };
 
@@ -43,7 +43,7 @@ self.addEventListener('push', function(event) {
     self.registration.showNotification(data.title, {
       body: data.body,
       icon: data.icon,
-      badge: '/adrian-idea-favicon-192.png',
+      badge: '/lovable-uploads/38598e63-607e-4758-bb3d-7fb4e170eae0.png',
       tag: 'notification-' + Date.now(),
       renotify: true,
       data: {
