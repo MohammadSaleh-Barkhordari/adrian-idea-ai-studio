@@ -1,43 +1,34 @@
 
 
-# Use User's Email as From Address and Filter Inbox
+# Use User's Authenticated Email as Resend "From" Address
 
-## Overview
+## What's Changing
 
-Update the email system so each user sends from their own email identity and only sees inbox emails addressed to them.
+Currently the Resend API sends from `noreply@send.adrianidea.ir` with the user's email only in the `reply_to` header. Since `adrianidea.ir` is a verified domain in Resend, the actual "from" address can be the user's real `@adrianidea.ir` email from their authentication account.
 
-## Changes
+## Change
 
-### 1. EmailPage.tsx
-- Extract `user.email` from the session and store it in state
-- Pass `userEmail` prop to `EmailCompose`, `EmailList`, and `EmailQuickAdd`
+### `supabase/functions/send-email/index.ts`
 
-### 2. EmailCompose.tsx
-- Add `userEmail: string` to the props interface
-- Display `userEmail` in the disabled "From" input instead of `noreply@send.adrianidea.ir`
-- Pass `from_email: userEmail` in the `send-email` edge function call
-- Use `userEmail` as `from_email` when saving drafts
+Update the Resend API call to use the user's authenticated email directly as the sender:
 
-### 3. EmailList.tsx
-- Add `userEmail: string` to the props interface
-- In the inbox folder filter, add `.eq('to_email', userEmail)` so only emails addressed to the user appear
-- Other folder filters remain unchanged (they already use `user_id`)
+**Before (line 72):**
+```
+from: `${senderName} <noreply@send.adrianidea.ir>`,
+```
 
-### 4. EmailQuickAdd.tsx
-- Add `userEmail: string` to the props interface
-- Replace the hardcoded `'m.barkhordari@adrianidea.ir'` with the `userEmail` prop
+**After:**
+```
+from: `${senderName} <${userEmail}>`,
+```
 
-### 5. send-email Edge Function
-- Accept `from_email` in the request body
-- Look up the user's email from the profiles table as a fallback if `from_email` is not provided
-- Add `reply_to: [userEmail]` to the Resend API call so replies go to the user
-- Store the user's real email as `from_email` in the emails table insert (instead of `noreply@send.adrianidea.ir`)
-- Keep the Resend "from" field as `noreply@send.adrianidea.ir` (required by domain verification)
+The `reply_to` field can also be removed since the "from" address itself will now be the user's real email -- replies will go directly to them.
 
-### 6. receive-email Edge Function
-- No changes needed
+No other files need to change. The frontend already displays `userEmail` (from `session.user.email`) in the compose "From" field, and the database already stores it as `from_email`.
 
-## Technical Note
+## Summary
 
-Resend only allows sending from verified domains, so the SMTP sender remains `noreply@send.adrianidea.ir`. The `reply_to` header ensures replies reach the user's real mailbox, and the stored `from_email` shows the user's identity in the UI.
+| File | Change |
+|------|--------|
+| `supabase/functions/send-email/index.ts` | Use user's auth email in Resend `from` field instead of `noreply@send.adrianidea.ir` |
 
