@@ -55,11 +55,25 @@ interface FileItem {
   created_at: string;
 }
 
+interface UserProfile {
+  id: string;
+  email: string | null;
+  full_name: string | null;
+}
+
+interface RelatedTask {
+  id: string;
+  task_name: string | null;
+  title: string;
+}
+
 export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdated }: TaskEditDialogProps) {
   const [loading, setLoading] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [existingFiles, setExistingFiles] = useState<FileItem[]>([]);
   const [filesLoading, setFilesLoading] = useState(false);
+  const [users, setUsers] = useState<UserProfile[]>([]);
+  const [relatedTasks, setRelatedTasks] = useState<RelatedTask[]>([]);
   const [dueDate, setDueDate] = useState<Date | undefined>(
     task?.due_date ? new Date(task.due_date) : undefined
   );
@@ -76,7 +90,9 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
       status: task?.status || 'todo',
       assigned_to: task?.assigned_to || '',
       assigned_by: task?.assigned_by || '',
+      follow_by: task?.follow_by || '',
       task_type: task?.task_type || 'general',
+      description: task?.description || '',
       notes: task?.notes || '',
       outcome: task?.outcome || '',
       related_task_id: task?.related_task_id || '',
@@ -96,7 +112,9 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
         status: task.status || 'todo',
         assigned_to: task.assigned_to || '',
         assigned_by: task.assigned_by || '',
+        follow_by: task.follow_by || '',
         task_type: task.task_type || 'general',
+        description: task.description || '',
         notes: task.notes || '',
         outcome: task.outcome || '',
         related_task_id: task.related_task_id || '',
@@ -105,8 +123,36 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
       setStartTime(task.start_time ? new Date(task.start_time) : undefined);
       setSelectedFiles([]);
       fetchExistingFiles();
+      fetchUsers();
+      if (task.project_id) fetchRelatedTasks(task.project_id);
     }
   }, [open, task, form]);
+
+  const fetchUsers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, email, full_name');
+      if (error) throw error;
+      setUsers(data || []);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    }
+  };
+
+  const fetchRelatedTasks = async (projectId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('tasks')
+        .select('id, task_name, title')
+        .eq('project_id', projectId)
+        .neq('id', task.id);
+      if (error) throw error;
+      setRelatedTasks(data || []);
+    } catch (error) {
+      console.error('Error fetching related tasks:', error);
+    }
+  };
 
   const fetchExistingFiles = async () => {
     if (!task?.id) return;
@@ -150,7 +196,7 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
   };
 
   const onDrop = (acceptedFiles: File[]) => {
-    const maxSize = 50 * 1024 * 1024; // 50MB
+    const maxSize = 50 * 1024 * 1024;
     const validFiles = acceptedFiles.filter(file => {
       if (file.size > maxSize) {
         toast({
@@ -162,7 +208,6 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
       }
       return true;
     });
-
     setSelectedFiles(prev => [...prev, ...validFiles]);
   };
 
@@ -195,10 +240,7 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
       if (error) throw error;
 
       setExistingFiles(prev => prev.filter(file => file.id !== fileId));
-      toast({
-        title: "File removed",
-        description: "File has been removed from the task."
-      });
+      toast({ title: "File removed", description: "File has been removed from the task." });
     } catch (error) {
       console.error('Error removing file:', error);
       toast({
@@ -245,15 +287,17 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
 
       const { error: taskFileError } = await supabase
         .from('task_files')
-        .insert({
-          task_id: taskId,
-          file_id: fileRecord.id
-        });
+        .insert({ task_id: taskId, file_id: fileRecord.id });
 
       if (taskFileError) throw taskFileError;
     });
 
     await Promise.all(uploadPromises);
+  };
+
+  const getUserDisplayName = (userId: string) => {
+    const user = users.find(u => u.id === userId);
+    return user?.full_name || user?.email || userId;
   };
 
   const handleSubmit = async (values: any) => {
@@ -263,20 +307,20 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
       const previousAssignedTo = task.assigned_to;
 
       if (canEditAllFields) {
-        // Admins can edit all fields
         updateData.task_name = values.task_name;
         updateData.priority = values.priority;
         updateData.status = values.status;
-        updateData.assigned_to = values.assigned_to;
-        updateData.assigned_by = values.assigned_by;
+        updateData.assigned_to = values.assigned_to || null;
+        updateData.assigned_by = values.assigned_by || null;
+        updateData.follow_by = values.follow_by || null;
         updateData.task_type = values.task_type;
+        updateData.description = values.description;
         updateData.notes = values.notes;
         updateData.outcome = values.outcome;
         updateData.related_task_id = values.related_task_id || null;
         updateData.due_date = dueDate ? dueDate.toISOString().split('T')[0] : null;
         updateData.start_time = startTime ? startTime.toISOString() : null;
       } else if (canEditOutcomeOnly) {
-        // Regular users can only edit outcome and notes
         updateData.outcome = values.outcome;
         updateData.notes = values.notes;
       }
@@ -288,10 +332,8 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
 
       if (updateError) throw updateError;
 
-      // Upload new files if any
       await uploadFiles(task.id);
 
-      // Send notification if assignment changed to a different user
       if (canEditAllFields && values.assigned_to && values.assigned_to !== previousAssignedTo) {
         const { data: { user } } = await supabase.auth.getUser();
         if (user && values.assigned_to !== user.id) {
@@ -307,7 +349,7 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
 
       toast({
         title: "Task updated successfully",
-        description: canEditAllFields 
+        description: canEditAllFields
           ? "The task has been updated with all changes."
           : "Task outcome and notes have been updated."
       });
@@ -347,13 +389,13 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
             {canEditAllFields
               ? 'Update all task information and details.'
               : 'Add outcome details and notes for this task.'}
-        </DialogDescription>
+          </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Task Name - Admin only */}
+              {/* Task Name */}
               {canEditAllFields && (
                 <FormField
                   control={form.control}
@@ -370,7 +412,37 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
                 />
               )}
 
-              {/* Priority - Admin only */}
+              {/* Task Type */}
+              {canEditAllFields && (
+                <FormField
+                  control={form.control}
+                  name="task_type"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Task Type</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select task type" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="general">General</SelectItem>
+                          <SelectItem value="meeting">Meeting</SelectItem>
+                          <SelectItem value="review">Review</SelectItem>
+                          <SelectItem value="development">Development</SelectItem>
+                          <SelectItem value="design">Design</SelectItem>
+                          <SelectItem value="research">Research</SelectItem>
+                          <SelectItem value="bug">Bug Fix</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              {/* Priority */}
               {canEditAllFields && (
                 <FormField
                   control={form.control}
@@ -378,7 +450,7 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Priority</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select priority" />
@@ -396,7 +468,7 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
                 />
               )}
 
-              {/* Status - Admin only */}
+              {/* Status */}
               {canEditAllFields && (
                 <FormField
                   control={form.control}
@@ -404,7 +476,7 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Status</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select status" />
@@ -423,7 +495,120 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
                 />
               )}
 
-              {/* Due Date - Admin only */}
+              {/* Assigned To */}
+              {canEditAllFields && (
+                <FormField
+                  control={form.control}
+                  name="assigned_to"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Assigned To</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select user" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {users.map(user => (
+                            <SelectItem key={user.id} value={user.id}>
+                              {user.full_name || user.email || user.id}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              {/* Assigned By */}
+              {canEditAllFields && (
+                <FormField
+                  control={form.control}
+                  name="assigned_by"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Assigned By</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select user" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {users.map(user => (
+                            <SelectItem key={user.id} value={user.id}>
+                              {user.full_name || user.email || user.id}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              {/* Follow Up By */}
+              {canEditAllFields && (
+                <FormField
+                  control={form.control}
+                  name="follow_by"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Follow Up By</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select user" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {users.map(user => (
+                            <SelectItem key={user.id} value={user.id}>
+                              {user.full_name || user.email || user.id}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              {/* Related Task */}
+              {canEditAllFields && (
+                <FormField
+                  control={form.control}
+                  name="related_task_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Related Task</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select related task" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="">None</SelectItem>
+                          {relatedTasks.map(t => (
+                            <SelectItem key={t.id} value={t.id}>
+                              {t.task_name || t.title}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              {/* Due Date */}
               {canEditAllFields && (
                 <FormItem>
                   <FormLabel>Due Date</FormLabel>
@@ -437,11 +622,7 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
                             !dueDate && "text-muted-foreground"
                           )}
                         >
-                          {dueDate ? (
-                            format(dueDate, "PPP")
-                          ) : (
-                            <span>Pick a date</span>
-                          )}
+                          {dueDate ? format(dueDate, "PPP") : <span>Pick a date</span>}
                           <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                         </Button>
                       </FormControl>
@@ -451,17 +632,71 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
                         mode="single"
                         selected={dueDate}
                         onSelect={setDueDate}
-                        disabled={(date) =>
-                          date < new Date(new Date().setHours(0, 0, 0, 0))
-                        }
                         initialFocus
                       />
                     </PopoverContent>
                   </Popover>
-                  <FormMessage />
+                </FormItem>
+              )}
+
+              {/* Start Time */}
+              {canEditAllFields && (
+                <FormItem>
+                  <FormLabel>Start Time</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full pl-3 text-left font-normal",
+                            !startTime && "text-muted-foreground"
+                          )}
+                        >
+                          {startTime ? format(startTime, "PPP HH:mm") : <span>Pick start time</span>}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={startTime}
+                        onSelect={(date) => {
+                          if (date) {
+                            const now = new Date();
+                            date.setHours(now.getHours(), now.getMinutes());
+                          }
+                          setStartTime(date);
+                        }}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
                 </FormItem>
               )}
             </div>
+
+            {/* Description - Admin only */}
+            {canEditAllFields && (
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Describe the task in detail..."
+                        className="min-h-[100px]"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             {/* Notes - Available to all users */}
             <FormField
@@ -505,7 +740,6 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
             <div>
               <FormLabel>Outcome Files</FormLabel>
               
-              {/* Existing Files */}
               {existingFiles.length > 0 && (
                 <Card className="mb-4">
                   <CardHeader>
@@ -525,20 +759,10 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
                             )}
                           </div>
                           <div className="flex items-center gap-2">
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => window.open(file.file_url, '_blank')}
-                            >
+                            <Button type="button" variant="ghost" size="sm" onClick={() => window.open(file.file_url, '_blank')}>
                               <Download className="h-4 w-4" />
                             </Button>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => removeExistingFile(file.id)}
-                            >
+                            <Button type="button" variant="ghost" size="sm" onClick={() => removeExistingFile(file.id)}>
                               <X className="h-4 w-4" />
                             </Button>
                           </div>
@@ -549,7 +773,6 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
                 </Card>
               )}
 
-              {/* File Upload Area */}
               <div
                 {...getRootProps()}
                 className={cn(
@@ -573,7 +796,6 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
                 )}
               </div>
 
-              {/* Selected Files */}
               {selectedFiles.length > 0 && (
                 <div className="mt-4">
                   <h4 className="text-sm font-medium mb-2">Selected Files:</h4>
@@ -587,12 +809,7 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
                             {(file.size / 1024 / 1024).toFixed(2)} MB
                           </Badge>
                         </div>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeFile(index)}
-                        >
+                        <Button type="button" variant="ghost" size="sm" onClick={() => removeFile(index)}>
                           <X className="h-4 w-4" />
                         </Button>
                       </div>
