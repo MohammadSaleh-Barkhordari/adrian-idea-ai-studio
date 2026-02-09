@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ArrowLeft, Calculator, Upload, Mic, Edit, Search, Filter, Download, ChevronUp, ChevronDown, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { sendNotification, getOtherOurLifeUser, getOurLifeUserName } from '@/lib/notifications';
 import OurFinancialFileUpload from '@/components/OurFinancialFileUpload';
 import OurFinancialVoiceRecorder from '@/components/OurFinancialVoiceRecorder';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -208,6 +209,19 @@ const OurFinancialPage = () => {
 
       if (error) throw error;
 
+      // Send notification to the other Our Life user
+      const otherUserId = getOtherOurLifeUser(user.id);
+      if (otherUserId) {
+        const actorName = getOurLifeUserName(user.id);
+        await sendNotification(
+          '💰 New Transaction',
+          `${actorName} added: ${paymentFor} - ${currency} ${amount} (${transactionType})`,
+          [otherUserId],
+          'financial',
+          '/our-financial'
+        );
+      }
+
       // Clear form
       setPaymentFor('');
       setWhoPaid('');
@@ -245,7 +259,7 @@ const OurFinancialPage = () => {
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: string, record?: any) => {
     try {
       const { error } = await supabase
         .from('our_financial')
@@ -253,6 +267,24 @@ const OurFinancialPage = () => {
         .eq('id', id);
 
       if (error) throw error;
+
+      // Send notification to the other Our Life user
+      if (user) {
+        const otherUserId = getOtherOurLifeUser(user.id);
+        if (otherUserId) {
+          const actorName = getOurLifeUserName(user.id);
+          const recordInfo = record 
+            ? `${record.payment_for} - ${record.currency} ${record.amount}`
+            : 'a transaction';
+          await sendNotification(
+            '💰 Transaction Removed',
+            `${actorName} removed: ${recordInfo}`,
+            [otherUserId],
+            'financial',
+            '/our-financial'
+          );
+        }
+      }
 
       await loadFinancialRecords();
       toast({
@@ -565,7 +597,7 @@ const OurFinancialPage = () => {
                                   </AlertDialogHeader>
                                   <AlertDialogFooter>
                                     <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => handleDelete(record.id)}>
+                                    <AlertDialogAction onClick={() => handleDelete(record.id, record)}>
                                       Delete
                                     </AlertDialogAction>
                                   </AlertDialogFooter>

@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
+import { sendNotification, getOtherOurLifeUser, getOurLifeUserName } from "@/lib/notifications";
 
 interface NewTodoDialogProps {
   isOpen: boolean;
@@ -64,6 +65,19 @@ const NewTodoDialog: React.FC<NewTodoDialogProps> = ({
         });
 
       if (error) throw error;
+
+      // Send notification to the other Our Life user
+      const otherUserId = getOtherOurLifeUser(user.id);
+      if (otherUserId) {
+        const actorName = getOurLifeUserName(user.id);
+        await sendNotification(
+          '✅ New Task Added',
+          `${actorName} added: "${formData.title}" (${formData.priority} priority)`,
+          [otherUserId],
+          'task',
+          '/our-todo'
+        );
+      }
 
       toast({
         title: "Success",
