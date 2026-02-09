@@ -21,7 +21,7 @@ export default function OurCalendarPage() {
     }
 
     const userEmail = session.user.email;
-    const allowedEmails = ["raianasattari@gmail.com", "mosba1991@gmail.com"];
+    const allowedEmails = ["r.sattari@adrianidea.ir", "m.barkhordari@adrianidea.ir"];
     
     if (!allowedEmails.includes(userEmail)) {
       navigate("/dashboard");

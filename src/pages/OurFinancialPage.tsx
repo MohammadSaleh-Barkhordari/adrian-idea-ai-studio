@@ -70,7 +70,7 @@ const OurFinancialPage = () => {
       setUser(session.user);
       
       // Check if user has access to this page
-      const allowedEmails = ['raianasattari@gmail.com', 'mosba1991@gmail.com'];
+      const allowedEmails = ['r.sattari@adrianidea.ir', 'm.barkhordari@adrianidea.ir'];
       if (!allowedEmails.includes(session.user.email)) {
         navigate('/dashboard');
         return;
@@ -436,8 +436,8 @@ const OurFinancialPage = () => {
                           <SelectValue placeholder="Select who paid" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="Mosba1991">Mosba1991</SelectItem>
-                          <SelectItem value="Raianasattari">Raianasattari</SelectItem>
+                          <SelectItem value="Barkhordari">Barkhordari</SelectItem>
+                          <SelectItem value="Sattari">Sattari</SelectItem>
                           <SelectItem value="Both">Both</SelectItem>
                         </SelectContent>
                       </Select>
@@ -450,8 +450,8 @@ const OurFinancialPage = () => {
                           <SelectValue placeholder="Select for who" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="Mosba1991">Mosba1991</SelectItem>
-                          <SelectItem value="Raianasattari">Raianasattari</SelectItem>
+                          <SelectItem value="Barkhordari">Barkhordari</SelectItem>
+                          <SelectItem value="Sattari">Sattari</SelectItem>
                           <SelectItem value="Both">Both</SelectItem>
                         </SelectContent>
                       </Select>
