@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import {
@@ -10,14 +10,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -25,17 +17,17 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
-import { CalendarIcon, Upload, X, FileText, Download } from 'lucide-react';
-import { useDropzone } from 'react-dropzone';
+import { CalendarIcon, Upload, X, FileText, Download, Paperclip } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { useForm } from 'react-hook-form';
 import { sendNotification } from '@/lib/notifications';
 
 interface TaskEditDialogProps {
@@ -51,92 +43,110 @@ interface FileItem {
   file_name: string;
   file_url: string;
   file_size?: number;
-  mime_type?: string;
   created_at: string;
 }
 
-interface UserProfile {
+interface AuthUser {
   id: string;
-  email: string | null;
-  full_name: string | null;
+  email: string;
 }
 
 interface RelatedTask {
   id: string;
-  task_name: string | null;
   title: string;
+  task_name: string | null;
 }
 
 export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdated }: TaskEditDialogProps) {
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [existingFiles, setExistingFiles] = useState<FileItem[]>([]);
-  const [filesLoading, setFilesLoading] = useState(false);
-  const [users, setUsers] = useState<UserProfile[]>([]);
+  const [authUsers, setAuthUsers] = useState<AuthUser[]>([]);
   const [relatedTasks, setRelatedTasks] = useState<RelatedTask[]>([]);
-  const [dueDate, setDueDate] = useState<Date | undefined>(
-    task?.due_date ? new Date(task.due_date) : undefined
-  );
-  const [startTime, setStartTime] = useState<Date | undefined>(
-    task?.start_time ? new Date(task.start_time) : undefined
-  );
-  
-  const { toast } = useToast();
-  const form = useForm({
-    defaultValues: {
-      task_name: task?.task_name || '',
-      project_id: task?.project_id || '',
-      priority: task?.priority || 'medium',
-      status: task?.status || 'todo',
-      assigned_to: task?.assigned_to || '',
-      assigned_by: task?.assigned_by || '',
-      follow_by: task?.follow_by || '',
-      task_type: task?.task_type || 'general',
-      description: task?.description || '',
-      notes: task?.notes || '',
-      outcome: task?.outcome || '',
-      related_task_id: task?.related_task_id || '',
-    },
+  const [projectName, setProjectName] = useState('');
+  const [startDate, setStartDate] = useState<Date | undefined>();
+  const [dueDate, setDueDate] = useState<Date | undefined>();
+  const [completionDate, setCompletionDate] = useState<Date | undefined>();
+
+  const [formData, setFormData] = useState({
+    taskName: '',
+    taskType: 'general',
+    assignedBy: '',
+    assignedTo: '',
+    followBy: '',
+    priority: 'medium',
+    status: 'todo',
+    outcome: '',
+    description: '',
+    notes: '',
+    relatedTaskId: '',
+    completionNotes: '',
   });
 
+  // Non-admin editable fields
+  const [userOutcome, setUserOutcome] = useState('');
+  const [userCompletionNotes, setUserCompletionNotes] = useState('');
+  const [userStatus, setUserStatus] = useState('in_progress');
+
+  const { toast } = useToast();
   const isAdmin = userRole === 'admin';
-  const canEditAllFields = isAdmin;
-  const canEditOutcomeOnly = !isAdmin;
 
   useEffect(() => {
     if (open && task) {
-      form.reset({
-        task_name: task.task_name || '',
-        project_id: task.project_id || '',
+      setFormData({
+        taskName: task.task_name || task.title || '',
+        taskType: task.task_type || 'general',
+        assignedBy: task.assigned_by || '',
+        assignedTo: task.assigned_to || '',
+        followBy: task.follow_by || '',
         priority: task.priority || 'medium',
         status: task.status || 'todo',
-        assigned_to: task.assigned_to || '',
-        assigned_by: task.assigned_by || '',
-        follow_by: task.follow_by || '',
-        task_type: task.task_type || 'general',
+        outcome: task.outcome || '',
         description: task.description || '',
         notes: task.notes || '',
-        outcome: task.outcome || '',
-        related_task_id: task.related_task_id || '',
+        relatedTaskId: task.related_task_id || '',
+        completionNotes: task.completion_notes || '',
       });
+      setStartDate(task.start_time ? new Date(task.start_time) : undefined);
       setDueDate(task.due_date ? new Date(task.due_date) : undefined);
-      setStartTime(task.start_time ? new Date(task.start_time) : undefined);
+      setCompletionDate(task.completion_date ? new Date(task.completion_date) : undefined);
       setSelectedFiles([]);
+
+      // Non-admin defaults
+      setUserOutcome(task.outcome || '');
+      setUserCompletionNotes(task.completion_notes || '');
+      setUserStatus(task.status === 'completed' ? 'completed' : task.status === 'in_progress' ? 'in_progress' : 'in_progress');
+
+      fetchAuthUsers();
       fetchExistingFiles();
-      fetchUsers();
+      fetchProjectName();
       if (task.project_id) fetchRelatedTasks(task.project_id);
     }
-  }, [open, task, form]);
+  }, [open, task]);
 
-  const fetchUsers = async () => {
+  const fetchProjectName = async () => {
+    if (!task?.project_id) { setProjectName(''); return; }
     try {
       const { data, error } = await supabase
-        .from('profiles')
-        .select('id, email, full_name');
+        .from('adrian_projects')
+        .select('project_name')
+        .eq('project_id', task.project_id)
+        .single();
       if (error) throw error;
-      setUsers(data || []);
+      setProjectName(data?.project_name || task.project_id);
+    } catch {
+      setProjectName(task.project_id);
+    }
+  };
+
+  const fetchAuthUsers = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('get-auth-users');
+      if (error) throw error;
+      setAuthUsers(data?.users || []);
     } catch (error) {
-      console.error('Error fetching users:', error);
+      console.error('Error fetching auth users:', error);
     }
   };
 
@@ -144,9 +154,10 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
     try {
       const { data, error } = await supabase
         .from('tasks')
-        .select('id, task_name, title')
+        .select('id, title, task_name')
         .eq('project_id', projectId)
-        .neq('id', task.id);
+        .neq('id', task.id)
+        .order('created_at', { ascending: false });
       if (error) throw error;
       setRelatedTasks(data || []);
     } catch (error) {
@@ -156,191 +167,114 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
 
   const fetchExistingFiles = async () => {
     if (!task?.id) return;
-    
-    setFilesLoading(true);
     try {
-      const { data: taskFiles, error: taskFilesError } = await supabase
+      const { data: taskFiles, error } = await supabase
         .from('task_files')
-        .select(`
-          file_id,
-          files (
-            id,
-            file_name,
-            file_url,
-            file_size,
-            file_type,
-            created_at
-          )
-        `)
+        .select(`file_id, files (id, file_name, file_url, file_size, created_at)`)
         .eq('task_id', task.id);
-
-      if (taskFilesError) throw taskFilesError;
-
+      if (error) throw error;
       const files = (taskFiles?.map(tf => tf.files).filter(Boolean).flat() || []).map((f: any) => ({
-        id: f.id,
-        file_name: f.file_name,
-        file_url: f.file_url,
-        created_at: f.created_at,
+        id: f.id, file_name: f.file_name, file_url: f.file_url, file_size: f.file_size, created_at: f.created_at,
       }));
       setExistingFiles(files);
     } catch (error) {
       console.error('Error fetching existing files:', error);
-      toast({
-        title: "Error loading files",
-        description: "Failed to load existing task files.",
-        variant: "destructive"
-      });
-    } finally {
-      setFilesLoading(false);
     }
-  };
-
-  const onDrop = (acceptedFiles: File[]) => {
-    const maxSize = 50 * 1024 * 1024;
-    const validFiles = acceptedFiles.filter(file => {
-      if (file.size > maxSize) {
-        toast({
-          title: "File too large",
-          description: `${file.name} is larger than 50MB. Please choose a smaller file.`,
-          variant: "destructive"
-        });
-        return false;
-      }
-      return true;
-    });
-    setSelectedFiles(prev => [...prev, ...validFiles]);
-  };
-
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
-    multiple: true,
-    accept: {
-      'image/*': ['.png', '.jpg', '.jpeg', '.gif', '.webp'],
-      'application/pdf': ['.pdf'],
-      'application/msword': ['.doc'],
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
-      'application/vnd.ms-excel': ['.xls'],
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
-      'text/*': ['.txt', '.csv']
-    }
-  });
-
-  const removeFile = (index: number) => {
-    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
   };
 
   const removeExistingFile = async (fileId: string) => {
     try {
-      const { error } = await supabase
-        .from('task_files')
-        .delete()
-        .eq('task_id', task.id)
-        .eq('file_id', fileId);
-
+      const { error } = await supabase.from('task_files').delete().eq('task_id', task.id).eq('file_id', fileId);
       if (error) throw error;
-
-      setExistingFiles(prev => prev.filter(file => file.id !== fileId));
-      toast({ title: "File removed", description: "File has been removed from the task." });
-    } catch (error) {
-      console.error('Error removing file:', error);
-      toast({
-        title: "Error removing file",
-        description: "Failed to remove the file from the task.",
-        variant: "destructive"
-      });
+      setExistingFiles(prev => prev.filter(f => f.id !== fileId));
+      toast({ title: "File removed" });
+    } catch {
+      toast({ title: "Error removing file", variant: "destructive" });
     }
   };
 
   const uploadFiles = async (taskId: string): Promise<void> => {
     if (selectedFiles.length === 0) return;
-
-    const uploadPromises = selectedFiles.map(async (file) => {
-      const fileName = `${Date.now()}_${file.name}`;
-      const filePath = `task-files/${fileName}`;
-
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('Files')
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('Files')
-        .getPublicUrl(uploadData.path);
-
-      const { data: fileRecord, error: fileError } = await supabase
-        .from('files')
-        .insert({
-          file_name: file.name,
-          file_path: uploadData.path,
-          file_url: publicUrl,
-          file_size: file.size,
-          file_type: file.type,
-          project_id: task.project_id,
-          uploaded_by: (await supabase.auth.getUser()).data.user?.id,
-          description: 'Task outcome file'
-        })
-        .select('id')
-        .single();
-
-      if (fileError) throw fileError;
-
-      const { error: taskFileError } = await supabase
-        .from('task_files')
-        .insert({ task_id: taskId, file_id: fileRecord.id });
-
-      if (taskFileError) throw taskFileError;
-    });
-
-    await Promise.all(uploadPromises);
+    setUploading(true);
+    try {
+      for (const file of selectedFiles) {
+        const filePath = `${projectName || task.project_id}/${taskId}/${file.name}`;
+        const { error: uploadError } = await supabase.storage.from('Files').upload(filePath, file);
+        if (uploadError) throw uploadError;
+        const { data: { publicUrl } } = supabase.storage.from('Files').getPublicUrl(filePath);
+        const { data: fileRecord, error: fileError } = await supabase
+          .from('files')
+          .insert({
+            file_name: file.name, file_path: filePath, file_url: publicUrl,
+            file_size: file.size, file_type: file.type, project_id: task.project_id,
+            uploaded_by: (await supabase.auth.getUser()).data.user?.id, description: 'Task outcome file'
+          })
+          .select('id').single();
+        if (fileError) throw fileError;
+        const { error: tfError } = await supabase.from('task_files').insert({ task_id: taskId, file_id: fileRecord.id });
+        if (tfError) throw tfError;
+      }
+    } finally {
+      setUploading(false);
+    }
   };
 
-  const getUserDisplayName = (userId: string) => {
-    const user = users.find(u => u.id === userId);
-    return user?.full_name || user?.email || userId;
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleSubmit = async (values: any) => {
+  const getUserEmail = (userId: string) => {
+    const user = authUsers.find(u => u.id === userId);
+    return user?.email || userId || '—';
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     setLoading(true);
     try {
-      const updateData: any = {};
+      let updateData: any = {};
       const previousAssignedTo = task.assigned_to;
 
-      if (canEditAllFields) {
-        updateData.task_name = values.task_name;
-        updateData.priority = values.priority;
-        updateData.status = values.status;
-        updateData.assigned_to = values.assigned_to || null;
-        updateData.assigned_by = values.assigned_by || null;
-        updateData.follow_by = values.follow_by || null;
-        updateData.task_type = values.task_type;
-        updateData.description = values.description;
-        updateData.notes = values.notes;
-        updateData.outcome = values.outcome;
-        updateData.related_task_id = values.related_task_id && values.related_task_id !== 'none' ? values.related_task_id : null;
-        updateData.due_date = dueDate ? dueDate.toISOString().split('T')[0] : null;
-        updateData.start_time = startTime ? startTime.toISOString() : null;
-      } else if (canEditOutcomeOnly) {
-        updateData.outcome = values.outcome;
-        updateData.notes = values.notes;
+      if (isAdmin) {
+        updateData = {
+          task_name: formData.taskName,
+          title: formData.taskName,
+          task_type: formData.taskType,
+          priority: formData.priority,
+          status: formData.status,
+          assigned_to: formData.assignedTo === 'unassigned' ? null : formData.assignedTo || null,
+          assigned_by: formData.assignedBy || null,
+          follow_by: formData.followBy === 'unassigned' ? null : formData.followBy || null,
+          description: formData.description,
+          notes: formData.notes,
+          outcome: formData.outcome,
+          completion_notes: formData.completionNotes,
+          related_task_id: formData.relatedTaskId === 'none' ? null : formData.relatedTaskId || null,
+          due_date: dueDate ? format(dueDate, 'yyyy-MM-dd') : null,
+          start_time: startDate ? startDate.toISOString() : null,
+          completion_date: completionDate ? format(completionDate, 'yyyy-MM-dd') : null,
+        };
+      } else {
+        updateData = {
+          outcome: userOutcome,
+          completion_notes: userCompletionNotes,
+          completion_date: completionDate ? format(completionDate, 'yyyy-MM-dd') : null,
+          status: userStatus,
+        };
       }
 
-      const { error: updateError } = await supabase
-        .from('tasks')
-        .update(updateData)
-        .eq('id', task.id);
-
+      const { error: updateError } = await supabase.from('tasks').update(updateData).eq('id', task.id);
       if (updateError) throw updateError;
 
       await uploadFiles(task.id);
 
-      if (canEditAllFields && values.assigned_to && values.assigned_to !== previousAssignedTo) {
+      if (isAdmin && formData.assignedTo && formData.assignedTo !== 'unassigned' && formData.assignedTo !== previousAssignedTo) {
         const { data: { user } } = await supabase.auth.getUser();
-        if (user && values.assigned_to !== user.id) {
+        if (user && formData.assignedTo !== user.id) {
           await sendNotification(
             '📋 Task Reassigned',
-            `You have been assigned: "${values.task_name || task.task_name}"`,
-            [values.assigned_to],
+            `You have been assigned: "${formData.taskName}"`,
+            [formData.assignedTo],
             'task',
             `/projects/${task.project_id}`
           );
@@ -349,486 +283,426 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
 
       toast({
         title: "Task updated successfully",
-        description: canEditAllFields
-          ? "The task has been updated with all changes."
-          : "Task outcome and notes have been updated."
+        description: isAdmin ? "All task fields have been updated." : "Your task update has been saved."
       });
-
       onTaskUpdated();
       onOpenChange(false);
     } catch (error) {
       console.error('Error updating task:', error);
-      toast({
-        title: "Error updating task",
-        description: "Failed to update the task. Please try again.",
-        variant: "destructive"
-      });
+      toast({ title: "Error updating task", description: "Failed to update the task.", variant: "destructive" });
     } finally {
       setLoading(false);
     }
   };
 
   const handleClose = () => {
-    form.reset();
     setSelectedFiles([]);
-    setDueDate(undefined);
-    setStartTime(undefined);
     onOpenChange(false);
   };
 
   if (!task) return null;
 
+  const readOnlyStyle = "bg-[#f5f5f5] rounded-md px-3 py-2 text-sm text-muted-foreground cursor-not-allowed";
+
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh]">
         <DialogHeader>
-          <DialogTitle>
-            {canEditAllFields ? 'Edit Task' : 'Update Task Outcome'}
-          </DialogTitle>
+          <DialogTitle>{isAdmin ? 'Edit Task' : 'Update Task Outcome'}</DialogTitle>
           <DialogDescription>
-            {canEditAllFields
-              ? 'Update all task information and details.'
-              : 'Add outcome details and notes for this task.'}
+            {projectName && <span>Project: <strong>{projectName}</strong></span>}
           </DialogDescription>
         </DialogHeader>
+        <form onSubmit={handleSubmit}>
+          <ScrollArea className="h-[60vh] pr-6">
+            <div className="grid gap-4 py-4">
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Task Name */}
-              {canEditAllFields && (
-                <FormField
-                  control={form.control}
-                  name="task_name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Task Name *</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter task name" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
-
-              {/* Task Type */}
-              {canEditAllFields && (
-                <FormField
-                  control={form.control}
-                  name="task_type"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Task Type</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select task type" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="general">General</SelectItem>
-                          <SelectItem value="meeting">Meeting</SelectItem>
-                          <SelectItem value="review">Review</SelectItem>
-                          <SelectItem value="development">Development</SelectItem>
-                          <SelectItem value="design">Design</SelectItem>
-                          <SelectItem value="research">Research</SelectItem>
-                          <SelectItem value="bug">Bug Fix</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
-
-              {/* Priority */}
-              {canEditAllFields && (
-                <FormField
-                  control={form.control}
-                  name="priority"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Priority</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select priority" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="low">Low</SelectItem>
-                          <SelectItem value="medium">Medium</SelectItem>
-                          <SelectItem value="high">High</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
-
-              {/* Status */}
-              {canEditAllFields && (
-                <FormField
-                  control={form.control}
-                  name="status"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Status</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select status" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="todo">To Do</SelectItem>
-                          <SelectItem value="in_progress">In Progress</SelectItem>
-                          <SelectItem value="completed">Completed</SelectItem>
-                          <SelectItem value="cancelled">Cancelled</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
-
-              {/* Assigned To */}
-              {canEditAllFields && (
-                <FormField
-                  control={form.control}
-                  name="assigned_to"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Assigned To</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select user" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {users.map(user => (
-                            <SelectItem key={user.id} value={user.id}>
-                              {user.full_name || user.email || user.id}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
-
-              {/* Assigned By */}
-              {canEditAllFields && (
-                <FormField
-                  control={form.control}
-                  name="assigned_by"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Assigned By</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select user" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {users.map(user => (
-                            <SelectItem key={user.id} value={user.id}>
-                              {user.full_name || user.email || user.id}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
-
-              {/* Follow Up By */}
-              {canEditAllFields && (
-                <FormField
-                  control={form.control}
-                  name="follow_by"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Follow Up By</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select user" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {users.map(user => (
-                            <SelectItem key={user.id} value={user.id}>
-                              {user.full_name || user.email || user.id}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
+              <div className="grid gap-2">
+                <Label>Task Name *</Label>
+                {isAdmin ? (
+                  <Input
+                    value={formData.taskName}
+                    onChange={(e) => handleInputChange('taskName', e.target.value)}
+                    placeholder="Enter task name"
+                    required
+                  />
+                ) : (
+                  <div className={readOnlyStyle}>{formData.taskName || '—'}</div>
+                )}
+              </div>
 
               {/* Related Task */}
-              {canEditAllFields && (
-                <FormField
-                  control={form.control}
-                  name="related_task_id"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Related Task</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select related task" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="none">None</SelectItem>
-                          {relatedTasks.map(t => (
-                            <SelectItem key={t.id} value={t.id}>
-                              {t.task_name || t.title}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
-
-              {/* Due Date */}
-              {canEditAllFields && (
-                <FormItem>
-                  <FormLabel>Due Date</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full pl-3 text-left font-normal",
-                            !dueDate && "text-muted-foreground"
-                          )}
-                        >
-                          {dueDate ? format(dueDate, "PPP") : <span>Pick a date</span>}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={dueDate}
-                        onSelect={setDueDate}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </FormItem>
-              )}
-
-              {/* Start Time */}
-              {canEditAllFields && (
-                <FormItem>
-                  <FormLabel>Start Time</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant="outline"
-                          className={cn(
-                            "w-full pl-3 text-left font-normal",
-                            !startTime && "text-muted-foreground"
-                          )}
-                        >
-                          {startTime ? format(startTime, "PPP HH:mm") : <span>Pick start time</span>}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={startTime}
-                        onSelect={(date) => {
-                          if (date) {
-                            const now = new Date();
-                            date.setHours(now.getHours(), now.getMinutes());
-                          }
-                          setStartTime(date);
-                        }}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </FormItem>
-              )}
-            </div>
-
-            {/* Description - Admin only */}
-            {canEditAllFields && (
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Description</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Describe the task in detail..."
-                        className="min-h-[100px]"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
-
-            {/* Notes - Available to all users */}
-            <FormField
-              control={form.control}
-              name="notes"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Notes</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Add any notes or additional information..."
-                      className="min-h-[100px]"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Outcome - Available to all users */}
-            <FormField
-              control={form.control}
-              name="outcome"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Task Outcome</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Describe the outcome of this task..."
-                      className="min-h-[120px]"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* File Upload Section */}
-            <div>
-              <FormLabel>Outcome Files</FormLabel>
-              
-              {existingFiles.length > 0 && (
-                <Card className="mb-4">
-                  <CardHeader>
-                    <CardTitle className="text-sm">Existing Files</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      {existingFiles.map((file) => (
-                        <div key={file.id} className="flex items-center justify-between p-2 border rounded">
-                          <div className="flex items-center gap-2">
-                            <FileText className="h-4 w-4" />
-                            <span className="text-sm">{file.file_name}</span>
-                            {file.file_size && (
-                              <Badge variant="outline" className="text-xs">
-                                {(file.file_size / 1024 / 1024).toFixed(2)} MB
-                              </Badge>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Button type="button" variant="ghost" size="sm" onClick={() => window.open(file.file_url, '_blank')}>
-                              <Download className="h-4 w-4" />
-                            </Button>
-                            <Button type="button" variant="ghost" size="sm" onClick={() => removeExistingFile(file.id)}>
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
+              <div className="grid gap-2">
+                <Label>Related Task</Label>
+                {isAdmin ? (
+                  <Select value={formData.relatedTaskId} onValueChange={(v) => handleInputChange('relatedTaskId', v)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a related task (optional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">No related task</SelectItem>
+                      {relatedTasks.map((t) => (
+                        <SelectItem key={t.id} value={t.id}>{t.task_name || t.title}</SelectItem>
                       ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              <div
-                {...getRootProps()}
-                className={cn(
-                  "border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center cursor-pointer transition-colors hover:border-muted-foreground/50",
-                  isDragActive && "border-primary bg-primary/5"
-                )}
-              >
-                <input {...getInputProps()} />
-                <Upload className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                {isDragActive ? (
-                  <p className="text-sm text-muted-foreground">Drop the files here...</p>
+                    </SelectContent>
+                  </Select>
                 ) : (
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-2">
-                      Drag & drop files here, or click to select files
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Supported: Images, PDF, Word, Excel, Text files (Max: 50MB each)
-                    </p>
+                  <div className={readOnlyStyle}>
+                    {formData.relatedTaskId
+                      ? (relatedTasks.find(t => t.id === formData.relatedTaskId)?.task_name ||
+                         relatedTasks.find(t => t.id === formData.relatedTaskId)?.title || '—')
+                      : '—'}
                   </div>
                 )}
               </div>
 
-              {selectedFiles.length > 0 && (
-                <div className="mt-4">
-                  <h4 className="text-sm font-medium mb-2">Selected Files:</h4>
-                  <div className="space-y-2">
-                    {selectedFiles.map((file, index) => (
-                      <div key={index} className="flex items-center justify-between p-2 border rounded">
-                        <div className="flex items-center gap-2">
-                          <FileText className="h-4 w-4" />
-                          <span className="text-sm">{file.name}</span>
-                          <Badge variant="outline" className="text-xs">
-                            {(file.size / 1024 / 1024).toFixed(2)} MB
-                          </Badge>
-                        </div>
-                        <Button type="button" variant="ghost" size="sm" onClick={() => removeFile(index)}>
-                          <X className="h-4 w-4" />
+              {/* Assigned By / Assigned To */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label>Assigned By</Label>
+                  {isAdmin ? (
+                    <Input
+                      value={formData.assignedBy}
+                      onChange={(e) => handleInputChange('assignedBy', e.target.value)}
+                      placeholder="Who assigned this task"
+                    />
+                  ) : (
+                    <div className={readOnlyStyle}>{formData.assignedBy || '—'}</div>
+                  )}
+                </div>
+                <div className="grid gap-2">
+                  <Label>Assigned To</Label>
+                  {isAdmin ? (
+                    <Select value={formData.assignedTo} onValueChange={(v) => handleInputChange('assignedTo', v)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select assignee" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="unassigned">Unassigned</SelectItem>
+                        {authUsers.map((u) => (
+                          <SelectItem key={u.id} value={u.id}>{u.email}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <div className={readOnlyStyle}>{getUserEmail(formData.assignedTo)}</div>
+                  )}
+                </div>
+              </div>
+
+              {/* Follow Up By */}
+              <div className="grid gap-2">
+                <Label>Follow Up By</Label>
+                {isAdmin ? (
+                  <Select value={formData.followBy} onValueChange={(v) => handleInputChange('followBy', v)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select who will follow up" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="unassigned">Unassigned</SelectItem>
+                      {authUsers.map((u) => (
+                        <SelectItem key={u.id} value={u.id}>{u.email}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <div className={readOnlyStyle}>{getUserEmail(formData.followBy)}</div>
+                )}
+              </div>
+
+              {/* Start Date / Due Date */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label>Start Date</Label>
+                  {isAdmin ? (
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !startDate && "text-muted-foreground")}>
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {startDate ? format(startDate, "PPP") : "Pick a date"}
                         </Button>
-                      </div>
-                    ))}
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar mode="single" selected={startDate} onSelect={setStartDate} className="p-3 pointer-events-auto" initialFocus />
+                      </PopoverContent>
+                    </Popover>
+                  ) : (
+                    <div className={readOnlyStyle}>{startDate ? format(startDate, "PPP") : '—'}</div>
+                  )}
+                </div>
+                <div className="grid gap-2">
+                  <Label>Due Date</Label>
+                  {isAdmin ? (
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !dueDate && "text-muted-foreground")}>
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {dueDate ? format(dueDate, "PPP") : "Pick a date"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar mode="single" selected={dueDate} onSelect={setDueDate} className="p-3 pointer-events-auto" initialFocus />
+                      </PopoverContent>
+                    </Popover>
+                  ) : (
+                    <div className={readOnlyStyle}>{dueDate ? format(dueDate, "PPP") : '—'}</div>
+                  )}
+                </div>
+              </div>
+
+              {/* Priority / Status */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label>Priority</Label>
+                  {isAdmin ? (
+                    <Select value={formData.priority} onValueChange={(v) => handleInputChange('priority', v)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select priority" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="low">Low</SelectItem>
+                        <SelectItem value="medium">Medium</SelectItem>
+                        <SelectItem value="high">High</SelectItem>
+                        <SelectItem value="urgent">Urgent</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <div className={readOnlyStyle}>{formData.priority}</div>
+                  )}
+                </div>
+                <div className="grid gap-2">
+                  <Label>Status</Label>
+                  {isAdmin ? (
+                    <Select value={formData.status} onValueChange={(v) => handleInputChange('status', v)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="todo">To Do</SelectItem>
+                        <SelectItem value="in_progress">In Progress</SelectItem>
+                        <SelectItem value="completed">Completed</SelectItem>
+                        <SelectItem value="cancelled">Cancelled</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <div className={readOnlyStyle}>{formData.status === 'in_progress' ? 'In Progress' : formData.status === 'completed' ? 'Completed' : formData.status}</div>
+                  )}
+                </div>
+              </div>
+
+              {/* Outcome (admin) */}
+              {isAdmin && (
+                <div className="grid gap-2">
+                  <div className="flex items-center gap-2">
+                    <Label>Outcome</Label>
+                    <Paperclip
+                      className="h-4 w-4 text-muted-foreground cursor-pointer hover:text-primary"
+                      onClick={() => document.getElementById('edit-outcome-file-upload')?.click()}
+                    />
+                  </div>
+                  <Input
+                    value={formData.outcome}
+                    onChange={(e) => handleInputChange('outcome', e.target.value)}
+                    placeholder="Expected or achieved outcome"
+                  />
+                </div>
+              )}
+
+              {/* Read-only outcome for non-admin */}
+              {!isAdmin && (
+                <div className="grid gap-2">
+                  <Label>Outcome</Label>
+                  <div className={readOnlyStyle}>{formData.outcome || '—'}</div>
+                </div>
+              )}
+
+              {/* Description */}
+              <div className="grid gap-2">
+                <Label>Description</Label>
+                {isAdmin ? (
+                  <Textarea
+                    value={formData.description}
+                    onChange={(e) => handleInputChange('description', e.target.value)}
+                    placeholder="Describe the task in detail..."
+                    rows={3}
+                  />
+                ) : (
+                  <div className={cn(readOnlyStyle, "min-h-[60px] whitespace-pre-wrap")}>{formData.description || '—'}</div>
+                )}
+              </div>
+
+              {/* Notes */}
+              <div className="grid gap-2">
+                <Label>Notes</Label>
+                {isAdmin ? (
+                  <Textarea
+                    value={formData.notes}
+                    onChange={(e) => handleInputChange('notes', e.target.value)}
+                    placeholder="Additional notes about this task"
+                    rows={3}
+                  />
+                ) : (
+                  <div className={cn(readOnlyStyle, "min-h-[60px] whitespace-pre-wrap")}>{formData.notes || '—'}</div>
+                )}
+              </div>
+
+              {/* ============ NON-ADMIN: Your Task Update Section ============ */}
+              {!isAdmin && (
+                <div className="border-l-4 border-blue-400 pl-4 mt-6 space-y-4">
+                  <h3 className="font-medium text-base">Your Task Update</h3>
+
+                  {/* Status - limited */}
+                  <div className="grid gap-2">
+                    <Label>Status</Label>
+                    <Select value={userStatus} onValueChange={setUserStatus}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="in_progress">In Progress</SelectItem>
+                        <SelectItem value="completed">Done</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Outcome */}
+                  <div className="grid gap-2">
+                    <Label>Outcome</Label>
+                    <Textarea
+                      value={userOutcome}
+                      onChange={(e) => setUserOutcome(e.target.value)}
+                      placeholder="Describe what you did..."
+                      rows={3}
+                    />
+                  </div>
+
+                  {/* Completion Notes */}
+                  <div className="grid gap-2">
+                    <Label>Completion Notes</Label>
+                    <Textarea
+                      value={userCompletionNotes}
+                      onChange={(e) => setUserCompletionNotes(e.target.value)}
+                      placeholder="Any additional notes..."
+                      rows={3}
+                    />
+                  </div>
+
+                  {/* Completion Date */}
+                  <div className="grid gap-2">
+                    <Label>Completion Date</Label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !completionDate && "text-muted-foreground")}>
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {completionDate ? format(completionDate, "PPP") : "Pick a date"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar mode="single" selected={completionDate} onSelect={setCompletionDate} className="p-3 pointer-events-auto" initialFocus />
+                      </PopoverContent>
+                    </Popover>
                   </div>
                 </div>
               )}
-            </div>
 
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={handleClose}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={loading}>
-                {loading ? 'Updating...' : 'Update Task'}
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
+              {/* ============ FILE UPLOAD (all users) ============ */}
+              <div className="grid gap-2">
+                <Label>Outcome File</Label>
+
+                {/* Existing files */}
+                {existingFiles.length > 0 && (
+                  <Card className="mb-2">
+                    <CardHeader className="py-2 px-3">
+                      <CardTitle className="text-sm">Existing Files</CardTitle>
+                    </CardHeader>
+                    <CardContent className="px-3 pb-3">
+                      <div className="space-y-2">
+                        {existingFiles.map((file) => (
+                          <div key={file.id} className="flex items-center justify-between p-2 border rounded">
+                            <div className="flex items-center gap-2">
+                              <FileText className="h-4 w-4" />
+                              <span className="text-sm">{file.file_name}</span>
+                              {file.file_size && (
+                                <Badge variant="outline" className="text-xs">
+                                  {(file.file_size / 1024 / 1024).toFixed(2)} MB
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Button type="button" variant="ghost" size="sm" onClick={() => window.open(file.file_url, '_blank')}>
+                                <Download className="h-4 w-4" />
+                              </Button>
+                              <Button type="button" variant="ghost" size="sm" onClick={() => removeExistingFile(file.id)}>
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Upload area */}
+                <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4">
+                  <div className="text-center">
+                    <FileText className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
+                    <p className="text-sm text-muted-foreground mb-3">Upload a file related to this outcome</p>
+                    <input
+                      type="file"
+                      multiple
+                      onChange={(e) => {
+                        const files = Array.from(e.target.files || []);
+                        setSelectedFiles(prev => [...prev, ...files]);
+                      }}
+                      className="hidden"
+                      id="edit-outcome-file-upload"
+                      disabled={uploading}
+                    />
+                    <label
+                      htmlFor="edit-outcome-file-upload"
+                      className={cn(
+                        "inline-flex items-center px-3 py-2 bg-primary text-primary-foreground rounded-md cursor-pointer hover:bg-primary/90 text-sm",
+                        uploading && "opacity-50 cursor-not-allowed"
+                      )}
+                    >
+                      <Upload className="w-4 h-4 mr-2" />
+                      {uploading ? 'Uploading...' : 'Select File'}
+                    </label>
+                  </div>
+                </div>
+
+                {selectedFiles.length > 0 && (
+                  <div className="mt-2 space-y-2">
+                    {selectedFiles.map((file, index) => (
+                      <div key={index} className="p-3 bg-muted rounded-md">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <FileText className="w-4 h-4 mr-2 text-primary" />
+                            <span className="text-sm font-medium">{file.name}</span>
+                          </div>
+                          <Button type="button" variant="ghost" size="sm" onClick={() => setSelectedFiles(prev => prev.filter((_, i) => i !== index))}>
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Size: {(file.size / 1024 / 1024).toFixed(2)} MB
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </ScrollArea>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={handleClose}>Cancel</Button>
+            <Button type="submit" disabled={loading}>
+              {loading ? 'Updating...' : 'Update Task'}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );
