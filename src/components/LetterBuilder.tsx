@@ -198,60 +198,61 @@ const LetterBuilder: React.FC<LetterBuilderProps> = ({
     bg.crossOrigin = 'anonymous';
     container.appendChild(bg);
 
-    const baseTextStyle = 'position:absolute;direction:rtl;white-space:pre-wrap;word-wrap:break-word;font-feature-settings:normal;text-rendering:geometricPrecision;font-family:inherit;color:#000;margin:0;padding:0;border:none;background:none;';
+    const baseShort = 'position:absolute;direction:rtl;white-space:nowrap;font-feature-settings:normal;text-rendering:geometricPrecision;font-family:inherit;color:#000;margin:0;padding:0;border:none;outline:none;background:none;box-shadow:none;';
+    const baseLong = 'position:absolute;direction:rtl;white-space:pre-wrap;word-wrap:break-word;font-feature-settings:normal;text-rendering:geometricPrecision;font-family:inherit;color:#000;margin:0;padding:0;border:none;outline:none;background:none;box-shadow:none;';
 
-    const addTextEl = (pos: { x: number; y: number }, html: string, extra: string) => {
+    const addEl = (base: string, pos: { x: number; y: number }, html: string, extra: string) => {
       const el = document.createElement('div');
-      el.style.cssText = baseTextStyle + `left:${pos.x}px;top:${pos.y}px;` + extra;
+      el.style.cssText = base + `left:${pos.x}px;top:${pos.y}px;` + extra;
       el.innerHTML = html;
       container.appendChild(el);
     };
 
-    // Basmala
-    addTextEl(positions.basmala, 'بسمه تعالی', 'text-align:center;font-weight:bold;font-size:18px;');
+    // Basmala — nowrap
+    addEl(baseShort, positions.basmala, 'بسمه تعالی', 'text-align:center;font-weight:bold;font-size:18px;');
 
-    // Date block
+    // Date block — normal for <br/> support
     const dateLines: string[] = [];
     if (letterNumber || letterData.letter_number) {
       dateLines.push(`شماره: ${letterNumber || letterData.letter_number}`);
     }
     dateLines.push(`تاریخ: ${formatPersianDate(letterData.date)}`);
     dateLines.push(`پیوست: ${hasAttachment ? 'دارد' : 'ندارد'}`);
-    addTextEl(positions.date, dateLines.join('<br/>'), 'text-align:right;font-size:14px;line-height:1.6;');
+    addEl(baseShort, positions.date, dateLines.join('<br/>'), 'white-space:normal;text-align:right;font-size:14px;line-height:1.6;');
 
-    // Recipient name
-    addTextEl(positions.recipientName, letterData.recipientName, 'text-align:right;font-weight:bold;font-size:18px;');
+    // Recipient name — nowrap
+    addEl(baseShort, positions.recipientName, letterData.recipientName, 'text-align:right;font-weight:bold;font-size:18px;');
 
-    // Recipient info
+    // Recipient info — normal for potential <br/>
     let recipientInfoHtml = '';
     if (letterData.recipientPosition && letterData.recipientCompany) {
       recipientInfoHtml = `${letterData.recipientPosition} - ${letterData.recipientCompany}`;
     } else {
       recipientInfoHtml = [letterData.recipientPosition, letterData.recipientCompany].filter(Boolean).join('<br/>');
     }
-    addTextEl(positions.recipientInfo, recipientInfoHtml, 'text-align:right;font-size:16px;');
+    addEl(baseShort, positions.recipientInfo, recipientInfoHtml, 'white-space:normal;text-align:right;font-size:16px;');
 
-    // Subject
-    addTextEl(positions.subject, `<span style="font-weight:bold">موضوع: </span><span>${letterData.generatedSubject}</span>`, 'text-align:right;font-size:16px;max-width:550px;');
+    // Subject — long text, pre-wrap
+    addEl(baseLong, positions.subject, `<span style="font-weight:bold;border:none;outline:none;background:none;">موضوع: </span><span>${letterData.generatedSubject}</span>`, 'text-align:right;font-size:16px;max-width:580px;');
 
-    // Greeting
-    addTextEl(positions.greeting, 'با سلام و احترام', 'text-align:right;font-weight:500;font-size:16px;');
+    // Greeting — nowrap
+    addEl(baseShort, positions.greeting, 'با سلام و احترام', 'text-align:right;font-weight:500;font-size:16px;');
 
-    // Body
-    addTextEl(positions.body, letterData.generatedBody, 'text-align:right;font-size:16px;line-height:1.8;max-width:550px;');
+    // Body — long text, pre-wrap
+    addEl(baseLong, positions.body, letterData.generatedBody, 'text-align:right;font-size:16px;line-height:1.8;max-width:580px;');
 
-    // Closing 1
-    addTextEl(positions.closing1, 'پیشاپیش از حسن توجه و همکاری شما سپاسگزاریم.', 'text-align:right;font-size:16px;');
+    // Closing 1 — nowrap
+    addEl(baseShort, positions.closing1, 'پیشاپیش از حسن توجه و همکاری شما سپاسگزاریم.', 'text-align:right;font-size:16px;');
 
-    // Closing 2
-    addTextEl(positions.closing2, 'با تشکر<br/>برخورداری<br/>مدیر عامل شرکت آدرین ایده کوشا', 'text-align:center;font-size:16px;line-height:1.6;');
+    // Closing 2 — normal for <br/> support
+    addEl(baseShort, positions.closing2, 'با تشکر<br/>برخورداری<br/>مدیر عامل شرکت آدرین ایده کوشا', 'white-space:normal;text-align:center;font-size:16px;line-height:1.6;');
 
     // Signature
     if (includeSignature && signatureUrl) {
       const sigImg = document.createElement('img');
       sigImg.src = signatureUrl;
       sigImg.crossOrigin = 'anonymous';
-      sigImg.style.cssText = `position:absolute;left:${positions.signature.x}px;top:${positions.signature.y}px;max-width:192px;max-height:96px;`;
+      sigImg.style.cssText = `position:absolute;left:${positions.signature.x}px;top:${positions.signature.y}px;max-width:192px;max-height:96px;border:none;outline:none;background:transparent;box-shadow:none;`;
       container.appendChild(sigImg);
     }
 
@@ -260,7 +261,7 @@ const LetterBuilder: React.FC<LetterBuilderProps> = ({
       const stampImg = document.createElement('img');
       stampImg.src = stampUrl;
       stampImg.crossOrigin = 'anonymous';
-      stampImg.style.cssText = `position:absolute;left:${positions.stamp.x}px;top:${positions.stamp.y}px;max-width:192px;max-height:192px;`;
+      stampImg.style.cssText = `position:absolute;left:${positions.stamp.x}px;top:${positions.stamp.y}px;max-width:192px;max-height:192px;border:none;outline:none;background:transparent;box-shadow:none;`;
       container.appendChild(stampImg);
     }
 
