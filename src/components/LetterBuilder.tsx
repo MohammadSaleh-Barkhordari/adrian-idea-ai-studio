@@ -186,6 +186,87 @@ const LetterBuilder: React.FC<LetterBuilderProps> = ({
   stamp: { x: ${positions.stamp.x}, y: ${positions.stamp.y} }
 });`);
   };
+
+  const buildCleanLetterDiv = (): HTMLDivElement => {
+    const container = document.createElement('div');
+    container.style.cssText = 'position:fixed;left:-9999px;top:0;width:794px;height:1123px;background:white;overflow:hidden;font-feature-settings:normal;text-rendering:geometricPrecision;';
+
+    // Background template
+    const bg = document.createElement('img');
+    bg.src = '/Letter-Template-A4.png';
+    bg.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;';
+    bg.crossOrigin = 'anonymous';
+    container.appendChild(bg);
+
+    const baseTextStyle = 'position:absolute;direction:rtl;white-space:pre-wrap;word-wrap:break-word;font-feature-settings:normal;text-rendering:geometricPrecision;font-family:inherit;color:#000;margin:0;padding:0;border:none;background:none;';
+
+    const addTextEl = (pos: { x: number; y: number }, html: string, extra: string) => {
+      const el = document.createElement('div');
+      el.style.cssText = baseTextStyle + `left:${pos.x}px;top:${pos.y}px;` + extra;
+      el.innerHTML = html;
+      container.appendChild(el);
+    };
+
+    // Basmala
+    addTextEl(positions.basmala, 'بسمه تعالی', 'text-align:center;font-weight:bold;font-size:18px;');
+
+    // Date block
+    const dateLines: string[] = [];
+    if (letterNumber || letterData.letter_number) {
+      dateLines.push(`شماره: ${letterNumber || letterData.letter_number}`);
+    }
+    dateLines.push(`تاریخ: ${formatPersianDate(letterData.date)}`);
+    dateLines.push(`پیوست: ${hasAttachment ? 'دارد' : 'ندارد'}`);
+    addTextEl(positions.date, dateLines.join('<br/>'), 'text-align:right;font-size:14px;line-height:1.6;');
+
+    // Recipient name
+    addTextEl(positions.recipientName, letterData.recipientName, 'text-align:right;font-weight:bold;font-size:18px;');
+
+    // Recipient info
+    let recipientInfoHtml = '';
+    if (letterData.recipientPosition && letterData.recipientCompany) {
+      recipientInfoHtml = `${letterData.recipientPosition} - ${letterData.recipientCompany}`;
+    } else {
+      recipientInfoHtml = [letterData.recipientPosition, letterData.recipientCompany].filter(Boolean).join('<br/>');
+    }
+    addTextEl(positions.recipientInfo, recipientInfoHtml, 'text-align:right;font-size:16px;');
+
+    // Subject
+    addTextEl(positions.subject, `<span style="font-weight:bold">موضوع: </span><span>${letterData.generatedSubject}</span>`, 'text-align:right;font-size:16px;max-width:550px;');
+
+    // Greeting
+    addTextEl(positions.greeting, 'با سلام و احترام', 'text-align:right;font-weight:500;font-size:16px;');
+
+    // Body
+    addTextEl(positions.body, letterData.generatedBody, 'text-align:right;font-size:16px;line-height:1.8;max-width:550px;');
+
+    // Closing 1
+    addTextEl(positions.closing1, 'پیشاپیش از حسن توجه و همکاری شما سپاسگزاریم.', 'text-align:right;font-size:16px;');
+
+    // Closing 2
+    addTextEl(positions.closing2, 'با تشکر<br/>برخورداری<br/>مدیر عامل شرکت آدرین ایده کوشا', 'text-align:center;font-size:16px;line-height:1.6;');
+
+    // Signature
+    if (includeSignature && signatureUrl) {
+      const sigImg = document.createElement('img');
+      sigImg.src = signatureUrl;
+      sigImg.crossOrigin = 'anonymous';
+      sigImg.style.cssText = `position:absolute;left:${positions.signature.x}px;top:${positions.signature.y}px;max-width:192px;max-height:96px;`;
+      container.appendChild(sigImg);
+    }
+
+    // Stamp
+    if (includeStamp && stampUrl) {
+      const stampImg = document.createElement('img');
+      stampImg.src = stampUrl;
+      stampImg.crossOrigin = 'anonymous';
+      stampImg.style.cssText = `position:absolute;left:${positions.stamp.x}px;top:${positions.stamp.y}px;max-width:192px;max-height:192px;`;
+      container.appendChild(stampImg);
+    }
+
+    return container;
+  };
+
   const generateFinalLetter = async () => {
     setIsGenerating(true);
     try {
@@ -201,69 +282,85 @@ const LetterBuilder: React.FC<LetterBuilderProps> = ({
         })
         .eq('id', letterData.id);
 
-      const letterElement = document.getElementById('letter-canvas');
-      if (letterElement) {
-        // Wait for fonts to load
-        await document.fonts.ready;
-        await new Promise(resolve => setTimeout(resolve, 500));
+      // Build clean off-screen div for capture
+      const cleanDiv = buildCleanLetterDiv();
+      document.body.appendChild(cleanDiv);
 
-        // Capture with dom-to-image-more
-        const dataUrl = await domtoimage.toPng(letterElement, {
-          quality: 1,
-          width: letterElement.scrollWidth * 2,
-          height: letterElement.scrollHeight * 2,
-          style: {
-            transform: 'scale(2)',
-            transformOrigin: 'top left',
-            width: `${letterElement.scrollWidth}px`,
-            height: `${letterElement.scrollHeight}px`,
-          },
-        });
-
-        // Convert data URL to blob
-        const fetchResp = await fetch(dataUrl);
-        const blob = await fetchResp.blob();
-
-        if (blob) {
-          // Get project name from project_id
-          const { data: project } = await supabase
-            .from('adrian_projects')
-            .select('project_name')
-            .eq('project_id', letterData.project_id)
-            .maybeSingle();
-
-          // Upload with structure: {project_name}/{id}/letter.png
-          const projectName = project?.project_name || letterData.project_id;
-          const filePath = `${projectName}/${letterData.id}/letter.png`;
-          
-          const { error: uploadError } = await supabase.storage
-            .from('documents')
-            .upload(filePath, blob, { upsert: true });
-
-          if (!uploadError) {
-            // Update letter status to final_generated with file URL and mime type
-            await supabase
-              .from('letters')
-              .update({ 
-                status: 'final_generated',
-                final_generated_at: new Date().toISOString(),
-                final_image_url: filePath,
-                file_url: filePath,
-                mime_type: 'image/png'
+      // Wait for all images to load
+      const images = cleanDiv.querySelectorAll('img');
+      await Promise.all(
+        Array.from(images).map(img =>
+          img.complete
+            ? Promise.resolve()
+            : new Promise<void>((resolve, reject) => {
+                img.onload = () => resolve();
+                img.onerror = () => reject(new Error(`Failed to load: ${img.src}`));
               })
-              .eq('id', letterData.id);
-          }
+        )
+      );
 
-          // Download the image
-          const url = URL.createObjectURL(blob);
-          const link = document.createElement('a');
-          link.href = url;
-          link.download = `Letter-${letterData.recipientName}-${new Date().toISOString().split('T')[0]}.png`;
-          link.click();
-          URL.revokeObjectURL(url);
-          if (onLetterGenerated) {
-            onLetterGenerated();
-          }
+      // Wait for fonts
+      await document.fonts.ready;
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Capture clean div at 2x scale
+      const dataUrl = await domtoimage.toPng(cleanDiv, {
+        quality: 1,
+        width: 1588,
+        height: 2246,
+        style: {
+          transform: 'scale(2)',
+          transformOrigin: 'top left',
+          width: '794px',
+          height: '1123px',
+        },
+      });
+
+      // Remove clean div
+      document.body.removeChild(cleanDiv);
+
+      // Convert data URL to blob
+      const fetchResp = await fetch(dataUrl);
+      const blob = await fetchResp.blob();
+
+      if (blob) {
+        // Get project name from project_id
+        const { data: project } = await supabase
+          .from('adrian_projects')
+          .select('project_name')
+          .eq('project_id', letterData.project_id)
+          .maybeSingle();
+
+        // Upload with structure: {project_name}/{id}/letter.png
+        const projectName = project?.project_name || letterData.project_id;
+        const filePath = `${projectName}/${letterData.id}/letter.png`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('documents')
+          .upload(filePath, blob, { upsert: true });
+
+        if (!uploadError) {
+          await supabase
+            .from('letters')
+            .update({ 
+              status: 'final_generated',
+              final_generated_at: new Date().toISOString(),
+              final_image_url: filePath,
+              file_url: filePath,
+              mime_type: 'image/png'
+            })
+            .eq('id', letterData.id);
+        }
+
+        // Download the image
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `Letter-${letterData.recipientName}-${new Date().toISOString().split('T')[0]}.png`;
+        link.click();
+        URL.revokeObjectURL(url);
+        if (onLetterGenerated) {
+          onLetterGenerated();
         }
       }
     } catch (error) {
