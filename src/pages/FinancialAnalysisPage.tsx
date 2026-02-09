@@ -642,9 +642,9 @@ const FinancialAnalysisPage = () => {
                       />
                     </div>
                     
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                       <Select value={filterType} onValueChange={setFilterType}>
-                        <SelectTrigger className="w-32">
+                        <SelectTrigger className="w-full sm:w-32">
                           <SelectValue placeholder="Type" />
                         </SelectTrigger>
                         <SelectContent>
@@ -656,7 +656,7 @@ const FinancialAnalysisPage = () => {
                       </Select>
 
                       <Select value={filterProject} onValueChange={setFilterProject}>
-                        <SelectTrigger className="w-40">
+                        <SelectTrigger className="w-full sm:w-40">
                           <SelectValue placeholder="Project" />
                         </SelectTrigger>
                         <SelectContent>
@@ -670,7 +670,7 @@ const FinancialAnalysisPage = () => {
                       </Select>
 
                       <Select value={filterCurrency} onValueChange={setFilterCurrency}>
-                        <SelectTrigger className="w-32">
+                        <SelectTrigger className="w-full sm:w-32">
                           <SelectValue placeholder="Currency" />
                         </SelectTrigger>
                         <SelectContent>
@@ -703,7 +703,7 @@ const FinancialAnalysisPage = () => {
                       </Select>
                     </div>
                     
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                       <div className="space-y-1">
                         <Label htmlFor="fromDate" className="text-xs text-muted-foreground">From Date</Label>
                         <Input
@@ -711,7 +711,7 @@ const FinancialAnalysisPage = () => {
                           type="date"
                           value={filterFromDate}
                           onChange={(e) => setFilterFromDate(e.target.value)}
-                          className="w-40"
+                          className="w-full sm:w-40"
                         />
                       </div>
                       
@@ -722,7 +722,7 @@ const FinancialAnalysisPage = () => {
                           type="date"
                           value={filterToDate}
                           onChange={(e) => setFilterToDate(e.target.value)}
-                          className="w-40"
+                          className="w-full sm:w-40"
                         />
                       </div>
                     </div>
@@ -730,8 +730,8 @@ const FinancialAnalysisPage = () => {
                 </div>
 
                 {/* Table */}
-                <div className="rounded-md border">
-                  <Table>
+                <div className="rounded-md border overflow-x-auto">
+                  <Table className="min-w-[800px]">
                     <TableHeader>
                       <TableRow>
                         <TableHead 

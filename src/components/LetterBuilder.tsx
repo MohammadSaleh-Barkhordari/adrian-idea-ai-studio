@@ -254,7 +254,7 @@ const LetterBuilder: React.FC<LetterBuilderProps> = ({
       day: 'numeric'
     });
   };
-  return <div className="space-y-6 max-w-6xl mx-auto p-6">
+  return <div className="space-y-6 max-w-6xl mx-auto p-4 md:p-6">
       {/* Controls */}
       <div className="bg-card rounded-lg shadow-lg p-6 border">
         <h3 className="text-xl font-semibold mb-4">Persian Business Letter Composition</h3>
@@ -262,7 +262,7 @@ const LetterBuilder: React.FC<LetterBuilderProps> = ({
           Position elements on your Adrian Idea branded letter template following proper Persian business letter format.
         </p>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+        <div className="flex flex-wrap gap-4 mb-4">
           <div className="flex items-center space-x-2">
             <Checkbox id="preview" checked={previewMode} onCheckedChange={checked => setPreviewMode(checked === true)} />
             <Label htmlFor="preview" className="flex items-center gap-2">
@@ -300,7 +300,7 @@ const LetterBuilder: React.FC<LetterBuilderProps> = ({
             </p>
           </div>}
 
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <Button onClick={generateFinalLetter} disabled={isGenerating} className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-3 rounded-lg hover:from-blue-600 hover:to-purple-700 disabled:opacity-50 flex items-center gap-2">
             {isGenerating ? <>
                 <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
@@ -318,9 +318,14 @@ const LetterBuilder: React.FC<LetterBuilderProps> = ({
         </div>
       </div>
 
+      {/* Mobile notice */}
+      <p className="text-xs text-muted-foreground text-center md:hidden">
+        💡 The letter builder works best on desktop. Scroll horizontally to view the full canvas.
+      </p>
+
       {/* Letter Canvas */}
-      <div className="flex justify-center">
-        <div id="letter-canvas" className="relative border-2 border-gray-300 bg-white shadow-xl overflow-hidden" style={{
+      <div className="flex justify-center overflow-auto">
+        <div id="letter-canvas" className="relative border-2 border-gray-300 bg-white shadow-xl overflow-hidden flex-shrink-0" style={{
         width: '794px',
         height: '1123px'
       }}>

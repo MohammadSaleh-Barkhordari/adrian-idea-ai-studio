@@ -260,7 +260,7 @@ const GanttChart: React.FC<GanttChartProps> = ({ tasks }) => {
           </div>
 
           {/* Controls Section */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 flex-wrap">
             {/* Status Legend */}
             <div className="flex flex-wrap gap-3 text-sm">
               <div className="flex items-center gap-2 px-3 py-1.5 bg-muted/30 rounded-full">

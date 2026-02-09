@@ -80,13 +80,16 @@ const FinancialFileUpload = ({ onFieldsExtracted }: FinancialFileUploadProps) =>
     setIsUploading(true);
 
     try {
-      // Convert file to base64
+      // Convert file to base64 using chunked approach (mobile-safe)
       const arrayBuffer = await file.arrayBuffer();
-      const base64 = btoa(
-        Array.from(new Uint8Array(arrayBuffer))
-          .map(byte => String.fromCharCode(byte))
-          .join('')
-      );
+      const uint8Array = new Uint8Array(arrayBuffer);
+      let binary = '';
+      const chunkSize = 0x8000; // 32KB chunks to avoid mobile memory issues
+      for (let i = 0; i < uint8Array.length; i += chunkSize) {
+        const chunk = uint8Array.subarray(i, Math.min(i + chunkSize, uint8Array.length));
+        binary += String.fromCharCode.apply(null, Array.from(chunk));
+      }
+      const base64 = btoa(binary);
 
       console.log('Processing financial document:', file.name, file.type);
 
@@ -167,8 +170,16 @@ const FinancialFileUpload = ({ onFieldsExtracted }: FinancialFileUploadProps) =>
         </CardTitle>
       </CardHeader>
       <CardContent>
+        <input
+          type="file"
+          accept="image/*,.pdf"
+          onChange={handleInputChange}
+          className="hidden"
+          id="financial-file-upload"
+          disabled={isUploading}
+        />
         <div
-          className={`relative border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+          className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
             dragActive 
               ? 'border-accent bg-accent/10' 
               : 'border-muted-foreground/25 hover:border-accent/50'
@@ -178,14 +189,6 @@ const FinancialFileUpload = ({ onFieldsExtracted }: FinancialFileUploadProps) =>
           onDragOver={handleDrag}
           onDrop={handleDrop}
         >
-          <input
-            type="file"
-            accept="image/*,.pdf"
-            onChange={handleInputChange}
-            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-            disabled={isUploading}
-          />
-          
           <div className="flex flex-col items-center space-y-4">
             {isUploading ? (
               <>
@@ -199,15 +202,17 @@ const FinancialFileUpload = ({ onFieldsExtracted }: FinancialFileUploadProps) =>
                 <FileImage className="h-12 w-12 text-muted-foreground" />
                 <div>
                   <p className="text-sm font-medium mb-1">
-                    Drop your bill or receipt here, or click to browse
+                    Drop your bill or receipt here, or tap below to browse
                   </p>
                   <p className="text-xs text-muted-foreground">
                     Supports JPG, PNG, WEBP, and PDF files (no size limit)
                   </p>
                 </div>
-                <Button variant="outline" size="sm" disabled={isUploading}>
-                  Select File
-                </Button>
+                <label htmlFor="financial-file-upload">
+                  <Button variant="outline" size="sm" disabled={isUploading} asChild>
+                    <span className="min-h-[44px] min-w-[44px] flex items-center justify-center cursor-pointer">Select File</span>
+                  </Button>
+                </label>
               </>
             )}
           </div>

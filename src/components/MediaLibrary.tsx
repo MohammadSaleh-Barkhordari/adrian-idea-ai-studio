@@ -170,12 +170,13 @@ export default function MediaLibrary({
     fetchMedia();
   }, []);
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+  const { getRootProps, getInputProps, isDragActive, open: openDropzone } = useDropzone({
     onDrop,
     accept: {
       'image/*': ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg']
     },
-    multiple: true
+    multiple: true,
+    noKeyboard: true
   });
 
   const handleDelete = async (fileName: string) => {
@@ -376,6 +377,9 @@ export default function MediaLibrary({
                   <p className="text-xs text-muted-foreground mt-2">
                     PNG, JPG, GIF, WebP, SVG (Max 10MB)
                   </p>
+                  <Button type="button" variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); openDropzone(); }} className="mt-3 min-h-[44px] min-w-[44px]">
+                    {texts.selectImage}
+                  </Button>
                 </div>
               </div>
             </div>

@@ -769,7 +769,7 @@ export const NewTaskDialog: React.FC<NewTaskDialogProps> = ({
                     <label 
                       htmlFor="outcome-file-upload" 
                       className={cn(
-                        "inline-flex items-center px-3 py-2 bg-primary text-primary-foreground rounded-md cursor-pointer hover:bg-primary/90 text-sm",
+                        "inline-flex items-center px-3 py-2 bg-primary text-primary-foreground rounded-md cursor-pointer hover:bg-primary/90 text-sm min-h-[44px] min-w-[44px]",
                         uploading && "opacity-50 cursor-not-allowed"
                       )}
                     >
