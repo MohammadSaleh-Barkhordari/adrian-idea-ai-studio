@@ -39,7 +39,7 @@ const OurTodoPage = () => {
       return;
     }
 
-    const allowedEmails = ['raianasattari@gmail.com', 'mosba1991@gmail.com'];
+    const allowedEmails = ['r.sattari@adrianidea.ir', 'm.barkhordari@adrianidea.ir'];
     if (!allowedEmails.includes(session.user.email || '')) {
       navigate('/dashboard');
       return;

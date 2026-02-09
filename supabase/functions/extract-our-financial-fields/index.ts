@@ -60,8 +60,8 @@ serve(async (req) => {
     Please provide a JSON response with these exact fields:
     - payment_for: what the payment was for (e.g., "Costco", "Uber", "groceries", etc.)
     - transaction_type: "income", "expense", or "investment"
-    - who_paid: who made the payment ("Mosba1991", "Raianasattari", or "Both")
-    - for_who: who the payment was for ("Mosba1991", "Raianasattari", or "Both")
+    - who_paid: who made the payment ("Barkhordari", "Sattari", or "Both")
+    - for_who: who the payment was for ("Barkhordari", "Sattari", or "Both")
     - amount: numeric amount (just the number, no currency symbol)
     - currency: currency code (USD, EUR, IRR, etc.)
     - description: brief description of the transaction
@@ -72,7 +72,7 @@ serve(async (req) => {
     - If "for_who" is not clear, use "Both" as default
     - For Iranian currency, use "IRR" and convert toman to rial (*10)
     - Extract the payment purpose into "payment_for" field
-    - Be case-sensitive for names: use exactly "Mosba1991" or "Raianasattari"
+    - Be case-sensitive for names: use exactly "Barkhordari" or "Sattari"
 
     Return only valid JSON, no additional text.
     `;
@@ -143,9 +143,9 @@ serve(async (req) => {
       payment_for: extractedData.payment_for || '',
       transaction_type: ['income', 'expense', 'investment'].includes(extractedData.transaction_type) 
         ? extractedData.transaction_type : 'expense',
-      who_paid: ['Mosba1991', 'Raianasattari', 'Both'].includes(extractedData.who_paid) 
+      who_paid: ['Barkhordari', 'Sattari', 'Both'].includes(extractedData.who_paid) 
         ? extractedData.who_paid : 'Both',
-      for_who: ['Mosba1991', 'Raianasattari', 'Both'].includes(extractedData.for_who) 
+      for_who: ['Barkhordari', 'Sattari', 'Both'].includes(extractedData.for_who) 
         ? extractedData.for_who : 'Both',
       amount: parseFloat(extractedData.amount) || 0,
       currency: extractedData.currency || 'USD',

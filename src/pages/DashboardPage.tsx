@@ -411,7 +411,7 @@ const DashboardPage = () => {
     path: '/our-life',
     color: 'text-rose-500',
     requiresAdmin: false,
-    specialAccess: ['raianasattari@gmail.com', 'mosba1991@gmail.com']
+    specialAccess: ['r.sattari@adrianidea.ir', 'm.barkhordari@adrianidea.ir']
   }].filter(item => {
     if (item.requiresAdmin && userRole !== 'admin') return false;
     if (item.requiresRole && !userRole) return false;
