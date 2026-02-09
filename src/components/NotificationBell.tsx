@@ -142,7 +142,7 @@ export const NotificationBell = () => {
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-80" align="end">
+      <PopoverContent className="w-[calc(100vw-2rem)] sm:w-80" align="end">
         <div className="space-y-4">
           {/* iOS Guidance */}
           {isIOS && !isStandalone && (

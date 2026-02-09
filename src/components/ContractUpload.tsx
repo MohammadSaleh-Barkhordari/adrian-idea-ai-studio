@@ -142,7 +142,7 @@ const ContractUpload = ({ onDataExtracted, onFileUploaded }: ContractUploadProps
     }
   }, [onDataExtracted, onFileUploaded, toast]);
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+  const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
     onDrop,
     accept: {
       'application/pdf': ['.pdf'],
@@ -150,7 +150,9 @@ const ContractUpload = ({ onDataExtracted, onFileUploaded }: ContractUploadProps
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
       'text/plain': ['.txt']
     },
-    multiple: false
+    multiple: false,
+    noKeyboard: true,
+    noClick: false
   });
 
   return (
@@ -189,8 +191,11 @@ const ContractUpload = ({ onDataExtracted, onFileUploaded }: ContractUploadProps
                       {isDragActive ? 'Drop your contract here' : 'Upload employment contract'}
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      Drag & drop or click to select (PDF, DOC, DOCX, TXT)
+                      Drag & drop or tap below to select (PDF, DOC, DOCX, TXT)
                     </p>
+                    <Button type="button" variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); open(); }} className="mt-3 min-h-[44px] min-w-[44px]">
+                      Select File
+                    </Button>
                   </div>
                 )}
               </div>
