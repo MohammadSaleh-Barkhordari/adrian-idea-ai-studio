@@ -364,6 +364,8 @@ const LetterBuilder: React.FC<LetterBuilderProps> = ({
               writer_name: letterData.writerName
             })
             .eq('id', letterData.id);
+          setLetterGenerated(true);
+          setGeneratedFilePath(filePath);
         }
 
         // Download the image
