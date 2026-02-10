@@ -43,14 +43,22 @@ Deno.serve(async (req) => {
       throw new Error('Task not found');
     }
 
-    // Get commenter's profile
+    // Get commenter's name from employees, email from profiles
     const { data: commenter } = await supabase
       .from('profiles')
-      .select('full_name, email')
+      .select('email')
       .eq('id', commenter_id)
       .single();
 
-    const commenterName = commenter?.full_name || commenter?.email || 'Someone';
+    const { data: empData } = await supabase
+      .from('employees')
+      .select('name, surname')
+      .eq('user_id', commenter_id)
+      .maybeSingle();
+
+    const commenterName = empData 
+      ? `${empData.name} ${empData.surname}`.trim() 
+      : commenter?.email || 'Someone';
 
     // Collect recipients (task assignee + mentioned users, excluding commenter)
     const recipientIds = new Set<string>();
