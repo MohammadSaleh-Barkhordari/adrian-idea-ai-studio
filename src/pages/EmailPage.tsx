@@ -199,12 +199,16 @@ const EmailPage = () => {
 
       <EmailCompose
         isOpen={isComposing}
-        onClose={() => setIsComposing(false)}
+        onClose={() => { setIsComposing(false); setPrefillData(null); }}
         mode={composeMode}
         replyToEmail={replyToEmail}
         userId={user.id}
         userEmail={userEmail}
         onSent={handleRefresh}
+        initialSubject={prefillData?.subject}
+        initialBody={prefillData?.body_text}
+        initialBodyHtml={prefillData?.body_html}
+        initialAttachments={prefillData?.attachments}
       />
 
       <EmailQuickAdd
