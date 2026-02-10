@@ -1,72 +1,55 @@
 
 
-# Add "Email Letter" Button and Prefill Compose
+# Fix: "Email Letter" Button Always Disabled
 
-## Overview
+## Problem
 
-Add a button in the Letter Builder to email the generated letter, and wire EmailPage to open the compose dialog with pre-filled data when navigated to with state.
+The button's disabled condition checks `letterData.file_url`, which is a prop from the parent and never updates after generation. The `generateFinalLetter` function uploads to storage and updates the DB, but the prop stays `undefined`.
 
-## Changes
+## Fix in `src/components/LetterBuilder.tsx`
 
-### File 1: `src/components/LetterBuilder.tsx`
+### 1. Add local state (near existing state declarations)
 
-**Imports**: Add `useNavigate` from `react-router-dom` and `Mail` from `lucide-react`.
+Add two new state variables:
+- `letterGenerated` (boolean, default `false`)
+- `generatedFilePath` (string or null, default `null`)
 
-**State**: Add a local variable tracking whether the letter has been generated: check if `letterData.file_url` or a local `letterGenerated` flag is set after `generateFinalLetter` completes.
+### 2. Set state after successful generation
 
-**New button** (after the Generate button at line 446, before the Log Positions button):
+Inside `generateFinalLetter`, after the successful DB update (around line 346-360), set:
+- `setLetterGenerated(true)`
+- `setGeneratedFilePath(filePath)` -- where `filePath` is the `{projectName}/{id}/letter.png` string already computed at line 340
 
-- Label: "ارسال نامه با ایمیل" with Mail icon
-- Variant: `outline`
-- Disabled when letter has not been generated (`!letterGenerated && !letterData.file_url`)
-- Title attribute for tooltip when disabled: "ابتدا نامه را تولید کنید"
+### 3. Update button disabled condition (line 489)
 
-**On click handler** (`handleEmailLetter`):
-1. Build RTL HTML email body from `letterData` fields (recipientName, recipientPosition, recipientCompany, generatedSubject, generatedBody, writerName)
-2. Build plain text version (same content, no HTML)
-3. Navigate to `/email` with state:
-   ```text
-   {
-     composeMode: 'new',
-     prefill: {
-       subject: letterData.generatedSubject,
-       body_html: htmlBody,
-       body_text: plainText,
-       attachments: [{
-         name: `Letter-${letterData.recipientName}.png`,
-         url: letterData.file_url,
-         storage_path: letterData.file_url,
-         bucket: 'Letters'
-       }]
-     }
-   }
-   ```
-   The bucket is `'Letters'` -- matching the upload in `generateFinalLetter` (line 340).
+Change from:
+```
+disabled={!letterData.file_url}
+```
+to:
+```
+disabled={!letterGenerated && !letterData.file_url}
+```
 
-### File 2: `src/pages/EmailPage.tsx`
+Also update the tooltip condition on the same pattern.
 
-**Imports**: Add `useLocation` from `react-router-dom`.
+### 4. Update attachment object in email handler (lines 478-483)
 
-**New state**: `prefillData` to hold the compose prefill (subject, body, attachments).
+Change to use `generatedFilePath`:
+```
+attachments: [{
+  name: `Letter-${letterData.recipientName}.png`,
+  url: generatedFilePath || letterData.file_url,
+  storage_path: generatedFilePath || letterData.file_url,
+  bucket: 'Letters'
+}]
+```
 
-**On mount effect** (after auth check completes):
-- Check `location.state?.composeMode === 'new'` and `location.state?.prefill`
-- If present:
-  1. Store prefill data in state
-  2. Set `isComposing = true`, `composeMode = 'new'`
-  3. Clear location state: `navigate(location.pathname, { replace: true, state: {} })`
-
-**Pass prefill to EmailCompose**:
-- `initialSubject={prefillData?.subject}`
-- `initialBody={prefillData?.body_text}`
-- `initialBodyHtml={prefillData?.body_html}`
-- `initialAttachments={prefillData?.attachments}`
-
-**Clear prefillData** when compose closes (in the `onClose` handler).
+The bucket is confirmed as `'Letters'` -- matching the `supabase.storage.from('Letters')` call at line 343.
 
 ## Files Changed
 
 | File | Change |
 |------|--------|
-| `src/components/LetterBuilder.tsx` | Add `useNavigate`, `Mail` import; add `letterGenerated` state; add "Email Letter" button with handler that builds HTML body and navigates to /email with prefill state |
-| `src/pages/EmailPage.tsx` | Add `useLocation`; consume `location.state` prefill on mount; pass prefill props to EmailCompose; clear state after consuming |
+| `src/components/LetterBuilder.tsx` | Add `letterGenerated` + `generatedFilePath` state; set after generation succeeds; fix disabled condition; use `generatedFilePath` in attachment |
+
