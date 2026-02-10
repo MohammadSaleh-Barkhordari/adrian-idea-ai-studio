@@ -80,8 +80,22 @@ export type Database = {
             foreignKeyName: "adrian_projects_assigned_to_fkey"
             columns: ["assigned_to"]
             isOneToOne: false
+            referencedRelation: "employee_full"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "adrian_projects_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "adrian_projects_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "employee_full"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "adrian_projects_created_by_fkey"
@@ -164,6 +178,13 @@ export type Database = {
             foreignKeyName: "blog_media_uploaded_by_fkey"
             columns: ["uploaded_by"]
             isOneToOne: false
+            referencedRelation: "employee_full"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "blog_media_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -235,6 +256,13 @@ export type Database = {
             foreignKeyName: "blog_posts_author_id_fkey"
             columns: ["author_id"]
             isOneToOne: false
+            referencedRelation: "employee_full"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "blog_posts_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -279,6 +307,13 @@ export type Database = {
           version_number?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "blog_versions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "employee_full"
+            referencedColumns: ["user_id"]
+          },
           {
             foreignKeyName: "blog_versions_created_by_fkey"
             columns: ["created_by"]
@@ -348,6 +383,13 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "documents_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "employee_full"
+            referencedColumns: ["user_id"]
+          },
           {
             foreignKeyName: "documents_uploaded_by_fkey"
             columns: ["uploaded_by"]
@@ -562,6 +604,13 @@ export type Database = {
             foreignKeyName: "employee_sensitive_data_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: true
+            referencedRelation: "employee_full"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "employee_sensitive_data_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: true
             referencedRelation: "employees"
             referencedColumns: ["id"]
           },
@@ -675,6 +724,13 @@ export type Database = {
             foreignKeyName: "files_uploaded_by_fkey"
             columns: ["uploaded_by"]
             isOneToOne: false
+            referencedRelation: "employee_full"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "files_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -730,6 +786,13 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "financial_records_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "employee_full"
+            referencedColumns: ["user_id"]
+          },
           {
             foreignKeyName: "financial_records_created_by_fkey"
             columns: ["created_by"]
@@ -838,6 +901,13 @@ export type Database = {
             foreignKeyName: "letters_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
+            referencedRelation: "employee_full"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "letters_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -928,6 +998,13 @@ export type Database = {
             foreignKeyName: "our_calendar_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "employee_full"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "our_calendar_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -978,6 +1055,13 @@ export type Database = {
             foreignKeyName: "our_financial_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "employee_full"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "our_financial_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -1022,6 +1106,13 @@ export type Database = {
             foreignKeyName: "our_todos_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "employee_full"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "our_todos_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -1029,26 +1120,20 @@ export type Database = {
       }
       profiles: {
         Row: {
-          avatar_url: string | null
           created_at: string
           email: string | null
-          full_name: string | null
           id: string
           updated_at: string
         }
         Insert: {
-          avatar_url?: string | null
           created_at?: string
           email?: string | null
-          full_name?: string | null
           id: string
           updated_at?: string
         }
         Update: {
-          avatar_url?: string | null
           created_at?: string
           email?: string | null
-          full_name?: string | null
           id?: string
           updated_at?: string
         }
@@ -1353,6 +1438,13 @@ export type Database = {
             foreignKeyName: "tasks_assigned_by_fkey"
             columns: ["assigned_by"]
             isOneToOne: false
+            referencedRelation: "employee_full"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "tasks_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -1360,8 +1452,22 @@ export type Database = {
             foreignKeyName: "tasks_assigned_to_fkey"
             columns: ["assigned_to"]
             isOneToOne: false
+            referencedRelation: "employee_full"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "tasks_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "employee_full"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "tasks_created_by_fkey"
@@ -1406,6 +1512,13 @@ export type Database = {
             foreignKeyName: "user_roles_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "employee_full"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "user_roles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -1413,7 +1526,26 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      employee_full: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          department: string | null
+          employee_id: string | null
+          employee_number: string | null
+          employment_type: string | null
+          end_date: string | null
+          full_name: string | null
+          job_title: string | null
+          job_type: string | null
+          name: string | null
+          start_date: string | null
+          surname: string | null
+          user_id: string | null
+          work_email: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       get_user_id_by_email: { Args: { lookup_email: string }; Returns: string }
