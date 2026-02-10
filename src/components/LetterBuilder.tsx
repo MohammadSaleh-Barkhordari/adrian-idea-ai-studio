@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Download, Eye, Edit, Terminal } from 'lucide-react';
+import { Download, Eye, Edit, Terminal, Mail } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 interface LetterBuilderProps {
   letterData: {
     id: string;
