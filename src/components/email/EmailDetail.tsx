@@ -2,10 +2,18 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Reply, Forward, Archive, Trash2, Star, MailOpen, ArrowLeft, Mail } from 'lucide-react';
+import { Reply, Forward, Archive, Trash2, Star, MailOpen, ArrowLeft, Mail, Paperclip, Download } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import DOMPurify from 'dompurify';
+
+interface Attachment {
+  id: string;
+  file_name: string;
+  file_size: number | null;
+  content_type: string | null;
+  storage_path: string | null;
+}
 
 interface EmailDetailProps {
   emailId: string | null;
@@ -15,26 +23,41 @@ interface EmailDetailProps {
   onRefresh: () => void;
 }
 
+const formatFileSize = (bytes: number | null) => {
+  if (!bytes) return '';
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+};
+
 const EmailDetail = ({ emailId, onReply, onForward, onBack, onRefresh }: EmailDetailProps) => {
   const [email, setEmail] = useState<any>(null);
   const [thread, setThread] = useState<any[]>([]);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
-    if (!emailId) { setEmail(null); setThread([]); return; }
+    if (!emailId) { setEmail(null); setThread([]); setAttachments([]); return; }
     fetchEmail(emailId);
   }, [emailId]);
 
   const fetchEmail = async (id: string) => {
     setLoading(true);
-    const { data, error } = await supabase.from('emails').select('*').eq('id', id).maybeSingle();
-    if (error || !data) { setLoading(false); return; }
-    setEmail(data);
+
+    // Fetch email and attachments in parallel
+    const [emailRes, attRes] = await Promise.all([
+      supabase.from('emails').select('*').eq('id', id).maybeSingle(),
+      supabase.from('email_attachments').select('id, file_name, file_size, content_type, storage_path').eq('email_id', id),
+    ]);
+
+    if (emailRes.error || !emailRes.data) { setLoading(false); return; }
+    setEmail(emailRes.data);
+    setAttachments(attRes.data || []);
 
     // Fetch thread
     const threadEmails: any[] = [];
-    let parentId = data.in_reply_to;
+    let parentId = emailRes.data.in_reply_to;
     let depth = 0;
     while (parentId && depth < 10) {
       const { data: parent } = await supabase.from('emails').select('*').eq('id', parentId).maybeSingle();
@@ -45,6 +68,18 @@ const EmailDetail = ({ emailId, onReply, onForward, onBack, onRefresh }: EmailDe
     }
     setThread(threadEmails);
     setLoading(false);
+  };
+
+  const handleDownloadAttachment = async (att: Attachment) => {
+    if (!att.storage_path) return;
+    const { data, error } = await supabase.storage
+      .from('email-attachments')
+      .createSignedUrl(att.storage_path, 300);
+    if (error || !data?.signedUrl) {
+      toast({ title: 'Failed to get download link', variant: 'destructive' });
+      return;
+    }
+    window.open(data.signedUrl, '_blank');
   };
 
   const handleAction = async (action: 'archive' | 'delete' | 'star' | 'unread') => {
@@ -128,11 +163,37 @@ const EmailDetail = ({ emailId, onReply, onForward, onBack, onRefresh }: EmailDe
       {/* Body */}
       <div className="p-4 flex-1">{renderBody(email)}</div>
 
+      {/* Attachments */}
+      {attachments.length > 0 && (
+        <div className="px-4 pb-4">
+          <h3 className="text-sm font-medium mb-2 flex items-center gap-1">
+            <Paperclip className="h-4 w-4" />
+            Attachments ({attachments.length})
+          </h3>
+          <div className="space-y-1">
+            {attachments.map((att) => (
+              <div key={att.id} className="flex items-center justify-between text-sm py-2 px-3 bg-muted/50 rounded-md">
+                <div className="flex items-center gap-2 truncate">
+                  <Paperclip className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                  <span className="truncate">{att.file_name}</span>
+                  {att.file_size && (
+                    <span className="text-xs text-muted-foreground flex-shrink-0">{formatFileSize(att.file_size)}</span>
+                  )}
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => handleDownloadAttachment(att)}>
+                  <Download className="h-4 w-4 mr-1" />Download
+                </Button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Thread */}
       {thread.length > 0 && (
         <div className="border-t border-border p-4">
           <Accordion type="multiple">
-            {thread.map((t, i) => (
+            {thread.map((t) => (
               <AccordionItem key={t.id} value={t.id}>
                 <AccordionTrigger className="text-sm text-muted-foreground">
                   Previous message from {t.from_name || t.from_email} — {new Date(t.created_at).toLocaleDateString()}

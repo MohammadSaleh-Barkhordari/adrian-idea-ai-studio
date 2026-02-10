@@ -23,6 +23,7 @@ serve(async (req: Request) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
 
     if (!resendApiKey) {
@@ -32,6 +33,8 @@ serve(async (req: Request) => {
     const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
+
+    const serviceClient = createClient(supabaseUrl, serviceRoleKey);
 
     const token = authHeader.replace("Bearer ", "");
     const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
@@ -43,7 +46,7 @@ serve(async (req: Request) => {
     }
 
     const userId = claimsData.claims.sub;
-    const { to, to_name, subject, body_html, body_text, from_email, from_name, reply_to_id } = await req.json();
+    const { to, to_name, subject, body_html, body_text, from_email, from_name, reply_to_id, attachments } = await req.json();
 
     if (!to || !subject) {
       return new Response(JSON.stringify({ error: "Missing required fields: to, subject" }), {
@@ -65,20 +68,59 @@ serve(async (req: Request) => {
       userEmail = profile?.email || "noreply@send.adrianidea.ir";
     }
 
+    // Process attachments: download from storage and convert to base64
+    const resendAttachments: Array<{ filename: string; content: string }> = [];
+    const attachmentMeta: Array<{ filename: string; storage_path: string; bucket: string; size: number; content_type: string }> = [];
+
+    if (attachments && Array.isArray(attachments)) {
+      for (const att of attachments) {
+        const bucket = att.bucket || 'email-attachments';
+        const { data, error: dlError } = await serviceClient.storage
+          .from(bucket)
+          .download(att.storage_path);
+        if (dlError) {
+          console.error(`Failed to download attachment ${att.storage_path}:`, dlError);
+          continue;
+        }
+        if (data) {
+          const arrayBuffer = await data.arrayBuffer();
+          const bytes = new Uint8Array(arrayBuffer);
+          let binary = '';
+          for (let i = 0; i < bytes.length; i++) {
+            binary += String.fromCharCode(bytes[i]);
+          }
+          const base64 = btoa(binary);
+          resendAttachments.push({ filename: att.filename, content: base64 });
+          attachmentMeta.push({
+            filename: att.filename,
+            storage_path: att.storage_path,
+            bucket,
+            size: bytes.length,
+            content_type: data.type || 'application/octet-stream',
+          });
+        }
+      }
+    }
+
     // Send via Resend API
+    const resendPayload: Record<string, unknown> = {
+      from: `${senderName} <${userEmail}>`,
+      to: [to],
+      subject,
+      html: body_html || undefined,
+      text: body_text || undefined,
+    };
+    if (resendAttachments.length > 0) {
+      resendPayload.attachments = resendAttachments;
+    }
+
     const resendResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${resendApiKey}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        from: `${senderName} <${userEmail}>`,
-        to: [to],
-        subject,
-        html: body_html || undefined,
-        text: body_text || undefined,
-      }),
+      body: JSON.stringify(resendPayload),
     });
 
     if (!resendResponse.ok) {
@@ -113,6 +155,23 @@ serve(async (req: Request) => {
     if (insertError) {
       console.error("Error inserting email record:", insertError);
       throw new Error(`Failed to save email record: ${insertError.message}`);
+    }
+
+    // Save attachment records
+    if (emailRecord && attachmentMeta.length > 0) {
+      const attachmentRows = attachmentMeta.map((m) => ({
+        email_id: emailRecord.id,
+        file_name: m.filename,
+        file_size: m.size,
+        content_type: m.content_type,
+        storage_path: m.storage_path,
+      }));
+      const { error: attError } = await supabase
+        .from("email_attachments")
+        .insert(attachmentRows);
+      if (attError) {
+        console.error("Error saving attachment records:", attError);
+      }
     }
 
     // Auto-save contact
