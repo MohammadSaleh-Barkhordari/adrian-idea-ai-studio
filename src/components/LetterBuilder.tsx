@@ -481,8 +481,8 @@ const LetterBuilder: React.FC<LetterBuilderProps> = ({
                     body_text: plainText,
                     attachments: [{
                       name: `Letter-${letterData.recipientName}.png`,
-                      url: letterData.file_url,
-                      storage_path: letterData.file_url,
+                      url: generatedFilePath || letterData.file_url,
+                      storage_path: generatedFilePath || letterData.file_url,
                       bucket: 'Letters'
                     }]
                   }
