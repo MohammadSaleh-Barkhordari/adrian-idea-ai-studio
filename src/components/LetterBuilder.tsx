@@ -30,6 +30,8 @@ const LetterBuilder: React.FC<LetterBuilderProps> = ({
   letterData,
   onLetterGenerated
 }) => {
+  const [letterGenerated, setLetterGenerated] = useState(false);
+  const [generatedFilePath, setGeneratedFilePath] = useState<string | null>(null);
   // State for element positions - Updated to match professional layout from reference letter
   const [positions, setPositions] = useState({
     basmala: {
@@ -362,6 +364,8 @@ const LetterBuilder: React.FC<LetterBuilderProps> = ({
               writer_name: letterData.writerName
             })
             .eq('id', letterData.id);
+          setLetterGenerated(true);
+          setGeneratedFilePath(filePath);
         }
 
         // Download the image
@@ -477,8 +481,8 @@ const LetterBuilder: React.FC<LetterBuilderProps> = ({
                     body_text: plainText,
                     attachments: [{
                       name: `Letter-${letterData.recipientName}.png`,
-                      url: letterData.file_url,
-                      storage_path: letterData.file_url,
+                      url: generatedFilePath || letterData.file_url,
+                      storage_path: generatedFilePath || letterData.file_url,
                       bucket: 'Letters'
                     }]
                   }
@@ -486,8 +490,8 @@ const LetterBuilder: React.FC<LetterBuilderProps> = ({
               });
             }}
             variant="outline"
-            disabled={!letterData.file_url}
-            title={!letterData.file_url ? 'ابتدا نامه را تولید کنید' : ''}
+            disabled={!letterGenerated && !letterData.file_url}
+            title={!letterGenerated && !letterData.file_url ? 'ابتدا نامه را تولید کنید' : ''}
             className="flex items-center gap-2"
           >
             <Mail className="w-5 h-5" />
