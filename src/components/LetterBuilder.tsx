@@ -30,6 +30,8 @@ const LetterBuilder: React.FC<LetterBuilderProps> = ({
   letterData,
   onLetterGenerated
 }) => {
+  const [letterGenerated, setLetterGenerated] = useState(false);
+  const [generatedFilePath, setGeneratedFilePath] = useState<string | null>(null);
   // State for element positions - Updated to match professional layout from reference letter
   const [positions, setPositions] = useState({
     basmala: {
