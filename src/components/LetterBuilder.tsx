@@ -86,6 +86,7 @@ const LetterBuilder: React.FC<LetterBuilderProps> = ({
   const [hasAttachment, setHasAttachment] = useState(false);
   const [letterNumber, setLetterNumber] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const navigate = useNavigate();
 
   // Auto-generate letter number on mount
   useEffect(() => {
