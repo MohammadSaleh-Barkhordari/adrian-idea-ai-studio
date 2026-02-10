@@ -490,8 +490,8 @@ const LetterBuilder: React.FC<LetterBuilderProps> = ({
               });
             }}
             variant="outline"
-            disabled={!letterData.file_url}
-            title={!letterData.file_url ? 'ابتدا نامه را تولید کنید' : ''}
+            disabled={!letterGenerated && !letterData.file_url}
+            title={!letterGenerated && !letterData.file_url ? 'ابتدا نامه را تولید کنید' : ''}
             className="flex items-center gap-2"
           >
             <Mail className="w-5 h-5" />
