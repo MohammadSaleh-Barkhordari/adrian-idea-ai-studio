@@ -22,6 +22,7 @@ interface LetterBuilderProps {
     project_id: string;
     document_id?: string;
     letter_number?: string;
+    file_url?: string;
   };
   onLetterGenerated?: () => void;
 }
