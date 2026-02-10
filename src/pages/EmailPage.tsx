@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 
 const EmailPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const isMobile = useIsMobile();
   const { toast } = useToast();
   const [user, setUser] = useState<any>(null);
@@ -29,6 +30,7 @@ const EmailPage = () => {
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [prefillData, setPrefillData] = useState<any>(null);
 
   useEffect(() => {
     const init = async () => {
