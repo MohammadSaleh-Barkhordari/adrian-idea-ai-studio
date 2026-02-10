@@ -1,113 +1,96 @@
 
 
-# Fix Letter Data, Storage, and Display
+# Email Attachment Support
 
-## Problems Found
+## Overview
 
-### 1. Storage Bucket Mismatch
-`LetterBuilder.tsx` (line 340) uploads the final PNG to the **`documents`** bucket, but `ProjectDetailsPage.tsx` (line 688) tries to download from the **`Letters`** bucket. This means downloads always fail silently.
+Add file attachment support to the email system: compose with attachments, send them via Resend, and display them when viewing emails.
 
-**Fix**: Change `LetterBuilder.tsx` to upload to `Letters` bucket instead of `documents`.
+## Changes
 
-### 2. Letter Data Not Fully Saved
-When `generateFinalLetter` runs, it updates the DB with `status`, `final_image_url`, `file_url`, and `mime_type` -- but it never saves:
-- `letter_title` (always null in DB)
-- `generated_subject` (set by edge function, but never updated with the user's edited version)
-- `generated_body` (same -- never updated with edits)
-- `letter_number` (only set in the `preview_generated` update, but should also be in the final update)
+### 1. Edge Function: `supabase/functions/send-email/index.ts`
 
-**Fix**: Update the `generateFinalLetter` DB update to also save `letter_title` (use `generatedSubject` as fallback), `generated_subject`, `generated_body`, and `letter_number`.
+- Accept optional `attachments` field in request body: `Array<{ filename: string, storage_path: string, bucket?: string }>`
+- Create a service-role Supabase client using `SUPABASE_SERVICE_ROLE_KEY` (already configured as a secret)
+- For each attachment, download from storage, convert to base64, add to Resend API payload
+- After successful send, insert records into `email_attachments` table (columns: `email_id`, `file_name`, `file_size`, `content_type`, `storage_path`)
 
-### 3. Letters Section Shows Wrong Data / Missing Fields
-`ProjectDetailsPage.tsx` uses a `Letter` interface (lines 63-79) that references `subject` and `body` columns, but the DB uses `generated_subject` and `generated_body`. So the display always shows empty values. Also, it lacks `letter_title`, `letter_number`, `writer_name`, `has_attachment`, and `final_image_url`.
+### 2. `src/components/email/EmailCompose.tsx`
 
-**Fix**: Update the `Letter` interface and letter card rendering to use correct column names and show richer info (letter number, writer, title).
+**New optional props:**
+- `initialSubject?: string`
+- `initialBody?: string`
+- `initialBodyHtml?: string`
+- `initialAttachments?: Array<{ name: string, url: string, storage_path: string, bucket?: string }>`
 
-### 4. Download Uses Wrong Bucket
-The download button on `ProjectDetailsPage` uses `supabase.storage.from('Letters')` but the files are currently stored in `documents`. After fix #1, both will use `Letters`, so the download will work.
+**Attachment UI (below body textarea):**
+- "Attach File" button with Paperclip icon
+- Hidden file input accepting `.png, .jpg, .jpeg, .pdf` (max 10MB)
+- Attachment list showing filename, formatted size, and remove button
+- Pre-loaded attachments from `initialAttachments` shown on mount
+- Two state arrays: `fileAttachments` (new files from picker) and `preloadedAttachments` (from props)
 
----
+**Updated send flow:**
+1. Upload new file attachments to `email-attachments` bucket at `{userId}/{timestamp}-{filename}`
+2. Combine uploaded paths with pre-loaded attachments
+3. Pass combined `attachments` array to the edge function
 
-## Detailed Changes
+**Initial values logic:**
+- Only apply `initialSubject`/`initialBody` when `mode === 'new'` and no `replyToEmail` -- so reply/forward prefill is not overridden
 
-### File 1: `src/components/LetterBuilder.tsx`
+### 3. `src/components/email/EmailDetail.tsx`
 
-**Change A** -- Upload to `Letters` bucket (line 340):
-```
-Current:  .from('documents')
-New:      .from('Letters')
-```
+- Add state for `attachments` array
+- When fetching an email, also query `email_attachments` where `email_id` matches
+- If attachments exist, render an "Attachments" section between body and thread:
+  - Each attachment: Paperclip icon, filename, file size, Download button
+  - Download creates a signed URL from `email-attachments` bucket and opens in new tab
 
-**Change B** -- Save complete data in the final DB update (lines 344-353):
-Add `letter_title`, `generated_subject`, `generated_body`, and `letter_number` to the update:
-```typescript
-.update({ 
-  status: 'final_generated',
-  final_generated_at: new Date().toISOString(),
-  final_image_url: filePath,
-  file_url: filePath,
-  mime_type: 'image/png',
-  letter_title: letterData.generatedSubject,
-  generated_subject: letterData.generatedSubject,
-  generated_body: letterData.generatedBody,
-  letter_number: letterNumber || letterData.letter_number || null,
-  has_attachment: hasAttachment,
-  needs_signature: includeSignature,
-  needs_stamp: includeStamp,
-  writer_name: letterData.writerName
-})
-```
+## No Database Migrations Needed
 
-### File 2: `src/pages/ProjectDetailsPage.tsx`
+The `email_attachments` table already exists with the right schema (`id`, `email_id`, `file_name`, `file_size`, `content_type`, `storage_path`, `created_at`). The `email-attachments` storage bucket also exists with RLS policies.
 
-**Change A** -- Update `Letter` interface (lines 63-79) to match actual DB columns:
-```typescript
-interface Letter {
-  id: string;
-  letter_title?: string;
-  letter_number?: string;
-  recipient_name?: string;
-  recipient_position?: string;
-  recipient_company?: string;
-  generated_subject?: string;
-  generated_body?: string;
-  user_request?: string;
-  writer_name?: string;
-  file_url?: string;
-  final_image_url?: string;
-  mime_type?: string;
-  status: string;
-  has_attachment?: boolean;
-  project_id?: string;
-  document_id?: string;
-  created_by?: string;
-  created_at: string;
-  updated_at: string;
+## Technical Details
+
+### Base64 conversion in edge function
+
+```text
+const serviceClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+
+for (const att of attachments) {
+  const { data } = await serviceClient.storage
+    .from(att.bucket || 'email-attachments')
+    .download(att.storage_path);
+  if (data) {
+    const arrayBuffer = await data.arrayBuffer();
+    const bytes = new Uint8Array(arrayBuffer);
+    let binary = '';
+    for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+    const base64 = btoa(binary);
+    resendAttachments.push({ filename: att.filename, content: base64 });
+  }
 }
 ```
 
-**Change B** -- Remove the `final_generated` status filter (line 239). Show all letters regardless of status so users can see in-progress letters too. Add a status badge instead.
+### File size formatting helper in EmailCompose
 
-**Change C** -- Update the letter card rendering (lines 661-742) to:
-- Show `letter_title` or `generated_subject` as the heading (not the old `subject` field)
-- Show `letter_number` if present
-- Show `writer_name`
-- Show `recipient_name` and `recipient_company` as subtitle
-- Show status badge (letter_generated, preview_generated, final_generated)
-- Download button uses `Letters` bucket (already does -- this will work after Fix #1)
-- For `final_generated` letters with `final_image_url`, use that for download path
+```text
+const formatFileSize = (bytes: number) => {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+};
+```
 
-## What Does NOT Change
+### EmailPage does NOT change in this step
 
-- `LetterBuilder.tsx` editing canvas, drag-and-drop, `buildCleanLetterDiv`, capture logic
-- `WritingLetterPage.tsx` -- no changes
-- `NewLetterDialog.tsx` -- no changes (uploads to `Letters` bucket, different flow)
-- Edge function `generate-letter` -- no changes
-- DB schema -- no migrations needed, all columns already exist
+The `initialSubject`/`initialBody`/`initialAttachments` props are added to EmailCompose but not yet wired from EmailPage -- that will happen in the "Email Letter" feature (Part 2). For now, EmailPage continues to use EmailCompose as before, and the new props simply default to undefined.
 
 ## Files Changed
 
 | File | Change |
 |------|--------|
-| `src/components/LetterBuilder.tsx` | Upload to `Letters` bucket; save all letter fields in final DB update |
-| `src/pages/ProjectDetailsPage.tsx` | Fix `Letter` interface to match DB columns; remove status filter; update card rendering to show correct fields |
+| `supabase/functions/send-email/index.ts` | Add service-role client, download attachments from storage, base64 encode, pass to Resend, save to email_attachments |
+| `src/components/email/EmailCompose.tsx` | Add Paperclip import, attachment state, file picker UI, upload-before-send logic, new optional props |
+| `src/components/email/EmailDetail.tsx` | Query email_attachments on load, render attachments section with download buttons |
+
