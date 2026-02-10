@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import Navigation from '@/components/Navigation';
 import EmailSidebar, { type EmailFolder } from '@/components/email/EmailSidebar';
@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 
 const EmailPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const isMobile = useIsMobile();
   const { toast } = useToast();
   const [user, setUser] = useState<any>(null);
@@ -29,6 +30,7 @@ const EmailPage = () => {
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [prefillData, setPrefillData] = useState<any>(null);
 
   useEffect(() => {
     const init = async () => {
@@ -37,9 +39,18 @@ const EmailPage = () => {
       setUser(session.user);
       setUserEmail(session.user.email || '');
       setLoading(false);
+
+      // Check for prefill state from LetterBuilder
+      const state = location.state as any;
+      if (state?.composeMode === 'new' && state?.prefill) {
+        setPrefillData(state.prefill);
+        setComposeMode('new');
+        setIsComposing(true);
+        navigate(location.pathname, { replace: true, state: {} });
+      }
     };
     init();
-  }, [navigate]);
+  }, [navigate, location]);
 
   // Fetch unread count
   const fetchUnread = useCallback(async () => {
@@ -188,12 +199,16 @@ const EmailPage = () => {
 
       <EmailCompose
         isOpen={isComposing}
-        onClose={() => setIsComposing(false)}
+        onClose={() => { setIsComposing(false); setPrefillData(null); }}
         mode={composeMode}
         replyToEmail={replyToEmail}
         userId={user.id}
         userEmail={userEmail}
         onSent={handleRefresh}
+        initialSubject={prefillData?.subject}
+        initialBody={prefillData?.body_text}
+        initialBodyHtml={prefillData?.body_html}
+        initialAttachments={prefillData?.attachments}
       />
 
       <EmailQuickAdd

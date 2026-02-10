@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Download, Eye, Edit, Terminal } from 'lucide-react';
+import { Download, Eye, Edit, Terminal, Mail } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 interface LetterBuilderProps {
   letterData: {
     id: string;
@@ -21,6 +22,7 @@ interface LetterBuilderProps {
     project_id: string;
     document_id?: string;
     letter_number?: string;
+    file_url?: string;
   };
   onLetterGenerated?: () => void;
 }
@@ -84,6 +86,7 @@ const LetterBuilder: React.FC<LetterBuilderProps> = ({
   const [hasAttachment, setHasAttachment] = useState(false);
   const [letterNumber, setLetterNumber] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const navigate = useNavigate();
 
   // Auto-generate letter number on mount
   useEffect(() => {
@@ -445,6 +448,52 @@ const LetterBuilder: React.FC<LetterBuilderProps> = ({
               </>}
           </Button>
           
+          <Button
+            onClick={() => {
+              const subject = letterData.generatedSubject || '';
+              const htmlBody = `<div dir="rtl" style="font-family: Tahoma, sans-serif; line-height: 1.8; text-align: right;">
+  <p><strong>${letterData.recipientName}</strong></p>
+  <p>${letterData.recipientPosition} - ${letterData.recipientCompany}</p>
+  <br/>
+  <p><strong>موضوع: ${subject}</strong></p>
+  <br/>
+  <p>با سلام و احترام</p>
+  <br/>
+  <p>${letterData.generatedBody}</p>
+  <br/>
+  <p>پیشاپیش از حسن توجه و همکاری شما سپاسگزاریم.</p>
+  <br/>
+  <p>با تشکر</p>
+  <p>${letterData.writerName || 'برخورداری'}</p>
+  <p>مدیر عامل شرکت آدرین ایده کوشا</p>
+</div>`;
+              const plainText = `${letterData.recipientName}\n${letterData.recipientPosition} - ${letterData.recipientCompany}\n\nموضوع: ${subject}\n\nبا سلام و احترام\n\n${letterData.generatedBody}\n\nپیشاپیش از حسن توجه و همکاری شما سپاسگزاریم.\n\nبا تشکر\n${letterData.writerName || 'برخورداری'}\nمدیر عامل شرکت آدرین ایده کوشا`;
+              navigate('/email', {
+                state: {
+                  composeMode: 'new',
+                  prefill: {
+                    subject,
+                    body_html: htmlBody,
+                    body_text: plainText,
+                    attachments: [{
+                      name: `Letter-${letterData.recipientName}.png`,
+                      url: letterData.file_url,
+                      storage_path: letterData.file_url,
+                      bucket: 'Letters'
+                    }]
+                  }
+                }
+              });
+            }}
+            variant="outline"
+            disabled={!letterData.file_url}
+            title={!letterData.file_url ? 'ابتدا نامه را تولید کنید' : ''}
+            className="flex items-center gap-2"
+          >
+            <Mail className="w-5 h-5" />
+            ارسال نامه با ایمیل
+          </Button>
+
           <Button onClick={logCurrentPositions} variant="outline" className="flex items-center gap-2">
             <Terminal className="w-4 h-4" />
             Log Current Positions
