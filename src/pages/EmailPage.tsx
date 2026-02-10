@@ -39,9 +39,18 @@ const EmailPage = () => {
       setUser(session.user);
       setUserEmail(session.user.email || '');
       setLoading(false);
+
+      // Check for prefill state from LetterBuilder
+      const state = location.state as any;
+      if (state?.composeMode === 'new' && state?.prefill) {
+        setPrefillData(state.prefill);
+        setComposeMode('new');
+        setIsComposing(true);
+        navigate(location.pathname, { replace: true, state: {} });
+      }
     };
     init();
-  }, [navigate]);
+  }, [navigate, location]);
 
   // Fetch unread count
   const fetchUnread = useCallback(async () => {
