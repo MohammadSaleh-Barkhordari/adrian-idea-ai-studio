@@ -1,96 +1,72 @@
 
 
-# Email Attachment Support
+# Add "Email Letter" Button and Prefill Compose
 
 ## Overview
 
-Add file attachment support to the email system: compose with attachments, send them via Resend, and display them when viewing emails.
+Add a button in the Letter Builder to email the generated letter, and wire EmailPage to open the compose dialog with pre-filled data when navigated to with state.
 
 ## Changes
 
-### 1. Edge Function: `supabase/functions/send-email/index.ts`
+### File 1: `src/components/LetterBuilder.tsx`
 
-- Accept optional `attachments` field in request body: `Array<{ filename: string, storage_path: string, bucket?: string }>`
-- Create a service-role Supabase client using `SUPABASE_SERVICE_ROLE_KEY` (already configured as a secret)
-- For each attachment, download from storage, convert to base64, add to Resend API payload
-- After successful send, insert records into `email_attachments` table (columns: `email_id`, `file_name`, `file_size`, `content_type`, `storage_path`)
+**Imports**: Add `useNavigate` from `react-router-dom` and `Mail` from `lucide-react`.
 
-### 2. `src/components/email/EmailCompose.tsx`
+**State**: Add a local variable tracking whether the letter has been generated: check if `letterData.file_url` or a local `letterGenerated` flag is set after `generateFinalLetter` completes.
 
-**New optional props:**
-- `initialSubject?: string`
-- `initialBody?: string`
-- `initialBodyHtml?: string`
-- `initialAttachments?: Array<{ name: string, url: string, storage_path: string, bucket?: string }>`
+**New button** (after the Generate button at line 446, before the Log Positions button):
 
-**Attachment UI (below body textarea):**
-- "Attach File" button with Paperclip icon
-- Hidden file input accepting `.png, .jpg, .jpeg, .pdf` (max 10MB)
-- Attachment list showing filename, formatted size, and remove button
-- Pre-loaded attachments from `initialAttachments` shown on mount
-- Two state arrays: `fileAttachments` (new files from picker) and `preloadedAttachments` (from props)
+- Label: "ارسال نامه با ایمیل" with Mail icon
+- Variant: `outline`
+- Disabled when letter has not been generated (`!letterGenerated && !letterData.file_url`)
+- Title attribute for tooltip when disabled: "ابتدا نامه را تولید کنید"
 
-**Updated send flow:**
-1. Upload new file attachments to `email-attachments` bucket at `{userId}/{timestamp}-{filename}`
-2. Combine uploaded paths with pre-loaded attachments
-3. Pass combined `attachments` array to the edge function
+**On click handler** (`handleEmailLetter`):
+1. Build RTL HTML email body from `letterData` fields (recipientName, recipientPosition, recipientCompany, generatedSubject, generatedBody, writerName)
+2. Build plain text version (same content, no HTML)
+3. Navigate to `/email` with state:
+   ```text
+   {
+     composeMode: 'new',
+     prefill: {
+       subject: letterData.generatedSubject,
+       body_html: htmlBody,
+       body_text: plainText,
+       attachments: [{
+         name: `Letter-${letterData.recipientName}.png`,
+         url: letterData.file_url,
+         storage_path: letterData.file_url,
+         bucket: 'Letters'
+       }]
+     }
+   }
+   ```
+   The bucket is `'Letters'` -- matching the upload in `generateFinalLetter` (line 340).
 
-**Initial values logic:**
-- Only apply `initialSubject`/`initialBody` when `mode === 'new'` and no `replyToEmail` -- so reply/forward prefill is not overridden
+### File 2: `src/pages/EmailPage.tsx`
 
-### 3. `src/components/email/EmailDetail.tsx`
+**Imports**: Add `useLocation` from `react-router-dom`.
 
-- Add state for `attachments` array
-- When fetching an email, also query `email_attachments` where `email_id` matches
-- If attachments exist, render an "Attachments" section between body and thread:
-  - Each attachment: Paperclip icon, filename, file size, Download button
-  - Download creates a signed URL from `email-attachments` bucket and opens in new tab
+**New state**: `prefillData` to hold the compose prefill (subject, body, attachments).
 
-## No Database Migrations Needed
+**On mount effect** (after auth check completes):
+- Check `location.state?.composeMode === 'new'` and `location.state?.prefill`
+- If present:
+  1. Store prefill data in state
+  2. Set `isComposing = true`, `composeMode = 'new'`
+  3. Clear location state: `navigate(location.pathname, { replace: true, state: {} })`
 
-The `email_attachments` table already exists with the right schema (`id`, `email_id`, `file_name`, `file_size`, `content_type`, `storage_path`, `created_at`). The `email-attachments` storage bucket also exists with RLS policies.
+**Pass prefill to EmailCompose**:
+- `initialSubject={prefillData?.subject}`
+- `initialBody={prefillData?.body_text}`
+- `initialBodyHtml={prefillData?.body_html}`
+- `initialAttachments={prefillData?.attachments}`
 
-## Technical Details
-
-### Base64 conversion in edge function
-
-```text
-const serviceClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-
-for (const att of attachments) {
-  const { data } = await serviceClient.storage
-    .from(att.bucket || 'email-attachments')
-    .download(att.storage_path);
-  if (data) {
-    const arrayBuffer = await data.arrayBuffer();
-    const bytes = new Uint8Array(arrayBuffer);
-    let binary = '';
-    for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
-    const base64 = btoa(binary);
-    resendAttachments.push({ filename: att.filename, content: base64 });
-  }
-}
-```
-
-### File size formatting helper in EmailCompose
-
-```text
-const formatFileSize = (bytes: number) => {
-  if (bytes < 1024) return bytes + ' B';
-  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-};
-```
-
-### EmailPage does NOT change in this step
-
-The `initialSubject`/`initialBody`/`initialAttachments` props are added to EmailCompose but not yet wired from EmailPage -- that will happen in the "Email Letter" feature (Part 2). For now, EmailPage continues to use EmailCompose as before, and the new props simply default to undefined.
+**Clear prefillData** when compose closes (in the `onClose` handler).
 
 ## Files Changed
 
 | File | Change |
 |------|--------|
-| `supabase/functions/send-email/index.ts` | Add service-role client, download attachments from storage, base64 encode, pass to Resend, save to email_attachments |
-| `src/components/email/EmailCompose.tsx` | Add Paperclip import, attachment state, file picker UI, upload-before-send logic, new optional props |
-| `src/components/email/EmailDetail.tsx` | Query email_attachments on load, render attachments section with download buttons |
-
+| `src/components/LetterBuilder.tsx` | Add `useNavigate`, `Mail` import; add `letterGenerated` state; add "Email Letter" button with handler that builds HTML body and navigates to /email with prefill state |
+| `src/pages/EmailPage.tsx` | Add `useLocation`; consume `location.state` prefill on mount; pass prefill props to EmailCompose; clear state after consuming |
