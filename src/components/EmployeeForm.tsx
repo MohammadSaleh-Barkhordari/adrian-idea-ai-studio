@@ -867,24 +867,26 @@ const EmployeeForm = ({ employee, onSuccess, onCancel }: EmployeeFormProps) => {
                 </Select>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="bank_name">Bank Name</Label>
-                  <Input
-                    id="bank_name"
-                    value={formData.bank_name}
-                    onChange={(e) => setFormData(prev => ({ ...prev, bank_name: e.target.value }))}
-                  />
+              {!!formData.bank_account_type && (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="bank_name">Bank Name</Label>
+                    <Input
+                      id="bank_name"
+                      value={formData.bank_name}
+                      onChange={(e) => setFormData(prev => ({ ...prev, bank_name: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="bank_account_number">Bank Account Number</Label>
+                    <Input
+                      id="bank_account_number"
+                      value={formData.bank_account_number}
+                      onChange={(e) => setFormData(prev => ({ ...prev, bank_account_number: e.target.value }))}
+                    />
+                  </div>
                 </div>
-                <div>
-                  <Label htmlFor="bank_account_number">Bank Account Number</Label>
-                  <Input
-                    id="bank_account_number"
-                    value={formData.bank_account_number}
-                    onChange={(e) => setFormData(prev => ({ ...prev, bank_account_number: e.target.value }))}
-                  />
-                </div>
-              </div>
+              )}
 
               {formData.bank_account_type === 'international_bank' && (
                 <div>
@@ -904,6 +906,7 @@ const EmployeeForm = ({ employee, onSuccess, onCancel }: EmployeeFormProps) => {
                     id="bank_sheba"
                     value={formData.bank_sheba}
                     onChange={(e) => setFormData(prev => ({ ...prev, bank_sheba: e.target.value }))}
+                    placeholder="IR000000000000000000000000"
                   />
                 </div>
               )}
@@ -913,7 +916,7 @@ const EmployeeForm = ({ employee, onSuccess, onCancel }: EmployeeFormProps) => {
 
         {/* Tab 5: Insurance & Tax */}
         <TabsContent value="insurance" className="space-y-4">
-          <EmployeeFormInsurance />
+          <EmployeeFormInsurance formData={formData} setFormData={setFormData} />
         </TabsContent>
       </Tabs>
 
