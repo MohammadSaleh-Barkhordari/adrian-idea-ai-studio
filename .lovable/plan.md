@@ -1,103 +1,136 @@
 
 
-# Phase 3A: Form UI Rewrite — Structure + Documents Tab
+# Phase 3B: Personal Tab + Employment Tab
 
 ## Overview
 
-Rewrite EmployeeForm.tsx with a new 5-tab structure. The Documents tab is fully implemented; existing Personal, Employment, and Banking tabs are preserved as-is; a placeholder Insurance & Tax tab is added.
+Enhance the Personal and Employment tabs with all new fields, conditional logic, manager selector, and updated data save/load logic. The form state expands from ~18 fields to ~33 fields.
 
-## New Files to Create
+## Step 1: Expand formData state (EmployeeForm.tsx)
 
-### 1. `src/components/hr/EmployeeFormDocuments.tsx`
+Add these new fields to the initial state (lines 42-69):
 
-Documents tab sub-component containing three sections:
-
-**Section 1 — Associated User**
-- Reuse existing `UserSelector` component (moved from Contract tab)
-- After user selection, display their work email as a read-only Badge (from the `onValueChange` email callback)
-- Preserve the existing `dataLoading` race-condition fix
-
-**Section 2 — Profile Photo**
-- Dropzone accepting JPG/PNG/WEBP
-- Upload to `employee-documents` bucket under `{employee_id}/profile/{filename}`
-- Save URL to `employees.profile_photo_url`
-- Show preview of current/uploaded photo using Avatar component
-- For new employees (no employee_id yet): hold file in local state, upload on form submit after employee creation
-
-**Section 3 — Document Uploads**
-- Six upload zones, each with its own dropzone:
-  - Employment Contract (PDF, DOC, DOCX)
-  - National Card / Cart Melli (JPG, PNG, PDF)
-  - Shenasnameh (JPG, PNG, PDF)
-  - Military Card (JPG, PNG, PDF)
-  - Degree / Certificate (JPG, PNG, PDF) -- multiple allowed
-  - Other Document (any file) -- multiple allowed, with title text input
-- All zones visible regardless of nationality/gender (Option A)
-- Each upload: file goes to `employee-documents/{employee_id}/{document_type}/{filename}`, then inserts a row in `employee_documents` table
-- For NEW employees: show info message "Save the employee first to upload documents" and disable upload zones. Only UserSelector and profile photo are active.
-- For EDIT mode: load existing documents from `employee_documents` table, display them in appropriate sections with preview (images) or filename (PDF/DOC) and a delete button
-- Delete removes from both storage and `employee_documents` table
-
-### 2. `src/components/hr/EmployeeFormInsurance.tsx`
-
-Placeholder component with a Card showing "Insurance & Tax fields coming in Phase 3C"
-
-## Changes to Existing Files
-
-### `src/components/EmployeeForm.tsx` — Major restructure
-
-**Tab structure change:**
-- Replace `grid-cols-4` TabsList with `grid-cols-5`
-- Tab order: Documents | Personal | Employment | Banking | Insurance & Tax
-- Default tab changes from `"contract"` to `"documents"`
-- Remove the old Contract tab content (UserSelector, ContractUpload, contract ID field)
-- Move UserSelector into Documents tab
-- Keep ContractUpload import for now (it will be used in Employment tab in Phase 3B for contract analysis)
-
-**Form state additions:**
-- Add `profile_photo_url: string` to formData
-- Add `profile_photo_file: File | null` to local state (for new employee photo pending upload)
-
-**handleSubmit updates:**
-- After employee creation (new employee flow), if `profile_photo_file` exists: upload to storage, get URL, update `employees.profile_photo_url`
-- Add `profile_photo_url` to the `employeeData` object sent to the employees table
-
-**Data loading updates:**
-- Load `profile_photo_url` from employee record in edit mode
-
-## Component Data Flow
-
-```text
-EmployeeForm (parent)
-  |-- formData state (all fields)
-  |-- employee prop (edit mode)
-  |
-  +-- Tab 1: EmployeeFormDocuments
-  |     props: formData, setFormData, employee, isNewEmployee
-  |     - UserSelector updates formData.user_id
-  |     - Profile photo updates formData.profile_photo_url
-  |     - Document uploads go directly to DB (edit mode only)
-  |
-  +-- Tab 2: Personal (existing inline JSX, unchanged)
-  +-- Tab 3: Employment (existing inline JSX, unchanged)  
-  +-- Tab 4: Banking (existing inline JSX, unchanged)
-  +-- Tab 5: EmployeeFormInsurance (placeholder)
+```
+nationality: '',
+name_fa: '',
+surname_fa: '',
+gender: '',
+marital_status: '',
+military_service_status: '',
+emergency_contact_name: '',
+emergency_contact_phone: '',
+emergency_contact_relationship: '',
+employment_type: '',
+start_date: '',
+end_date: '',
+probation_end_date: '',
+manager_id: '',
+work_location_type: '',
+contract_type: '',
 ```
 
-## Key Technical Decisions
+Change `date_of_birth` from `Date | undefined` to `string` (store as ISO string, simpler for the new layout).
 
-1. **New employee document flow**: Documents tab shows "Save employee first" message. Profile photo is buffered in local state and uploaded on submit. This avoids needing a temporary employee_id.
+## Step 2: Update data loading (EmployeeForm.tsx, lines 73-113)
 
-2. **Storage paths**: `employee-documents/{employee_id}/profile/`, `employee-documents/{employee_id}/contract/`, `employee-documents/{employee_id}/national_card/`, etc.
+Add to the `setFormData` call in `loadEmployeeData`:
 
-3. **Document type values** stored in `employee_documents.document_type`: `contract`, `national_card`, `shenasnameh`, `military_card`, `degree`, `certificate`, `profile_photo`, `other`
+**From `employee` object:**
+- `nationality`, `name_fa`, `surname_fa`, `employment_type`, `start_date`, `end_date`, `probation_end_date`, `manager_id`, `work_location_type`
 
-4. **Existing Contract tab removal**: The ContractUpload component (AI analysis) will be relocated to the Employment tab in Phase 3B. For now in 3A, it's removed from the form but the component file is kept.
+**From `sensitiveData` object:**
+- `gender`, `marital_status`, `military_service_status`, `emergency_contact_name`, `emergency_contact_phone`, `emergency_contact_relationship`, `contract_type`
 
-5. **No changes to HRManagementPage.tsx** in this phase -- that's Phase 3D.
+Note: These fields already exist in the database tables from Phase 2 migrations.
 
-## Implementation Order
+## Step 3: Update handleSubmit (EmployeeForm.tsx, lines 138-244)
 
-1. Create `src/components/hr/EmployeeFormDocuments.tsx`
-2. Create `src/components/hr/EmployeeFormInsurance.tsx`
-3. Rewrite `src/components/EmployeeForm.tsx` tab structure, state, and submit logic
+**employeeData object** -- add:
+- `nationality`, `name_fa`, `surname_fa`, `employment_type`, `start_date`, `end_date`, `probation_end_date`, `manager_id`, `work_location_type`
+
+**sensitiveData object** -- add:
+- `gender`, `marital_status`, `military_service_status`, `emergency_contact_name`, `emergency_contact_phone`, `emergency_contact_relationship`, `contract_type`
+
+Update `date_of_birth` handling to work with string format instead of Date object.
+
+## Step 4: Rewrite Personal Tab (EmployeeForm.tsx, lines 271-355)
+
+Replace the current inline JSX with a new `EmployeeFormPersonal` component (or inline rewrite). New layout:
+
+| Row | Fields |
+|-----|--------|
+| 1 | Name (English) * -- Surname (English) * |
+| 2 | Nationality * (full width, Select with common countries, "Iranian" first) |
+| 3 | Name (Persian) -- Surname (Persian) -- conditional: `nationality === 'Iranian'` |
+| 4 | Date of Birth (date input) -- Gender (Select: male/female/other) |
+| 5 | Marital Status (Select) -- National ID (conditional: Iranian only) |
+| 6 | Military Service Status (full width, conditional: Iranian + male) |
+| 7 | Personal Email -- Personal Phone |
+| 8 | Home Address (full width textarea) |
+| --- | **Emergency Contact** section divider |
+| 9 | Emergency Contact Name -- Emergency Contact Phone |
+| 10 | Emergency Contact Relationship (Select: spouse/parent/sibling/friend/other) |
+
+Conditional logic variables:
+```typescript
+const isIranian = formData.nationality === 'Iranian';
+const isMale = formData.gender === 'male';
+```
+
+For Date of Birth: use a native HTML date input (`type="date"`) with string value, keeping it simple. The existing Calendar popover approach can be kept but switched to string-based value.
+
+## Step 5: Rewrite Employment Tab (EmployeeForm.tsx, lines 357-431)
+
+Replace inline JSX with enhanced layout:
+
+| Row | Fields |
+|-----|--------|
+| 1 | Employee Number * (read-only on edit) -- Job Title * |
+| 2 | Department -- Employment Type (Select: full_time/part_time/contract/internship) |
+| 3 | Employment Status * (Select: active/on_leave/terminated/resigned) -- Work Location Type (Select: remote/hybrid/office_based) |
+| 4 | Start Date -- End Date (conditional: status=terminated OR employment_type=contract) |
+| 5 | Probation End Date -- Manager (Select from employees list, exclude self) |
+| 6 | Job Type (Permissions) * (Select: admin/general_user) |
+| --- | **Contract Details** section divider |
+| 7 | Contract ID -- Contract Type (Select: permanent/fixed_term/project_based) |
+
+**Manager selector**: Fetch employees list on mount, display as "Name Surname -- Job Title", save `id` to `manager_id`. Exclude current employee from the list.
+
+## Step 6: Update Employee interface (EmployeeForm.tsx, line 19-30)
+
+Add to the `Employee` interface the new fields that come from the employees table and are needed for edit mode data loading:
+- `nationality`, `name_fa`, `surname_fa`, `employment_type`, `start_date`, `end_date`, `probation_end_date`, `manager_id`, `work_location_type`
+
+## File Changes Summary
+
+Only one file changes: **`src/components/EmployeeForm.tsx`**
+
+No new files needed -- the Personal and Employment tabs remain inline in EmployeeForm.tsx (splitting into sub-components is optional and can be done in a cleanup pass). This keeps the change focused.
+
+### Detailed change map:
+
+| Section | Lines | Change |
+|---------|-------|--------|
+| Employee interface | 19-30 | Add 9 new optional properties |
+| formData initial state | 42-69 | Add 16 new fields, change date_of_birth to string |
+| loadEmployeeData | 83-106 | Add all new field mappings from employee + sensitiveData |
+| employeeData in handleSubmit | 153-164 | Add 9 new fields |
+| sensitiveData in handleSubmit | 166-180 | Add 7 new fields, update date_of_birth format |
+| Personal tab JSX | 271-355 | Complete rewrite with new layout, conditionals, emergency contact section |
+| Employment tab JSX | 357-431 | Complete rewrite with new fields, manager selector, contract section |
+
+### New state added to component:
+- `managers` state: `{ id: string; name: string; surname: string; job_title: string | null }[]` -- loaded on mount for manager dropdown
+
+### New useEffect:
+- Fetch managers list from `employees` table on mount (for the manager selector dropdown)
+
+## Technical Notes
+
+- No database migrations needed -- all columns already exist from Phase 2
+- The `date_of_birth` field changes from `Date | undefined` to `string` (ISO date string). This simplifies form state and avoids timezone issues with the Calendar component. Will use `<input type="date">` for cleaner UX.
+- Nationality uses a Select with common values (Iranian, Afghan, Iraqi, Turkish, British, American, etc.) rather than a full country list -- keeps it practical
+- Manager selector excludes the current employee being edited to prevent self-referencing
+- `employee_number` becomes read-only when editing (cannot change after creation)
+- The `EmployeeFormDocuments` component props interface uses `[key: string]: any` so it already accepts the expanded formData without changes
+
