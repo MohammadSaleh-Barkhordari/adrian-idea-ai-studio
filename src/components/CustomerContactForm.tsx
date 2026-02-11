@@ -16,7 +16,9 @@ export interface ContactType {
   last_name: string;
   first_name_fa: string | null;
   last_name_fa: string | null;
+  honorific_fa: string | null;
   job_title: string | null;
+  job_title_fa: string | null;
   department: string | null;
   email: string | null;
   phone: string | null;
@@ -42,12 +44,16 @@ interface Props {
 const CustomerContactForm = ({ customerId, contact, onSuccess, onCancel }: Props) => {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [honorificCustom, setHonorificCustom] = useState(false);
+  const [honorificCustomValue, setHonorificCustomValue] = useState('');
   const [form, setForm] = useState({
     first_name: '',
     last_name: '',
     first_name_fa: '',
     last_name_fa: '',
+    honorific_fa: '',
     job_title: '',
+    job_title_fa: '',
     department: '',
     email: '',
     phone: '',
@@ -62,12 +68,18 @@ const CustomerContactForm = ({ customerId, contact, onSuccess, onCancel }: Props
 
   useEffect(() => {
     if (contact) {
+      const predefinedHonorifics = ['آقای', 'خانم', 'جناب', 'سرکار خانم', 'دکتر', 'مهندس', 'حجت‌الاسلام'];
+      const honorVal = contact.honorific_fa || '';
+      const isCustom = honorVal && !predefinedHonorifics.includes(honorVal);
+      setHonorificCustom(isCustom);
       setForm({
         first_name: contact.first_name || '',
         last_name: contact.last_name || '',
         first_name_fa: contact.first_name_fa || '',
         last_name_fa: contact.last_name_fa || '',
+        honorific_fa: isCustom ? 'custom' : honorVal,
         job_title: contact.job_title || '',
+        job_title_fa: contact.job_title_fa || '',
         department: contact.department || '',
         email: contact.email || '',
         phone: contact.phone || '',
@@ -79,6 +91,9 @@ const CustomerContactForm = ({ customerId, contact, onSuccess, onCancel }: Props
         photo_url: contact.photo_url || '',
         notes: contact.notes || '',
       });
+      if (isCustom) {
+        setHonorificCustomValue(honorVal);
+      }
     }
   }, [contact]);
 
@@ -109,13 +124,16 @@ const CustomerContactForm = ({ customerId, contact, onSuccess, onCancel }: Props
     setSaving(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
+      const resolvedHonorific = form.honorific_fa === 'custom' ? honorificCustomValue.trim() : form.honorific_fa.trim();
       const payload = {
         customer_id: customerId,
         first_name: form.first_name.trim(),
         last_name: form.last_name.trim(),
         first_name_fa: form.first_name_fa.trim() || null,
         last_name_fa: form.last_name_fa.trim() || null,
+        honorific_fa: resolvedHonorific || null,
         job_title: form.job_title.trim() || null,
+        job_title_fa: form.job_title_fa.trim() || null,
         department: form.department.trim() || null,
         email: form.email.trim() || null,
         phone: form.phone.trim() || null,
@@ -175,6 +193,34 @@ const CustomerContactForm = ({ customerId, contact, onSuccess, onCancel }: Props
       <div className="grid grid-cols-2 gap-3">
         <div><Label>First Name (FA)</Label><Input dir="rtl" value={form.first_name_fa} onChange={e => setForm(f => ({ ...f, first_name_fa: e.target.value }))} /></div>
         <div><Label>Last Name (FA)</Label><Input dir="rtl" value={form.last_name_fa} onChange={e => setForm(f => ({ ...f, last_name_fa: e.target.value }))} /></div>
+      </div>
+
+      {/* Honorific FA + Job Title FA */}
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <Label>Honorific (FA)</Label>
+          <Select value={form.honorific_fa} onValueChange={v => {
+            setForm(f => ({ ...f, honorific_fa: v }));
+            setHonorificCustom(v === 'custom');
+            if (v !== 'custom') setHonorificCustomValue('');
+          }}>
+            <SelectTrigger><SelectValue placeholder="انتخاب عنوان" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="آقای">آقای</SelectItem>
+              <SelectItem value="خانم">خانم</SelectItem>
+              <SelectItem value="جناب">جناب</SelectItem>
+              <SelectItem value="سرکار خانم">سرکار خانم</SelectItem>
+              <SelectItem value="دکتر">دکتر</SelectItem>
+              <SelectItem value="مهندس">مهندس</SelectItem>
+              <SelectItem value="حجت‌الاسلام">حجت‌الاسلام</SelectItem>
+              <SelectItem value="custom">Custom...</SelectItem>
+            </SelectContent>
+          </Select>
+          {honorificCustom && (
+            <Input dir="rtl" className="mt-2" placeholder="عنوان دلخواه" value={honorificCustomValue} onChange={e => setHonorificCustomValue(e.target.value)} />
+          )}
+        </div>
+        <div><Label>Job Title (FA)</Label><Input dir="rtl" placeholder="مدیر عامل" value={form.job_title_fa} onChange={e => setForm(f => ({ ...f, job_title_fa: e.target.value }))} /></div>
       </div>
 
       {/* Job / Dept */}
