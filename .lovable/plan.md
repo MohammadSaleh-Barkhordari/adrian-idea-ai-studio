@@ -1,42 +1,50 @@
 
-# Phase 1: Backend Foundation — COMPLETED ✅
 
-## What was done
+# Fix: "Associated User is required" Error on Employee Edit
 
-### Phase 1A: Database Trigger for Role Sync ✅
-- Created `sync_job_type_to_user_roles()` trigger function (SECURITY DEFINER)
-- Created `trigger_sync_job_type_to_user_roles` on `employees` table (AFTER INSERT OR UPDATE OF job_type, user_id)
-- Removed manual role sync code from `EmployeeForm.tsx` (lines 228-258 and 280-301)
+## Root Cause
 
-### Phase 1B: Profiles Cleanup + employee_full View ✅
-- Dropped `full_name` and `avatar_url` columns from `profiles`
-- Simplified `handle_new_user` trigger (only inserts id + email)
-- Migrated EMP005 `hire_date` → `start_date`
-- Created `employee_full` VIEW (with `security_invoker = true`) joining profiles + employees
-- Updated `send-comment-notification` edge function to read name from `employees` instead of `profiles.full_name`
+In `EmployeeForm.tsx`, when editing an employee, the `loadEmployeeData` function is async (it awaits a database query for sensitive data). During this await, `formData` still has its default values including `user_id: ''`. If the user clicks "Update Employee" before the async load completes, the validation at line 170 fails because `formData.user_id` is still empty.
 
-### Verification
-- `employee_full` view returns all 5 employees with correct `work_email` and `full_name`
-- EMP005 `start_date` now populated (was null, migrated from `hire_date`)
-- Edge function deployed successfully
+## Fix (single file change)
 
----
+**File: `src/components/EmployeeForm.tsx`**
 
-## Next Phases (not yet implemented)
+1. Add a `dataLoading` state (separate from the submit `loading` state)
+2. Set `dataLoading = true` at the start of `loadEmployeeData`, set it to `false` after `setFormData`
+3. Disable the Submit button while `dataLoading` is true (show "Loading..." text)
+4. As a safety net, in `handleSubmit`, if editing and `formData.user_id` is empty, fall back to `employee.user_id` directly
 
-### Phase 2: Schema Changes (new columns, renames, new tables)
-- Add new columns to `employees` (nationality, name_fa, surname_fa, etc.)
-- Rename `employment_type` → `status`, add new `employment_type`
-- Add new columns to `employee_sensitive_data`
-- Create `employee_documents` table
-- Drop deprecated columns (email, work_email, phone, hire_date)
-- Update `employee_full` VIEW with new columns
+### Technical Details
 
-### Phase 3: Form UI Redesign
-- 5-tab structure with conditional fields
-- Document upload integration
-- AI-filled badges
+```typescript
+// Add state
+const [dataLoading, setDataLoading] = useState(false);
 
-### Phase 4: AI Document Extraction Pipeline
-- Generic `analyze-hr-document` edge function
-- Multi-document-type support
+// In loadEmployeeData:
+const loadEmployeeData = async () => {
+  if (employee) {
+    setDataLoading(true);
+    // ... existing fetch code ...
+    setFormData({...});
+    setDataLoading(false);
+  } else {
+    generateEmployeeNumber();
+  }
+};
+
+// In handleSubmit, add fallback:
+const userId = formData.user_id || employee?.user_id;
+if (!userId) {
+  throw new Error('Associated User is required');
+}
+// Use userId instead of formData.user_id in employeeData
+
+// In the submit button:
+<Button type="submit" disabled={loading || dataLoading}>
+  {dataLoading ? 'Loading...' : loading ? 'Saving...' : (employee ? 'Update Employee' : 'Create Employee')}
+</Button>
+```
+
+This is a minimal, safe fix. No database changes. No other files affected.
+
