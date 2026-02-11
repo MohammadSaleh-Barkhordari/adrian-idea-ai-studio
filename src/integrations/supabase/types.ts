@@ -733,7 +733,7 @@ export type Database = {
           department: string | null
           email: string | null
           employee_number: string | null
-          employment_type: string
+          employment_type: string | null
           end_date: string | null
           hire_date: string | null
           id: string
@@ -747,6 +747,7 @@ export type Database = {
           probation_end_date: string | null
           profile_photo_url: string | null
           start_date: string | null
+          status: string
           surname: string
           surname_fa: string | null
           updated_at: string
@@ -760,7 +761,7 @@ export type Database = {
           department?: string | null
           email?: string | null
           employee_number?: string | null
-          employment_type?: string
+          employment_type?: string | null
           end_date?: string | null
           hire_date?: string | null
           id?: string
@@ -774,6 +775,7 @@ export type Database = {
           probation_end_date?: string | null
           profile_photo_url?: string | null
           start_date?: string | null
+          status?: string
           surname: string
           surname_fa?: string | null
           updated_at?: string
@@ -787,7 +789,7 @@ export type Database = {
           department?: string | null
           email?: string | null
           employee_number?: string | null
-          employment_type?: string
+          employment_type?: string | null
           end_date?: string | null
           hire_date?: string | null
           id?: string
@@ -801,6 +803,7 @@ export type Database = {
           probation_end_date?: string | null
           profile_photo_url?: string | null
           start_date?: string | null
+          status?: string
           surname?: string
           surname_fa?: string | null
           updated_at?: string

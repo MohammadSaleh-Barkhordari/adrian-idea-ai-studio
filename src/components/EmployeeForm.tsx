@@ -24,7 +24,7 @@ interface Employee {
   job_type: string | null;
   employee_number: string | null;
   department: string | null;
-  employment_type: string;
+  status: string;
   hire_date: string | null;
   email: string | null;
   phone: string | null;
@@ -68,7 +68,7 @@ const EmployeeForm = ({ employee, onSuccess, onCancel }: EmployeeFormProps) => {
     job_type: 'general_user',
     employee_number: '',
     department: '',
-    employment_type: 'active',
+    status: 'active',
     hire_date: undefined as Date | undefined,
     email: '',
     phone: '',
@@ -110,7 +110,7 @@ const EmployeeForm = ({ employee, onSuccess, onCancel }: EmployeeFormProps) => {
           job_type: employee.job_type || 'general_user',
           employee_number: employee.employee_number || '',
           department: employee.department || '',
-          employment_type: employee.employment_type || 'active',
+          status: (employee as any).status || 'active',
           hire_date: employee.hire_date ? new Date(employee.hire_date) : undefined,
           email: employee.email || '',
           phone: employee.phone || '',
@@ -183,7 +183,7 @@ const EmployeeForm = ({ employee, onSuccess, onCancel }: EmployeeFormProps) => {
         job_type: formData.job_type || null,
         employee_number: formData.employee_number || null,
         department: formData.department || null,
-        employment_type: formData.employment_type,
+        status: formData.status,
         hire_date: formData.hire_date ? format(formData.hire_date, 'yyyy-MM-dd') : null,
         email: formData.email || null,
         phone: formData.phone || null,
@@ -286,7 +286,7 @@ const EmployeeForm = ({ employee, onSuccess, onCancel }: EmployeeFormProps) => {
       employment_contract_id: contractData.contractId || prev.employment_contract_id,
       job_title: contractData.jobTitle || prev.job_title,
       department: contractData.department || prev.department,
-      employment_type: contractData.employmentType || prev.employment_type,
+      status: contractData.employmentType || prev.status,
       hire_date: contractData.startDate ? new Date(contractData.startDate) : prev.hire_date,
       salary: contractData.salary || prev.salary,
       pay_frequency: contractData.payFrequency || prev.pay_frequency,
@@ -471,11 +471,11 @@ const EmployeeForm = ({ employee, onSuccess, onCancel }: EmployeeFormProps) => {
                   </Select>
                 </div>
                 <div>
-                  <Label htmlFor="employment_type">Employment Status *</Label>
+                  <Label htmlFor="status">Employment Status *</Label>
                   <Select
-                    value={formData.employment_type}
+                    value={formData.status}
                     onValueChange={(value) => 
-                      setFormData(prev => ({ ...prev, employment_type: value }))
+                      setFormData(prev => ({ ...prev, status: value }))
                     }
                   >
                     <SelectTrigger>
