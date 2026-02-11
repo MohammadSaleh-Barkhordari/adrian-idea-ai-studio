@@ -55,6 +55,7 @@ interface EmployeeFormProps {
 
 const EmployeeForm = ({ employee, onSuccess, onCancel }: EmployeeFormProps) => {
   const [loading, setLoading] = useState(false);
+  const [dataLoading, setDataLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     surname: '',
@@ -89,6 +90,7 @@ const EmployeeForm = ({ employee, onSuccess, onCancel }: EmployeeFormProps) => {
   useEffect(() => {
     const loadEmployeeData = async () => {
       if (employee) {
+        setDataLoading(true);
         // Fetch sensitive data separately
         const { data: sensitiveData } = await supabase
           .from('employee_sensitive_data')
@@ -124,6 +126,7 @@ const EmployeeForm = ({ employee, onSuccess, onCancel }: EmployeeFormProps) => {
           contract_file_url: '',
           contract_file_name: '',
         });
+        setDataLoading(false);
       } else {
         // Generate employee number for new employees
         generateEmployeeNumber();
@@ -166,8 +169,9 @@ const EmployeeForm = ({ employee, onSuccess, onCancel }: EmployeeFormProps) => {
         throw new Error('No authenticated user');
       }
 
-      // Validate required fields
-      if (!formData.user_id) {
+      // Validate required fields - fallback to employee.user_id for edit mode
+      const userId = formData.user_id || employee?.user_id;
+      if (!userId) {
         throw new Error('Associated User is required');
       }
 
@@ -183,7 +187,7 @@ const EmployeeForm = ({ employee, onSuccess, onCancel }: EmployeeFormProps) => {
         hire_date: formData.hire_date ? format(formData.hire_date, 'yyyy-MM-dd') : null,
         email: formData.email || null,
         phone: formData.phone || null,
-        user_id: formData.user_id,
+        user_id: userId,
         created_by: currentUser.data.user.id,
       };
 
@@ -686,8 +690,8 @@ const EmployeeForm = ({ employee, onSuccess, onCancel }: EmployeeFormProps) => {
         <Button type="button" variant="outline" onClick={onCancel}>
           Cancel
         </Button>
-        <Button type="submit" disabled={loading}>
-          {loading ? 'Saving...' : (employee ? 'Update Employee' : 'Create Employee')}
+        <Button type="submit" disabled={loading || dataLoading}>
+          {dataLoading ? 'Loading...' : loading ? 'Saving...' : (employee ? 'Update Employee' : 'Create Employee')}
         </Button>
       </div>
     </form>
