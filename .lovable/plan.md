@@ -1,71 +1,180 @@
 
 
-# Customer Management (B2B CRM) -- Phase A: Database + Navigation
+# Phase B: Customer List Page -- Full Implementation
 
 ## Overview
 
-Create 3 database tables (customers, customer_contacts, customer_interactions), add "Customers" to the dashboard navigation, create routing, and scaffold an empty Customer Management page.
+Build a complete customer management list page with stats cards, search/filter bar, sortable table, and an Add/Edit Customer dialog. Follows the same patterns as `HRManagementPage.tsx`.
 
-## Step 1: Database Migration
+## New Files
 
-Single migration with all 3 tables, RLS policies, indexes, and triggers. The SQL is exactly as specified in the request, with minor adjustments:
+### 1. `src/components/CustomerForm.tsx` -- Add/Edit Customer Modal Form
 
-- `customers` table with 25+ columns, RLS (admins manage all, employees can view), indexes on status and account_manager_id, updated_at trigger
-- `customer_contacts` table with CASCADE delete on customer_id, RLS matching customers pattern, indexes on customer_id and primary contact, updated_at trigger
-- `customer_interactions` table with CASCADE on customer_id and SET NULL on contact_id, RLS (admins manage all, employees view + insert), indexes on customer_id, date, and follow-up
+A form component (similar to `EmployeeForm`) with two sections:
 
-## Step 2: Add "Customers" to Dashboard Navigation
+**Company Details section:**
+- Company Name (EN) * -- text input
+- Company Name (FA) -- text input, `dir="rtl"`
+- Industry -- dropdown (Automotive, Technology, FMCG, Healthcare, Finance, Education, Manufacturing, Retail, Services, Other)
+- Company Size -- dropdown (1-10, 11-50, 51-200, 201-500, 500+)
+- Website, Email, Phone -- text inputs
+- Address, City, Country -- text inputs (country defaults to "Iran")
+- LinkedIn URL, Instagram URL -- text inputs
+- Logo upload -- file input uploading to `customer-logos` storage bucket
+- Brand Color -- color input (optional)
 
-In `src/pages/DashboardPage.tsx`, add a new dashboard item after "HR Management":
+**Business Relationship section:**
+- Customer Status * -- dropdown (lead, prospect, active, inactive, churned)
+- Contract Type -- dropdown (project_based, retainer, subscription, one_time)
+- Contract Start Date, End Date -- date inputs
+- Monthly Value -- number input
+- Currency -- dropdown (IRR, USD, EUR, GBP)
+- Account Manager -- dropdown populated from `employees` table (active employees only)
+- Tags -- comma-separated text input (stored as text[])
+- Notes -- textarea
 
+**Props:** `customer?: Customer | null`, `onSuccess: () => void`, `onCancel: () => void`
+
+**Behavior:**
+- On submit: `supabase.from('customers').insert(...)` or `.update(...)` based on whether editing
+- Sets `created_by` to current user ID on insert
+- Shows toast on success/error
+
+## Modified Files
+
+### 2. `src/pages/CustomerManagementPage.tsx` -- Full Rewrite
+
+Replace the scaffold with a complete page following the HR Management pattern:
+
+**State:**
+- `customers` array, `customersLoading` boolean
+- `showCustomerForm`, `editingCustomer` for the dialog
+- `searchTerm`, `statusFilter`, `industryFilter` for filtering
+- `sortColumn`, `sortDirection` for sorting
+
+**Data fetching:**
+- Query `customers` table with select of all needed fields
+- Also fetch primary contact for each customer via a second query to `customer_contacts` where `is_primary_contact = true`
+- Fetch account manager names from `employees` table
+
+**Stats cards (4 cards):**
+
+| Card | Icon Color | Value |
+|------|-----------|-------|
+| Total Customers | blue | `customers.length` |
+| Active Customers | green | customers where `customer_status === 'active'` |
+| Total Monthly Value | purple | sum of `monthly_value` for active customers, formatted with currency |
+| Leads | orange | customers where `customer_status === 'lead'` |
+
+**Filter bar:**
+- Search input (searches company_name, company_name_fa, industry, email)
+- Status filter dropdown: All / Lead / Prospect / Active / Inactive / Churned
+- Industry filter dropdown: dynamically populated from unique industries in data
+- Clear filters button (shown when any filter is active)
+
+**Customer table columns:**
+
+| Column | Sortable | Content |
+|--------|----------|---------|
+| Logo | No | Avatar with company initials fallback |
+| Company Name | Yes | company_name (+ company_name_fa in small text below) |
+| Industry | Yes | industry or "-" |
+| Status | Yes | Colored badge (lead=blue, prospect=indigo, active=green, inactive=gray, churned=red) |
+| Primary Contact | No | Name from joined customer_contacts or "-" |
+| Monthly Value | Yes | Formatted number + currency |
+| Account Manager | No | Employee name from joined employees or "-" |
+| Actions | No | View (navigates to `/customers/:id`), Edit (opens form), Delete (with confirmation) |
+
+**Clickable rows:** Clicking a row navigates to `/customers/:customerId`.
+
+**Add/Edit Customer dialog:**
+- Uses `CustomerForm` component inside a `Dialog`
+- "Add Customer" button in header opens the form
+- Edit button in actions column opens the form pre-filled
+
+**Empty states:**
+- No customers at all: icon + "Start by adding your first customer" + button
+- Filters return nothing: icon + "Try adjusting your search filters"
+
+## Technical Details
+
+### Customer interface
 ```typescript
-{
-  title: 'Customers',
-  description: 'Manage B2B customers and contacts',
-  icon: Building2,
-  path: '/customers',
-  color: 'text-amber-500',
-  requiresAdmin: true
+interface Customer {
+  id: string;
+  company_name: string;
+  company_name_fa: string | null;
+  industry: string | null;
+  company_size: string | null;
+  website: string | null;
+  email: string | null;
+  phone: string | null;
+  address: string | null;
+  city: string | null;
+  country: string | null;
+  customer_status: string;
+  contract_type: string | null;
+  contract_start_date: string | null;
+  contract_end_date: string | null;
+  monthly_value: number | null;
+  currency: string | null;
+  logo_url: string | null;
+  brand_color: string | null;
+  linkedin_url: string | null;
+  instagram_url: string | null;
+  notes: string | null;
+  tags: string[] | null;
+  account_manager_id: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
 }
 ```
 
-Import `Building2` from lucide-react.
+### Status badge helper
+```typescript
+const getStatusBadge = (status: string) => {
+  switch (status) {
+    case 'lead': return <Badge className="bg-blue-100 text-blue-800">Lead</Badge>;
+    case 'prospect': return <Badge className="bg-indigo-100 text-indigo-800">Prospect</Badge>;
+    case 'active': return <Badge className="bg-green-100 text-green-800">Active</Badge>;
+    case 'inactive': return <Badge className="bg-gray-100 text-gray-800">Inactive</Badge>;
+    case 'churned': return <Badge className="bg-red-100 text-red-800">Churned</Badge>;
+    default: return <Badge variant="outline">{status}</Badge>;
+  }
+};
+```
 
-## Step 3: Add Routes in App.tsx
+### Currency formatting
+```typescript
+const formatCurrency = (value: number | null, currency: string | null) => {
+  if (value == null) return '-';
+  const symbol = { IRR: 'IRR', USD: '$', EUR: 'EUR', GBP: 'GBP' }[currency || 'IRR'] || currency;
+  return `${symbol} ${value.toLocaleString()}`;
+};
+```
 
-Add two new routes:
-- `/customers` -- CustomerManagementPage (list)
-- `/customers/:customerId` -- CustomerDetailPage (detail)
+### Logo upload in CustomerForm
+Upload to `customer-logos` bucket, get public URL, store in `logo_url` field. Uses the same pattern as profile photo uploads in EmployeeForm.
 
-Both lazy-loaded following existing pattern.
+### Account Manager lookup
+Fetch active employees on form mount for the dropdown: `supabase.from('employees').select('id, name, surname').eq('status', 'active')`.
 
-## Step 4: Create Empty Pages
+On the list page, fetch account manager names in a separate query or join after loading customers.
 
-### `src/pages/CustomerManagementPage.tsx`
-Scaffold with Navigation, Footer, auth check, admin role check -- matching HRManagementPage pattern. Show "Customer Management" header with an "Add Customer" button (disabled for now). Empty state message.
+### Primary Contact lookup
+After fetching customers, batch-fetch primary contacts: `supabase.from('customer_contacts').select('customer_id, first_name, last_name').eq('is_primary_contact', true)`.
 
-### `src/pages/CustomerDetailPage.tsx`
-Scaffold with Navigation, Footer, auth check. Show "Customer Detail" header with back button. Placeholder content.
+Map them into a lookup object `{ [customer_id]: "First Last" }`.
 
-## Step 5: Storage Bucket
+## No database changes needed
 
-Create a `customer-logos` public storage bucket for company logos and contact photos.
+All tables (`customers`, `customer_contacts`, `customer_interactions`) and the `customer-logos` storage bucket were created in Phase A.
 
-## Files to create/modify
+## File summary
 
 | File | Action |
 |------|--------|
-| Migration SQL | Create 3 tables + RLS + indexes + triggers |
-| `src/App.tsx` | Add 2 lazy routes |
-| `src/pages/DashboardPage.tsx` | Add Customers card + Building2 import |
-| `src/pages/CustomerManagementPage.tsx` | New scaffold page |
-| `src/pages/CustomerDetailPage.tsx` | New scaffold page |
-
-## Technical Notes
-
-- No changes to existing tables
-- RLS uses `has_role()` for admins and subquery on `employees.user_id` for employee access -- same pattern as other tables
-- The `account_manager_id` references `employees(id)`, linking customers to internal staff
-- `created_by` references `profiles(id)` for audit trail consistency
-- Phase B will implement the full customer list UI with stats, filters, table, and Add Customer form
+| `src/components/CustomerForm.tsx` | Create -- full Add/Edit form |
+| `src/pages/CustomerManagementPage.tsx` | Rewrite -- stats, filters, table, dialog |
 
