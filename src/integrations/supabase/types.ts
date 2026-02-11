@@ -330,6 +330,293 @@ export type Database = {
           },
         ]
       }
+      customer_contacts: {
+        Row: {
+          contact_type: string | null
+          created_at: string
+          created_by: string | null
+          customer_id: string
+          department: string | null
+          email: string | null
+          first_name: string
+          first_name_fa: string | null
+          id: string
+          is_active: boolean | null
+          is_decision_maker: boolean | null
+          is_primary_contact: boolean | null
+          job_title: string | null
+          last_name: string
+          last_name_fa: string | null
+          linkedin_url: string | null
+          mobile: string | null
+          notes: string | null
+          phone: string | null
+          photo_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          contact_type?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id: string
+          department?: string | null
+          email?: string | null
+          first_name: string
+          first_name_fa?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_decision_maker?: boolean | null
+          is_primary_contact?: boolean | null
+          job_title?: string | null
+          last_name: string
+          last_name_fa?: string | null
+          linkedin_url?: string | null
+          mobile?: string | null
+          notes?: string | null
+          phone?: string | null
+          photo_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          contact_type?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string
+          department?: string | null
+          email?: string | null
+          first_name?: string
+          first_name_fa?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_decision_maker?: boolean | null
+          is_primary_contact?: boolean | null
+          job_title?: string | null
+          last_name?: string
+          last_name_fa?: string | null
+          linkedin_url?: string | null
+          mobile?: string | null
+          notes?: string | null
+          phone?: string | null
+          photo_url?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_contacts_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "employee_full"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "customer_contacts_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_contacts_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customer_interactions: {
+        Row: {
+          contact_id: string | null
+          created_at: string
+          created_by: string | null
+          customer_id: string
+          description: string | null
+          follow_up_date: string | null
+          follow_up_notes: string | null
+          id: string
+          interaction_date: string
+          interaction_type: string
+          is_completed: boolean | null
+          subject: string
+        }
+        Insert: {
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id: string
+          description?: string | null
+          follow_up_date?: string | null
+          follow_up_notes?: string | null
+          id?: string
+          interaction_date?: string
+          interaction_type: string
+          is_completed?: boolean | null
+          subject: string
+        }
+        Update: {
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string
+          description?: string | null
+          follow_up_date?: string | null
+          follow_up_notes?: string | null
+          id?: string
+          interaction_date?: string
+          interaction_type?: string
+          is_completed?: boolean | null
+          subject?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_interactions_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "customer_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_interactions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "employee_full"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "customer_interactions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_interactions_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customers: {
+        Row: {
+          account_manager_id: string | null
+          address: string | null
+          brand_color: string | null
+          city: string | null
+          company_name: string
+          company_name_fa: string | null
+          company_size: string | null
+          contract_end_date: string | null
+          contract_start_date: string | null
+          contract_type: string | null
+          country: string | null
+          created_at: string
+          created_by: string | null
+          currency: string | null
+          customer_status: string
+          email: string | null
+          id: string
+          industry: string | null
+          instagram_url: string | null
+          linkedin_url: string | null
+          logo_url: string | null
+          monthly_value: number | null
+          notes: string | null
+          phone: string | null
+          tags: string[] | null
+          updated_at: string
+          website: string | null
+        }
+        Insert: {
+          account_manager_id?: string | null
+          address?: string | null
+          brand_color?: string | null
+          city?: string | null
+          company_name: string
+          company_name_fa?: string | null
+          company_size?: string | null
+          contract_end_date?: string | null
+          contract_start_date?: string | null
+          contract_type?: string | null
+          country?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string | null
+          customer_status?: string
+          email?: string | null
+          id?: string
+          industry?: string | null
+          instagram_url?: string | null
+          linkedin_url?: string | null
+          logo_url?: string | null
+          monthly_value?: number | null
+          notes?: string | null
+          phone?: string | null
+          tags?: string[] | null
+          updated_at?: string
+          website?: string | null
+        }
+        Update: {
+          account_manager_id?: string | null
+          address?: string | null
+          brand_color?: string | null
+          city?: string | null
+          company_name?: string
+          company_name_fa?: string | null
+          company_size?: string | null
+          contract_end_date?: string | null
+          contract_start_date?: string | null
+          contract_type?: string | null
+          country?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string | null
+          customer_status?: string
+          email?: string | null
+          id?: string
+          industry?: string | null
+          instagram_url?: string | null
+          linkedin_url?: string | null
+          logo_url?: string | null
+          monthly_value?: number | null
+          notes?: string | null
+          phone?: string | null
+          tags?: string[] | null
+          updated_at?: string
+          website?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customers_account_manager_id_fkey"
+            columns: ["account_manager_id"]
+            isOneToOne: false
+            referencedRelation: "employee_full"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "customers_account_manager_id_fkey"
+            columns: ["account_manager_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customers_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "employee_full"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "customers_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       documents: {
         Row: {
           content: string | null

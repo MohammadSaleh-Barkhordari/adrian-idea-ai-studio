@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { BarChart, FileText, Calculator, FolderOpen, Users, User, LogOut, CheckSquare, Clock, AlertCircle, Search, ArrowUpDown, ArrowUp, ArrowDown, Filter, X, MessageSquare, Edit, BookOpen, Mail } from 'lucide-react';
+import { BarChart, FileText, Calculator, FolderOpen, Users, User, LogOut, CheckSquare, Clock, AlertCircle, Search, ArrowUpDown, ArrowUp, ArrowDown, Filter, X, MessageSquare, Edit, BookOpen, Mail, Building2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { TaskEditDialog } from '@/components/TaskEditDialog';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -374,6 +374,13 @@ const DashboardPage = () => {
     icon: Users,
     path: '/hr-management',
     color: 'text-purple-500',
+    requiresAdmin: true
+  }, {
+    title: 'Customers',
+    description: 'Manage B2B customers and contacts',
+    icon: Building2,
+    path: '/customers',
+    color: 'text-amber-500',
     requiresAdmin: true
   }, {
     title: 'Writing a Letter',
