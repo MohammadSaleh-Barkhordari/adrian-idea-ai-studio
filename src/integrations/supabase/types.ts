@@ -616,10 +616,8 @@ export type Database = {
           bank_name: string | null
           bank_sheba: string | null
           contract_type: string | null
-          contract_url: string | null
           created_at: string
           date_of_birth: string | null
-          emergency_contact: string | null
           emergency_contact_name: string | null
           emergency_contact_phone: string | null
           emergency_contact_relationship: string | null
@@ -649,10 +647,8 @@ export type Database = {
           bank_name?: string | null
           bank_sheba?: string | null
           contract_type?: string | null
-          contract_url?: string | null
           created_at?: string
           date_of_birth?: string | null
-          emergency_contact?: string | null
           emergency_contact_name?: string | null
           emergency_contact_phone?: string | null
           emergency_contact_relationship?: string | null
@@ -682,10 +678,8 @@ export type Database = {
           bank_name?: string | null
           bank_sheba?: string | null
           contract_type?: string | null
-          contract_url?: string | null
           created_at?: string
           date_of_birth?: string | null
-          emergency_contact?: string | null
           emergency_contact_name?: string | null
           emergency_contact_phone?: string | null
           emergency_contact_relationship?: string | null
@@ -731,11 +725,9 @@ export type Database = {
           created_at: string
           created_by: string | null
           department: string | null
-          email: string | null
           employee_number: string | null
           employment_type: string | null
           end_date: string | null
-          hire_date: string | null
           id: string
           job_title: string | null
           job_type: string | null
@@ -743,7 +735,6 @@ export type Database = {
           name: string
           name_fa: string | null
           nationality: string | null
-          phone: string | null
           probation_end_date: string | null
           profile_photo_url: string | null
           start_date: string | null
@@ -752,18 +743,15 @@ export type Database = {
           surname_fa: string | null
           updated_at: string
           user_id: string | null
-          work_email: string | null
           work_location_type: string | null
         }
         Insert: {
           created_at?: string
           created_by?: string | null
           department?: string | null
-          email?: string | null
           employee_number?: string | null
           employment_type?: string | null
           end_date?: string | null
-          hire_date?: string | null
           id?: string
           job_title?: string | null
           job_type?: string | null
@@ -771,7 +759,6 @@ export type Database = {
           name: string
           name_fa?: string | null
           nationality?: string | null
-          phone?: string | null
           probation_end_date?: string | null
           profile_photo_url?: string | null
           start_date?: string | null
@@ -780,18 +767,15 @@ export type Database = {
           surname_fa?: string | null
           updated_at?: string
           user_id?: string | null
-          work_email?: string | null
           work_location_type?: string | null
         }
         Update: {
           created_at?: string
           created_by?: string | null
           department?: string | null
-          email?: string | null
           employee_number?: string | null
           employment_type?: string | null
           end_date?: string | null
-          hire_date?: string | null
           id?: string
           job_title?: string | null
           job_type?: string | null
@@ -799,7 +783,6 @@ export type Database = {
           name?: string
           name_fa?: string | null
           nationality?: string | null
-          phone?: string | null
           probation_end_date?: string | null
           profile_photo_url?: string | null
           start_date?: string | null
@@ -808,7 +791,6 @@ export type Database = {
           surname_fa?: string | null
           updated_at?: string
           user_id?: string | null
-          work_email?: string | null
           work_location_type?: string | null
         }
         Relationships: [
@@ -1687,13 +1669,36 @@ export type Database = {
           full_name: string | null
           job_title: string | null
           job_type: string | null
+          manager_id: string | null
           name: string | null
+          name_fa: string | null
+          nationality: string | null
+          probation_end_date: string | null
+          profile_photo_url: string | null
           start_date: string | null
+          status: string | null
           surname: string | null
+          surname_fa: string | null
           user_id: string | null
           work_email: string | null
+          work_location_type: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "employees_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "employee_full"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "employees_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Functions: {

@@ -40,9 +40,7 @@ interface Employee {
   employee_number: string | null;
   department: string | null;
   status: string;
-  hire_date: string | null;
-  email: string | null;
-  phone: string | null;
+  start_date: string | null;
   created_at: string;
   user_id: string | null;
 }
@@ -199,8 +197,7 @@ const HRManagementPage = () => {
         employee.surname.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (employee.employee_number || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
         (employee.job_title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (employee.department && employee.department.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (employee.email && employee.email.toLowerCase().includes(searchTerm.toLowerCase()));
+        (employee.department && employee.department.toLowerCase().includes(searchTerm.toLowerCase()));
 
       const matchesDepartment = departmentFilter === 'all' || employee.department === departmentFilter;
       const matchesEmploymentType = employmentTypeFilter === 'all' || employee.status === employmentTypeFilter;
@@ -590,11 +587,6 @@ const HRManagementPage = () => {
                               <div className="font-medium">
                                 {employee.name} {employee.surname}
                               </div>
-                              {employee.email && (
-                                <div className="text-sm text-muted-foreground">
-                                  {employee.email}
-                                </div>
-                              )}
                             </div>
                           </TableCell>
                           <TableCell>{employee.job_title || '-'}</TableCell>
@@ -612,7 +604,7 @@ const HRManagementPage = () => {
                             </Badge>
                           </TableCell>
                           <TableCell>
-                            {employee.hire_date ? new Date(employee.hire_date).toLocaleDateString() : '-'}
+                            {(employee as any).start_date ? new Date((employee as any).start_date).toLocaleDateString() : '-'}
                           </TableCell>
                           <TableCell>
                             {employee.status === 'active' ? (
