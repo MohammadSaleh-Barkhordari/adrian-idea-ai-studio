@@ -20,9 +20,11 @@ export type Database = {
           assigned_to: string | null
           budget: number | null
           client_company: string | null
+          client_contact_id: string | null
           client_name: string | null
           created_at: string
           created_by: string | null
+          customer_id: string | null
           description: string | null
           end_date: string | null
           id: string
@@ -40,9 +42,11 @@ export type Database = {
           assigned_to?: string | null
           budget?: number | null
           client_company?: string | null
+          client_contact_id?: string | null
           client_name?: string | null
           created_at?: string
           created_by?: string | null
+          customer_id?: string | null
           description?: string | null
           end_date?: string | null
           id?: string
@@ -60,9 +64,11 @@ export type Database = {
           assigned_to?: string | null
           budget?: number | null
           client_company?: string | null
+          client_contact_id?: string | null
           client_name?: string | null
           created_at?: string
           created_by?: string | null
+          customer_id?: string | null
           description?: string | null
           end_date?: string | null
           id?: string
@@ -91,6 +97,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "adrian_projects_client_contact_id_fkey"
+            columns: ["client_contact_id"]
+            isOneToOne: false
+            referencedRelation: "customer_contacts"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "adrian_projects_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
@@ -102,6 +115,13 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "adrian_projects_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
             referencedColumns: ["id"]
           },
         ]

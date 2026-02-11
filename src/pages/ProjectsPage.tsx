@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -110,6 +110,8 @@ const ProjectsPage = () => {
     }
   };
 
+  const [customerMap, setCustomerMap] = useState<Record<string, string>>({});
+
   const loadProjects = async (userId: string) => {
     try {
       const { data, error } = await supabase
@@ -128,6 +130,15 @@ const ProjectsPage = () => {
       }
 
       setProjects(data || []);
+
+      // Batch-fetch customer names for linked projects
+      const customerIds = [...new Set((data || []).map((p: any) => p.customer_id).filter(Boolean))];
+      if (customerIds.length > 0) {
+        const { data: customers } = await supabase.from('customers').select('id, company_name').in('id', customerIds);
+        const map: Record<string, string> = {};
+        customers?.forEach(c => { map[c.id] = c.company_name; });
+        setCustomerMap(map);
+      }
     } catch (error) {
       console.error('Error loading projects:', error);
     }
@@ -160,10 +171,11 @@ const ProjectsPage = () => {
         p.project_name?.toLowerCase().includes(query) ||
         p.client_name?.toLowerCase().includes(query) ||
         p.project_id?.toLowerCase().includes(query) ||
-        p.description?.toLowerCase().includes(query)
+        p.description?.toLowerCase().includes(query) ||
+        (p.customer_id && customerMap[p.customer_id]?.toLowerCase().includes(query))
       );
     }
-    
+
     // Apply sorting
     result.sort((a, b) => {
       let aVal: any = a[sortField as keyof typeof a];
@@ -420,7 +432,12 @@ const ProjectsPage = () => {
                       <div className="flex-1">
                         <CardTitle className="text-lg mb-1">{project.project_name}</CardTitle>
                         <CardDescription className="text-sm">
-                          {project.project_id} • {project.client_name}
+                          {project.project_id}
+                          {project.customer_id && customerMap[project.customer_id] ? (
+                            <> • <Link to={`/customers/${project.customer_id}`} className="text-primary hover:underline" onClick={(e) => e.stopPropagation()}>{customerMap[project.customer_id]}</Link></>
+                          ) : project.client_name ? (
+                            <> • {project.client_name}</>
+                          ) : null}
                         </CardDescription>
                       </div>
                       <div className="flex flex-col gap-1">
