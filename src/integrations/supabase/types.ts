@@ -360,11 +360,13 @@ export type Database = {
           email: string | null
           first_name: string
           first_name_fa: string | null
+          honorific_fa: string | null
           id: string
           is_active: boolean | null
           is_decision_maker: boolean | null
           is_primary_contact: boolean | null
           job_title: string | null
+          job_title_fa: string | null
           last_name: string
           last_name_fa: string | null
           linkedin_url: string | null
@@ -383,11 +385,13 @@ export type Database = {
           email?: string | null
           first_name: string
           first_name_fa?: string | null
+          honorific_fa?: string | null
           id?: string
           is_active?: boolean | null
           is_decision_maker?: boolean | null
           is_primary_contact?: boolean | null
           job_title?: string | null
+          job_title_fa?: string | null
           last_name: string
           last_name_fa?: string | null
           linkedin_url?: string | null
@@ -406,11 +410,13 @@ export type Database = {
           email?: string | null
           first_name?: string
           first_name_fa?: string | null
+          honorific_fa?: string | null
           id?: string
           is_active?: boolean | null
           is_decision_maker?: boolean | null
           is_primary_contact?: boolean | null
           job_title?: string | null
+          job_title_fa?: string | null
           last_name?: string
           last_name_fa?: string | null
           linkedin_url?: string | null

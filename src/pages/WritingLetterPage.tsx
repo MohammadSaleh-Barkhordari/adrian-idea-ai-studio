@@ -17,6 +17,7 @@ import LetterBuilder from '@/components/LetterBuilder';
 interface CrmCustomer {
   id: string;
   company_name: string;
+  company_name_fa: string | null;
   customer_status: string;
 }
 
@@ -24,7 +25,11 @@ interface CrmContact {
   id: string;
   first_name: string;
   last_name: string;
+  first_name_fa: string | null;
+  last_name_fa: string | null;
+  honorific_fa: string | null;
   job_title: string | null;
+  job_title_fa: string | null;
   is_primary_contact: boolean | null;
 }
 
@@ -76,7 +81,7 @@ const WritingLetterPage = () => {
     try {
       const { data, error } = await supabase
         .from('customers')
-        .select('id, company_name, customer_status')
+        .select('id, company_name, company_name_fa, customer_status')
         .order('company_name');
       if (error) throw error;
       setCustomers(data || []);
@@ -90,7 +95,7 @@ const WritingLetterPage = () => {
     try {
       const { data, error } = await supabase
         .from('customer_contacts')
-        .select('id, first_name, last_name, job_title, is_primary_contact')
+        .select('id, first_name, last_name, first_name_fa, last_name_fa, honorific_fa, job_title, job_title_fa, is_primary_contact')
         .eq('customer_id', customerId)
         .eq('is_active', true)
         .order('is_primary_contact', { ascending: false });
@@ -153,7 +158,7 @@ const WritingLetterPage = () => {
 
     const customer = customers.find(c => c.id === customerId);
     if (customer) {
-      setRecipientCompany(customer.company_name);
+      setRecipientCompany(customer.company_name_fa || customer.company_name);
       setCrmAutoFilled(prev => ({ ...prev, recipientCompany: true }));
     }
 
@@ -172,8 +177,15 @@ const WritingLetterPage = () => {
 
   const applyContact = (contact: CrmContact) => {
     setSelectedContact(contact.id);
-    setRecipientName(`${contact.first_name} ${contact.last_name}`);
-    setRecipientPosition(contact.job_title || '');
+    // Persian-first recipient name: honorific_fa + last_name_fa
+    if (contact.last_name_fa) {
+      const parts = [contact.honorific_fa, contact.last_name_fa].filter(Boolean);
+      setRecipientName(parts.join(' '));
+    } else {
+      setRecipientName(`${contact.first_name} ${contact.last_name}`);
+    }
+    // Persian-first position
+    setRecipientPosition(contact.job_title_fa || contact.job_title || '');
     setCrmAutoFilled(prev => ({
       ...prev,
       recipientName: true,
@@ -319,17 +331,16 @@ const WritingLetterPage = () => {
         setSelectedCustomer(project.customer_id);
         const customer = customers.find(c => c.id === project.customer_id);
         if (customer) {
-          setRecipientCompany(customer.company_name);
+          setRecipientCompany(customer.company_name_fa || customer.company_name);
           setCrmAutoFilled(prev => ({ ...prev, recipientCompany: true }));
         } else {
-          // Customers may not be loaded yet, fetch the specific one
           const { data: custData } = await supabase
             .from('customers')
-            .select('id, company_name, customer_status')
+            .select('id, company_name, company_name_fa, customer_status')
             .eq('id', project.customer_id)
             .single();
           if (custData) {
-            setRecipientCompany(custData.company_name);
+            setRecipientCompany(custData.company_name_fa || custData.company_name);
             setCrmAutoFilled(prev => ({ ...prev, recipientCompany: true }));
           }
         }
@@ -548,7 +559,7 @@ const WritingLetterPage = () => {
                       {customers.map((c) => (
                         <SelectItem key={c.id} value={c.id}>
                           <span className="flex items-center gap-2">
-                            {c.company_name}
+                            {c.company_name}{c.company_name_fa ? ` — ${c.company_name_fa}` : ''}
                             <span className={`text-xs px-1.5 py-0.5 rounded-full ${statusBadge(c.customer_status)}`}>
                               {c.customer_status}
                             </span>
@@ -569,12 +580,18 @@ const WritingLetterPage = () => {
                       <SelectValue placeholder={selectedCustomer ? "Select a contact" : "Select customer first"} />
                     </SelectTrigger>
                     <SelectContent>
-                      {contacts.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {c.first_name} {c.last_name}{c.job_title ? ` — ${c.job_title}` : ''}
-                          {c.is_primary_contact ? ' ★' : ''}
-                        </SelectItem>
-                      ))}
+                      {contacts.map((c) => {
+                        const faName = [c.first_name_fa, c.last_name_fa].filter(Boolean).join(' ');
+                        const parts = [`${c.first_name} ${c.last_name}`];
+                        if (faName) parts.push(faName);
+                        if (c.job_title_fa) parts.push(c.job_title_fa);
+                        else if (c.job_title) parts.push(c.job_title);
+                        return (
+                          <SelectItem key={c.id} value={c.id}>
+                            {parts.join(' — ')}{c.is_primary_contact ? ' ★' : ''}
+                          </SelectItem>
+                        );
+                      })}
                     </SelectContent>
                   </Select>
                 </div>
@@ -586,7 +603,8 @@ const WritingLetterPage = () => {
                   <Label htmlFor="recipientName">Recipient Name *</Label>
                   <Input
                     id="recipientName"
-                    placeholder="Enter recipient name..."
+                    dir="rtl"
+                    placeholder="نام گیرنده..."
                     value={recipientName}
                     onChange={(e) => { setRecipientName(e.target.value); setCrmAutoFilled(prev => ({ ...prev, recipientName: false })); }}
                   />
@@ -598,7 +616,8 @@ const WritingLetterPage = () => {
                   <Label htmlFor="recipientPosition">Recipient Position</Label>
                   <Input
                     id="recipientPosition"
-                    placeholder="Enter recipient position..."
+                    dir="rtl"
+                    placeholder="سمت گیرنده..."
                     value={recipientPosition}
                     onChange={(e) => { setRecipientPosition(e.target.value); setCrmAutoFilled(prev => ({ ...prev, recipientPosition: false })); }}
                   />
@@ -614,7 +633,8 @@ const WritingLetterPage = () => {
                   <Label htmlFor="recipientCompany">Recipient Company</Label>
                   <Input
                     id="recipientCompany"
-                    placeholder="Enter recipient company..."
+                    dir="rtl"
+                    placeholder="نام شرکت..."
                     value={recipientCompany}
                     onChange={(e) => { setRecipientCompany(e.target.value); setCrmAutoFilled(prev => ({ ...prev, recipientCompany: false })); }}
                   />
