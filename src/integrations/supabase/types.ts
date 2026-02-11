@@ -535,26 +535,112 @@ export type Database = {
           },
         ]
       }
+      employee_documents: {
+        Row: {
+          ai_extracted_data: Json | null
+          ai_verified: boolean | null
+          created_at: string
+          created_by: string | null
+          document_type: string
+          employee_id: string
+          expiry_date: string | null
+          file_url: string
+          id: string
+          title: string | null
+          updated_at: string
+          uploaded_at: string
+        }
+        Insert: {
+          ai_extracted_data?: Json | null
+          ai_verified?: boolean | null
+          created_at?: string
+          created_by?: string | null
+          document_type: string
+          employee_id: string
+          expiry_date?: string | null
+          file_url: string
+          id?: string
+          title?: string | null
+          updated_at?: string
+          uploaded_at?: string
+        }
+        Update: {
+          ai_extracted_data?: Json | null
+          ai_verified?: boolean | null
+          created_at?: string
+          created_by?: string | null
+          document_type?: string
+          employee_id?: string
+          expiry_date?: string | null
+          file_url?: string
+          id?: string
+          title?: string | null
+          updated_at?: string
+          uploaded_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_documents_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "employee_full"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "employee_documents_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_documents_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employee_full"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "employee_documents_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_sensitive_data: {
         Row: {
           bank_account_number: string | null
           bank_account_type: string | null
           bank_name: string | null
           bank_sheba: string | null
+          contract_type: string | null
           contract_url: string | null
           created_at: string
           date_of_birth: string | null
           emergency_contact: string | null
+          emergency_contact_name: string | null
+          emergency_contact_phone: string | null
+          emergency_contact_relationship: string | null
           employee_id: string
           employment_contract_id: string | null
+          gender: string | null
           home_address: string | null
           id: string
+          insurance_number: string | null
+          insurance_start_date: string | null
+          insurance_type: string | null
+          marital_status: string | null
+          military_service_status: string | null
           national_id: string | null
           pay_frequency: string | null
           personal_email: string | null
           phone_number: string | null
           salary: number | null
           sort_code: string | null
+          tax_exemption_status: string | null
+          tax_id: string | null
           updated_at: string
         }
         Insert: {
@@ -562,20 +648,32 @@ export type Database = {
           bank_account_type?: string | null
           bank_name?: string | null
           bank_sheba?: string | null
+          contract_type?: string | null
           contract_url?: string | null
           created_at?: string
           date_of_birth?: string | null
           emergency_contact?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          emergency_contact_relationship?: string | null
           employee_id: string
           employment_contract_id?: string | null
+          gender?: string | null
           home_address?: string | null
           id?: string
+          insurance_number?: string | null
+          insurance_start_date?: string | null
+          insurance_type?: string | null
+          marital_status?: string | null
+          military_service_status?: string | null
           national_id?: string | null
           pay_frequency?: string | null
           personal_email?: string | null
           phone_number?: string | null
           salary?: number | null
           sort_code?: string | null
+          tax_exemption_status?: string | null
+          tax_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -583,20 +681,32 @@ export type Database = {
           bank_account_type?: string | null
           bank_name?: string | null
           bank_sheba?: string | null
+          contract_type?: string | null
           contract_url?: string | null
           created_at?: string
           date_of_birth?: string | null
           emergency_contact?: string | null
+          emergency_contact_name?: string | null
+          emergency_contact_phone?: string | null
+          emergency_contact_relationship?: string | null
           employee_id?: string
           employment_contract_id?: string | null
+          gender?: string | null
           home_address?: string | null
           id?: string
+          insurance_number?: string | null
+          insurance_start_date?: string | null
+          insurance_type?: string | null
+          marital_status?: string | null
+          military_service_status?: string | null
           national_id?: string | null
           pay_frequency?: string | null
           personal_email?: string | null
           phone_number?: string | null
           salary?: number | null
           sort_code?: string | null
+          tax_exemption_status?: string | null
+          tax_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -629,13 +739,20 @@ export type Database = {
           id: string
           job_title: string | null
           job_type: string | null
+          manager_id: string | null
           name: string
+          name_fa: string | null
+          nationality: string | null
           phone: string | null
+          probation_end_date: string | null
+          profile_photo_url: string | null
           start_date: string | null
           surname: string
+          surname_fa: string | null
           updated_at: string
           user_id: string | null
           work_email: string | null
+          work_location_type: string | null
         }
         Insert: {
           created_at?: string
@@ -649,13 +766,20 @@ export type Database = {
           id?: string
           job_title?: string | null
           job_type?: string | null
+          manager_id?: string | null
           name: string
+          name_fa?: string | null
+          nationality?: string | null
           phone?: string | null
+          probation_end_date?: string | null
+          profile_photo_url?: string | null
           start_date?: string | null
           surname: string
+          surname_fa?: string | null
           updated_at?: string
           user_id?: string | null
           work_email?: string | null
+          work_location_type?: string | null
         }
         Update: {
           created_at?: string
@@ -669,15 +793,37 @@ export type Database = {
           id?: string
           job_title?: string | null
           job_type?: string | null
+          manager_id?: string | null
           name?: string
+          name_fa?: string | null
+          nationality?: string | null
           phone?: string | null
+          probation_end_date?: string | null
+          profile_photo_url?: string | null
           start_date?: string | null
           surname?: string
+          surname_fa?: string | null
           updated_at?: string
           user_id?: string | null
           work_email?: string | null
+          work_location_type?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "employees_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "employee_full"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "employees_manager_id_fkey"
+            columns: ["manager_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       files: {
         Row: {
