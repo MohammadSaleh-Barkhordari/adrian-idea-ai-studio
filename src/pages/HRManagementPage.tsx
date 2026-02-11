@@ -39,6 +39,7 @@ interface Employee {
   name: string;
   surname: string;
   job_title: string | null;
+  job_title_fa: string | null;
   department: string | null;
   status: string;
   employment_type: string | null;
@@ -148,7 +149,7 @@ const HRManagementPage = () => {
     
     setEmployeesLoading(true);
     try {
-      let query = supabase.from('employees').select('id, user_id, employee_number, name, surname, job_title, department, status, employment_type, job_type, start_date, work_location_type, profile_photo_url, created_at');
+      let query = supabase.from('employees').select('id, user_id, employee_number, name, surname, job_title, job_title_fa, department, status, employment_type, job_type, start_date, work_location_type, profile_photo_url, created_at');
       
       // If user is not admin, only fetch their own employee record
       if (userRole !== 'admin') {
@@ -533,6 +534,15 @@ const HRManagementPage = () => {
                           </div>
                         </TableHead>
                         <TableHead 
+                          className="cursor-pointer select-none min-w-[120px]"
+                          onClick={() => handleSort('job_title_fa')}
+                        >
+                          <div className="flex items-center gap-2">
+                            Job Title (Persian)
+                            {getSortIcon('job_title_fa')}
+                          </div>
+                        </TableHead>
+                        <TableHead 
                           className="cursor-pointer select-none min-w-[100px]"
                           onClick={() => handleSort('department')}
                         >
@@ -589,6 +599,7 @@ const HRManagementPage = () => {
                           </TableCell>
                           <TableCell className="font-medium">{employee.employee_number || '-'}</TableCell>
                           <TableCell>{employee.job_title || '-'}</TableCell>
+                          <TableCell dir="rtl">{employee.job_title_fa || '-'}</TableCell>
                           <TableCell>{employee.department || '-'}</TableCell>
                           <TableCell>{getStatusBadge(employee.status)}</TableCell>
                           <TableCell>{getEmploymentTypeLabel(employee.employment_type)}</TableCell>

@@ -18,6 +18,7 @@ interface Employee {
   name: string;
   surname: string;
   job_title: string | null;
+  job_title_fa?: string | null;
   job_type: string | null;
   employee_number: string | null;
   department: string | null;
@@ -77,6 +78,7 @@ const EmployeeForm = ({ employee, onSuccess, onCancel }: EmployeeFormProps) => {
     // Employment tab
     employee_number: '',
     job_title: '',
+    job_title_fa: '',
     department: '',
     status: 'active',
     employment_type: '',
@@ -157,6 +159,7 @@ const EmployeeForm = ({ employee, onSuccess, onCancel }: EmployeeFormProps) => {
           emergency_contact_relationship: sensitiveData?.emergency_contact_relationship || '',
           employee_number: employee.employee_number || '',
           job_title: employee.job_title || '',
+          job_title_fa: (employee as any).job_title_fa || '',
           department: employee.department || '',
           status: employee.status || 'active',
           employment_type: employee.employment_type || '',
@@ -234,6 +237,7 @@ const EmployeeForm = ({ employee, onSuccess, onCancel }: EmployeeFormProps) => {
         name_fa: formData.name_fa || null,
         surname_fa: formData.surname_fa || null,
         job_title: formData.job_title || null,
+        job_title_fa: formData.job_title_fa || null,
         job_type: formData.job_type || null,
         employee_number: formData.employee_number || null,
         department: formData.department || null,
@@ -637,7 +641,19 @@ const EmployeeForm = ({ employee, onSuccess, onCancel }: EmployeeFormProps) => {
                     onChange={(e) => setFormData(prev => ({ ...prev, job_title: e.target.value }))}
                     required
                   />
-                </div>
+              </div>
+              </div>
+
+              {/* Job Title (Persian) */}
+              <div>
+                <Label htmlFor="job_title_fa">Job Title (Persian)</Label>
+                <Input
+                  id="job_title_fa"
+                  value={formData.job_title_fa}
+                  onChange={(e) => setFormData(prev => ({ ...prev, job_title_fa: e.target.value }))}
+                  dir="rtl"
+                  placeholder="عنوان شغلی"
+                />
               </div>
 
               {/* Row 2: Department / Employment Type */}
