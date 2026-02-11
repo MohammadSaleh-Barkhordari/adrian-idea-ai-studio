@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import Navigation from '@/components/Navigation';
@@ -34,6 +34,8 @@ interface Project {
   project_name: string;
   client_name?: string;
   client_company?: string;
+  customer_id?: string;
+  client_contact_id?: string;
   description?: string;
   status: string;
   priority: string;
@@ -126,6 +128,8 @@ const ProjectDetailsPage = () => {
   const [files, setFiles] = useState<ProjectFile[]>([]);
   const [user, setUser] = useState<any>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [linkedCustomer, setLinkedCustomer] = useState<{ id: string; company_name: string } | null>(null);
+  const [linkedContact, setLinkedContact] = useState<{ first_name: string; last_name: string; job_title: string | null } | null>(null);
   const [documentDialogOpen, setDocumentDialogOpen] = useState(false);
   const [letterDialogOpen, setLetterDialogOpen] = useState(false);
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
@@ -223,7 +227,19 @@ const ProjectDetailsPage = () => {
 
       setProject(projectData);
 
-      // Load documents
+      // Fetch linked customer and contact
+      if (projectData.customer_id) {
+        const { data: custData } = await supabase.from('customers').select('id, company_name').eq('id', projectData.customer_id).single();
+        setLinkedCustomer(custData || null);
+      } else {
+        setLinkedCustomer(null);
+      }
+      if (projectData.client_contact_id) {
+        const { data: contactData } = await supabase.from('customer_contacts').select('first_name, last_name, job_title').eq('id', projectData.client_contact_id).single();
+        setLinkedContact(contactData || null);
+      } else {
+        setLinkedContact(null);
+      }
       const { data: documentsData, error: documentsError } = await supabase
         .from('documents')
         .select('*')
@@ -478,19 +494,23 @@ const ProjectDetailsPage = () => {
               )}
               
               <div className="grid gap-4 md:grid-cols-2">
-                {project.client_name && (
+                {(linkedContact || project.client_name) && (
                   <div className="flex items-center gap-2">
                     <User className="w-4 h-4" />
                     <span className="font-medium">Client:</span>
-                    <span>{project.client_name}</span>
+                    <span>{linkedContact ? `${linkedContact.first_name} ${linkedContact.last_name}${linkedContact.job_title ? ` — ${linkedContact.job_title}` : ''}` : project.client_name}</span>
                   </div>
                 )}
                 
-                {project.client_company && (
+                {(linkedCustomer || project.client_company) && (
                   <div className="flex items-center gap-2">
                     <Building className="w-4 h-4" />
                     <span className="font-medium">Company:</span>
-                    <span>{project.client_company}</span>
+                    {linkedCustomer ? (
+                      <Link to={`/customers/${linkedCustomer.id}`} className="text-primary hover:underline">{linkedCustomer.company_name}</Link>
+                    ) : (
+                      <span>{project.client_company}</span>
+                    )}
                   </div>
                 )}
                 

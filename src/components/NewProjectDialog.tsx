@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -38,12 +38,13 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
+import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
 const formSchema = z.object({
   project_name: z.string().min(1, 'Project name is required'),
-  client_name: z.string().optional(),
-  client_company: z.string().optional(),
+  customer_id: z.string().optional(),
+  client_contact_id: z.string().optional(),
   description: z.string().optional(),
   status: z.enum(['planning', 'in_progress', 'on_hold', 'completed', 'cancelled']),
   priority: z.enum(['high', 'medium', 'low']),
@@ -54,6 +55,20 @@ const formSchema = z.object({
 
 type FormData = z.infer<typeof formSchema>;
 
+interface Customer {
+  id: string;
+  company_name: string;
+  customer_status: string;
+}
+
+interface Contact {
+  id: string;
+  first_name: string;
+  last_name: string;
+  job_title: string | null;
+  is_primary_contact: boolean | null;
+}
+
 interface NewProjectDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -62,20 +77,49 @@ interface NewProjectDialogProps {
 
 export const NewProjectDialog = ({ open, onOpenChange, onProjectCreated }: NewProjectDialogProps) => {
   const [loading, setLoading] = useState(false);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [contacts, setContacts] = useState<Contact[]>([]);
   const { toast } = useToast();
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       project_name: '',
-      client_name: '',
-      client_company: '',
+      customer_id: undefined,
+      client_contact_id: undefined,
       description: '',
       status: 'planning' as const,
       priority: 'medium' as const,
       budget: undefined,
     },
   });
+
+  const selectedCustomerId = form.watch('customer_id');
+
+  useEffect(() => {
+    if (open) {
+      supabase.from('customers').select('id, company_name, customer_status').order('company_name').then(({ data }) => {
+        setCustomers(data || []);
+      });
+    }
+  }, [open]);
+
+  useEffect(() => {
+    if (selectedCustomerId) {
+      supabase.from('customer_contacts').select('id, first_name, last_name, job_title, is_primary_contact').eq('customer_id', selectedCustomerId).eq('is_active', true).order('is_primary_contact', { ascending: false }).then(({ data }) => {
+        setContacts(data || []);
+        const primary = data?.find(c => c.is_primary_contact);
+        if (primary) {
+          form.setValue('client_contact_id', primary.id);
+        } else {
+          form.setValue('client_contact_id', undefined);
+        }
+      });
+    } else {
+      setContacts([]);
+      form.setValue('client_contact_id', undefined);
+    }
+  }, [selectedCustomerId]);
 
   const generateProjectId = () => {
     const date = new Date();
@@ -92,23 +136,25 @@ export const NewProjectDialog = ({ open, onOpenChange, onProjectCreated }: NewPr
 
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        toast({
-          title: 'Authentication required',
-          description: 'Please sign in to create a project.',
-          variant: 'destructive',
-        });
+        toast({ title: 'Authentication required', description: 'Please sign in to create a project.', variant: 'destructive' });
         return;
       }
 
       const projectId = generateProjectId();
+
+      // Build backward-compat text fields
+      const selectedCustomer = customers.find(c => c.id === values.customer_id);
+      const selectedContact = contacts.find(c => c.id === values.client_contact_id);
 
       const { error } = await supabase
         .from('adrian_projects')
         .insert({
           project_id: projectId,
           project_name: values.project_name,
-          client_name: values.client_name || null,
-          client_company: values.client_company || null,
+          customer_id: values.customer_id || null,
+          client_contact_id: values.client_contact_id || null,
+          client_name: selectedContact ? `${selectedContact.first_name} ${selectedContact.last_name}` : null,
+          client_company: selectedCustomer?.company_name || null,
           description: values.description || null,
           status: values.status,
           priority: values.priority,
@@ -117,35 +163,33 @@ export const NewProjectDialog = ({ open, onOpenChange, onProjectCreated }: NewPr
           budget: values.budget || null,
           user_id: session.user.id,
           created_by: session.user.id,
-        });
+        } as any);
 
       if (error) {
         console.error('Error creating project:', error);
-        toast({
-          title: 'Error creating project',
-          description: error.message,
-          variant: 'destructive',
-        });
+        toast({ title: 'Error creating project', description: error.message, variant: 'destructive' });
         return;
       }
 
-      toast({
-        title: 'Project created successfully',
-        description: `Project ${projectId} has been created.`,
-      });
-
+      toast({ title: 'Project created successfully', description: `Project ${projectId} has been created.` });
       form.reset();
       onOpenChange(false);
       onProjectCreated();
     } catch (error) {
       console.error('Error creating project:', error);
-      toast({
-        title: 'Error creating project',
-        description: 'An unexpected error occurred.',
-        variant: 'destructive',
-      });
+      toast({ title: 'Error creating project', description: 'An unexpected error occurred.', variant: 'destructive' });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const getStatusBadgeColor = (status: string) => {
+    switch (status) {
+      case 'active': return 'bg-green-500/10 text-green-600';
+      case 'lead': return 'bg-blue-500/10 text-blue-600';
+      case 'prospect': return 'bg-purple-500/10 text-purple-600';
+      case 'inactive': return 'bg-gray-500/10 text-gray-600';
+      default: return 'bg-gray-500/10 text-gray-600';
     }
   };
 
@@ -178,13 +222,29 @@ export const NewProjectDialog = ({ open, onOpenChange, onProjectCreated }: NewPr
 
               <FormField
                 control={form.control}
-                name="client_name"
+                name="customer_id"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Client Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter client name" {...field} />
-                    </FormControl>
+                    <FormLabel>Customer</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value || ''}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select customer" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {customers.map(c => (
+                          <SelectItem key={c.id} value={c.id}>
+                            <div className="flex items-center gap-2">
+                              <span>{c.company_name}</span>
+                              <Badge variant="outline" className={cn('text-xs', getStatusBadgeColor(c.customer_status))}>
+                                {c.customer_status}
+                              </Badge>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -192,13 +252,24 @@ export const NewProjectDialog = ({ open, onOpenChange, onProjectCreated }: NewPr
 
               <FormField
                 control={form.control}
-                name="client_company"
+                name="client_contact_id"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Client Company</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter client company name" {...field} />
-                    </FormControl>
+                    <FormLabel>Client Contact</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value || ''} disabled={!selectedCustomerId}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder={selectedCustomerId ? "Select contact" : "Select a customer first"} />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {contacts.map(c => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {c.first_name} {c.last_name}{c.job_title ? ` — ${c.job_title}` : ''}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -288,23 +359,13 @@ export const NewProjectDialog = ({ open, onOpenChange, onProjectCreated }: NewPr
                               !field.value && 'text-muted-foreground'
                             )}
                           >
-                            {field.value ? (
-                              format(field.value, 'PPP')
-                            ) : (
-                              <span>Pick a date</span>
-                            )}
+                            {field.value ? format(field.value, 'PPP') : <span>Pick a date</span>}
                             <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                           </Button>
                         </FormControl>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={field.value}
-                          onSelect={field.onChange}
-                          initialFocus
-                          className={cn('p-3 pointer-events-auto')}
-                        />
+                        <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus className={cn('p-3 pointer-events-auto')} />
                       </PopoverContent>
                     </Popover>
                     <FormMessage />
@@ -328,23 +389,13 @@ export const NewProjectDialog = ({ open, onOpenChange, onProjectCreated }: NewPr
                               !field.value && 'text-muted-foreground'
                             )}
                           >
-                            {field.value ? (
-                              format(field.value, 'PPP')
-                            ) : (
-                              <span>Pick a date</span>
-                            )}
+                            {field.value ? format(field.value, 'PPP') : <span>Pick a date</span>}
                             <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                           </Button>
                         </FormControl>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={field.value}
-                          onSelect={field.onChange}
-                          initialFocus
-                          className={cn('p-3 pointer-events-auto')}
-                        />
+                        <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus className={cn('p-3 pointer-events-auto')} />
                       </PopoverContent>
                     </Popover>
                     <FormMessage />
@@ -360,11 +411,7 @@ export const NewProjectDialog = ({ open, onOpenChange, onProjectCreated }: NewPr
                 <FormItem>
                   <FormLabel>Description</FormLabel>
                   <FormControl>
-                    <Textarea
-                      placeholder="Enter project description..."
-                      className="min-h-[100px]"
-                      {...field}
-                    />
+                    <Textarea placeholder="Enter project description..." className="min-h-[100px]" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -372,12 +419,7 @@ export const NewProjectDialog = ({ open, onOpenChange, onProjectCreated }: NewPr
             />
 
             <DialogFooter className="gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-                disabled={loading}
-              >
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
                 Cancel
               </Button>
               <Button type="submit" disabled={loading} className="bg-gradient-accent">
