@@ -1,107 +1,97 @@
 
 
-# Phase C: Customer Detail Page
+# Link Projects to Customers
 
 ## Overview
 
-Replace the placeholder `CustomerDetailPage` with a fully functional detail page featuring three tabs: Overview, Contacts, and Interactions. Also create two new modal form components for adding/editing contacts and logging interactions.
+Add `customer_id` and `client_contact_id` foreign key columns to `adrian_projects`, then update the project create/edit forms to use CRM customer/contact dropdowns instead of free-text fields. Update display logic on list and detail pages to show linked customer names as clickable links, with fallback to legacy text fields.
 
-## New Files
+## Step 1: Database Migration
 
-### 1. `src/components/CustomerContactForm.tsx`
+Add two nullable FK columns. Keep existing `client_name` and `client_company` columns intact.
 
-Modal form for adding/editing contacts at a customer company.
+```sql
+ALTER TABLE adrian_projects 
+  ADD COLUMN IF NOT EXISTS customer_id uuid REFERENCES customers(id);
 
-**Fields:**
-- First Name *, Last Name * -- text inputs
-- First Name (FA), Last Name (FA) -- text inputs with `dir="rtl"`
-- Job Title, Department -- text inputs
-- Email, Phone, Mobile -- text inputs
-- LinkedIn URL -- text input
-- Contact Type -- dropdown (business, technical, billing, executive)
-- Is Primary Contact -- Switch toggle
-- Is Decision Maker -- Switch toggle
-- Photo upload -- file input (uploads to `customer-logos` bucket under `contacts/` path)
-- Notes -- textarea
+ALTER TABLE adrian_projects 
+  ADD COLUMN IF NOT EXISTS client_contact_id uuid REFERENCES customer_contacts(id);
 
-**Props:** `customerId: string`, `contact?: ContactType | null`, `onSuccess: () => void`, `onCancel: () => void`
+CREATE INDEX idx_adrian_projects_customer ON adrian_projects(customer_id);
+```
 
-### 2. `src/components/CustomerInteractionForm.tsx`
+## Step 2: Update `NewProjectDialog.tsx`
 
-Modal form for logging interactions.
+**Replace** the `client_name` text input with a **Customer dropdown**:
+- Fetch customers on mount: `supabase.from('customers').select('id, company_name, customer_status')`
+- Show each option as: `Company Name` + status badge
+- Store selected `customer_id` in form state
+- On customer selection, fetch contacts and auto-select primary contact
 
-**Fields:**
-- Interaction Type * -- dropdown with icons (meeting, call, email, proposal, contract_signed, invoice, note, other)
-- Contact -- optional dropdown populated from customer's contacts
-- Subject * -- text input
-- Description -- textarea
-- Interaction Date -- datetime input (defaults to now)
-- Follow-up Date -- date input (optional)
-- Follow-up Notes -- textarea (optional)
+**Replace** the `client_company` text input with a **Client Contact dropdown**:
+- Disabled until a customer is selected
+- Fetch contacts: `supabase.from('customer_contacts').select('*').eq('customer_id', selectedCustomerId)`
+- Show each option as: `First Last -- Job Title`
+- Auto-select contact where `is_primary_contact = true`
+- Store selected `client_contact_id` in form state
 
-**Props:** `customerId: string`, `contacts: ContactType[]`, `onSuccess: () => void`, `onCancel: () => void`
+**On submit**: Send `customer_id` and `client_contact_id` instead of `client_name`/`client_company`. Also populate `client_name` and `client_company` from the selected customer/contact for backward compatibility in existing queries.
 
-### 3. `src/pages/CustomerDetailPage.tsx` -- Full Rewrite
+Update the Zod schema: remove `client_name`/`client_company` string fields, add `customer_id` (optional string) and `client_contact_id` (optional string).
 
-**Data fetching on mount:**
-- Fetch customer by ID from `customers` table
-- Fetch contacts from `customer_contacts` where `customer_id` matches
-- Fetch interactions from `customer_interactions` where `customer_id` matches, ordered by `interaction_date DESC`
-- Fetch account manager name from `employees` if `account_manager_id` is set
-- Fetch interaction creator names from `profiles`
+## Step 3: Update `ProjectEditDialog.tsx`
 
-**Header area:**
-- Back button to `/customers`
-- Company logo (Avatar, large) + Company name (EN + FA)
-- Status badge (colored, same helper as list page)
-- Edit button (opens CustomerForm in a Dialog)
-- Quick stats row: X contacts, Y interactions, contract value
+Same changes as NewProjectDialog:
+- Add state for `customers`, `contacts`, `selectedCustomerId`, `selectedContactId`
+- Fetch customers on mount
+- When editing, pre-select the current `customer_id` and `client_contact_id`
+- Replace Client Name input (lines 207-214) with Customer dropdown
+- Replace Client Company input (lines 216-223) with Client Contact dropdown (disabled until customer selected)
+- On customer change, load contacts and auto-select primary
+- Update the `.update()` call to include `customer_id` and `client_contact_id`
+- Update the Project interface to include `customer_id` and `client_contact_id`
 
-**Three tabs using Radix Tabs:**
+## Step 4: Update `ProjectsPage.tsx` (List Page)
 
-#### Tab 1: Overview
-- **Company Info card:** industry, company size, website (clickable), email, phone, address/city/country, LinkedIn (link), Instagram (link)
-- **Contract Info card:** contract type (formatted label), start date, end date, monthly value with currency, status
-- **Account Manager card:** manager name (from employees lookup), or "Not assigned"
-- **Tags:** displayed as Badge components
-- **Notes:** displayed in a muted text block
+**Data fetching** (line 113-134):
+- After loading projects, batch-fetch customer names for all projects that have `customer_id`:
+  - Get unique customer IDs, query `customers` table for `id, company_name`
+  - Build a lookup map `{ [id]: company_name }`
 
-#### Tab 2: Contacts
-- "Add Contact" button at top
-- Grid/list of contact cards, each showing:
-  - Photo avatar (or initials fallback)
-  - Full name (EN + FA below)
-  - Job title, department
-  - Email, phone, mobile (with copy-friendly display)
-  - Badges: "Primary Contact" (green), "Decision Maker" (purple), contact type (outline)
-  - Edit and Delete action buttons
-- Empty state when no contacts exist
-- Add/Edit Contact Dialog using `CustomerContactForm`
+**Project card display** (line 422-424):
+- Currently shows `project.client_name` in the CardDescription
+- Change to: if `customer_id` is set, show customer company name (from lookup) as a clickable link to `/customers/:customerId`; otherwise fall back to `project.client_name` text
 
-#### Tab 3: Interactions / Activity
-- "Log Interaction" button at top
-- Filter by interaction type (optional dropdown)
-- **Upcoming follow-ups** section at top: interactions where `follow_up_date` is set and `is_completed` is false, highlighted with a warning/amber card
-- **Timeline list:** each interaction shows:
-  - Type icon (Phone for call, Users for meeting, Mail for email, FileText for proposal, etc.)
-  - Date (formatted)
-  - Subject (bold)
-  - Description (truncated)
-  - Contact name if linked
-  - "Logged by" name from profiles lookup
-  - Mark complete button for follow-ups
-- Empty state when no interactions
-- Log Interaction Dialog using `CustomerInteractionForm`
+**Search filter** (line 157-165):
+- Also search against the customer company name from the lookup map
 
-## No Database Changes Needed
+## Step 5: Update `ProjectDetailsPage.tsx` (Detail Page)
 
-All three tables and RLS policies were created in Phase A.
+**Data fetching** (loadProjectData, lines 202-288):
+- After loading the project, if `customer_id` is set, fetch the customer: `supabase.from('customers').select('id, company_name, company_name_fa').eq('id', project.customer_id).single()`
+- If `client_contact_id` is set, fetch the contact: `supabase.from('customer_contacts').select('first_name, last_name, job_title').eq('id', project.client_contact_id).single()`
+- Store in state: `linkedCustomer`, `linkedContact`
+
+**Display** (lines 481-495):
+- **Company section** (line 489-495): If `linkedCustomer` exists, show company name as a clickable `Link` to `/customers/:id`. Otherwise fall back to `project.client_company` text.
+- **Client section** (line 481-487): If `linkedContact` exists, show `First Last -- Job Title`. Otherwise fall back to `project.client_name` text.
+
+**Update Project interface** (lines 31-47): Add `customer_id?: string` and `client_contact_id?: string`.
 
 ## File Summary
 
-| File | Action |
-|------|--------|
-| `src/components/CustomerContactForm.tsx` | Create |
-| `src/components/CustomerInteractionForm.tsx` | Create |
-| `src/pages/CustomerDetailPage.tsx` | Rewrite |
+| File | Action | Changes |
+|------|--------|---------|
+| Migration SQL | Create | Add `customer_id`, `client_contact_id` columns + index |
+| `src/components/NewProjectDialog.tsx` | Modify | Replace 2 text inputs with customer/contact dropdowns, update schema + submit |
+| `src/components/ProjectEditDialog.tsx` | Modify | Same dropdown changes, pre-populate from existing data |
+| `src/pages/ProjectsPage.tsx` | Modify | Fetch customer names, show as clickable links in cards |
+| `src/pages/ProjectDetailsPage.tsx` | Modify | Fetch linked customer/contact, show as links with fallback |
+
+## Technical Notes
+
+- Legacy `client_name` and `client_company` columns are kept and still populated on save for backward compatibility
+- The customer dropdown is optional (not required) to allow projects without a CRM customer
+- Contact dropdown is disabled until a customer is selected, then auto-selects primary contact
+- All display locations use a fallback pattern: linked FK data first, then legacy text field
 
