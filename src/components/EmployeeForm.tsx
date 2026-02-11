@@ -25,9 +25,6 @@ interface Employee {
   employee_number: string | null;
   department: string | null;
   status: string;
-  hire_date: string | null;
-  email: string | null;
-  phone: string | null;
   user_id: string | null;
 }
 
@@ -69,9 +66,6 @@ const EmployeeForm = ({ employee, onSuccess, onCancel }: EmployeeFormProps) => {
     employee_number: '',
     department: '',
     status: 'active',
-    hire_date: undefined as Date | undefined,
-    email: '',
-    phone: '',
     bank_account_type: '',
     bank_account_number: '',
     bank_name: '',
@@ -111,9 +105,6 @@ const EmployeeForm = ({ employee, onSuccess, onCancel }: EmployeeFormProps) => {
           employee_number: employee.employee_number || '',
           department: employee.department || '',
           status: (employee as any).status || 'active',
-          hire_date: employee.hire_date ? new Date(employee.hire_date) : undefined,
-          email: employee.email || '',
-          phone: employee.phone || '',
           bank_account_type: sensitiveData?.bank_account_type || '',
           bank_account_number: sensitiveData?.bank_account_number || '',
           bank_name: sensitiveData?.bank_name || '',
@@ -184,9 +175,6 @@ const EmployeeForm = ({ employee, onSuccess, onCancel }: EmployeeFormProps) => {
         employee_number: formData.employee_number || null,
         department: formData.department || null,
         status: formData.status,
-        hire_date: formData.hire_date ? format(formData.hire_date, 'yyyy-MM-dd') : null,
-        email: formData.email || null,
-        phone: formData.phone || null,
         user_id: userId,
         created_by: currentUser.data.user.id,
       };
@@ -287,10 +275,8 @@ const EmployeeForm = ({ employee, onSuccess, onCancel }: EmployeeFormProps) => {
       job_title: contractData.jobTitle || prev.job_title,
       department: contractData.department || prev.department,
       status: contractData.employmentType || prev.status,
-      hire_date: contractData.startDate ? new Date(contractData.startDate) : prev.hire_date,
       salary: contractData.salary || prev.salary,
       pay_frequency: contractData.payFrequency || prev.pay_frequency,
-      email: contractData.workEmail || prev.email,
     }));
 
     // Show success toast
@@ -432,24 +418,13 @@ const EmployeeForm = ({ employee, onSuccess, onCancel }: EmployeeFormProps) => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="department">Department</Label>
-                  <Input
-                    id="department"
-                    value={formData.department}
-                    onChange={(e) => setFormData(prev => ({ ...prev, department: e.target.value }))}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="email">Work Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                  />
-                </div>
+              <div>
+                <Label htmlFor="department">Department</Label>
+                <Input
+                  id="department"
+                  value={formData.department}
+                  onChange={(e) => setFormData(prev => ({ ...prev, department: e.target.value }))}
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -491,42 +466,6 @@ const EmployeeForm = ({ employee, onSuccess, onCancel }: EmployeeFormProps) => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label>Hire Date</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full justify-start text-left font-normal",
-                          !formData.hire_date && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {formData.hire_date ? format(formData.hire_date, "PPP") : "Select date"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <CalendarComponent
-                        mode="single"
-                        selected={formData.hire_date}
-                        onSelect={(date) => setFormData(prev => ({ ...prev, hire_date: date }))}
-                        initialFocus
-                        className="pointer-events-auto"
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-                <div>
-                  <Label htmlFor="phone">Phone</Label>
-                  <Input
-                    id="phone"
-                    value={formData.phone}
-                    onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                  />
-                </div>
-              </div>
             </CardContent>
           </Card>
         </TabsContent>
