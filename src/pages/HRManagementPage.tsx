@@ -6,6 +6,7 @@ import Footer from '@/components/Footer';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -33,16 +34,19 @@ import RoleManagement from '@/components/RoleManagement';
 
 interface Employee {
   id: string;
+  user_id: string | null;
+  employee_number: string | null;
   name: string;
   surname: string;
   job_title: string | null;
-  job_type: string | null;
-  employee_number: string | null;
   department: string | null;
   status: string;
+  employment_type: string | null;
+  job_type: string | null;
   start_date: string | null;
+  work_location_type: string | null;
+  profile_photo_url: string | null;
   created_at: string;
-  user_id: string | null;
 }
 
 const HRManagementPage = () => {
@@ -58,6 +62,7 @@ const HRManagementPage = () => {
   // Search and filter states
   const [searchTerm, setSearchTerm] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [employmentTypeFilter, setEmploymentTypeFilter] = useState('all');
   const [jobTypeFilter, setJobTypeFilter] = useState('all');
   const [sortColumn, setSortColumn] = useState('name');
@@ -143,7 +148,7 @@ const HRManagementPage = () => {
     
     setEmployeesLoading(true);
     try {
-      let query = supabase.from('employees').select('*');
+      let query = supabase.from('employees').select('id, user_id, employee_number, name, surname, job_title, department, status, employment_type, job_type, start_date, work_location_type, profile_photo_url, created_at');
       
       // If user is not admin, only fetch their own employee record
       if (userRole !== 'admin') {
@@ -200,10 +205,11 @@ const HRManagementPage = () => {
         (employee.department && employee.department.toLowerCase().includes(searchTerm.toLowerCase()));
 
       const matchesDepartment = departmentFilter === 'all' || employee.department === departmentFilter;
-      const matchesEmploymentType = employmentTypeFilter === 'all' || employee.status === employmentTypeFilter;
+      const matchesStatus = statusFilter === 'all' || employee.status === statusFilter;
+      const matchesEmploymentType = employmentTypeFilter === 'all' || employee.employment_type === employmentTypeFilter;
       const matchesJobType = jobTypeFilter === 'all' || employee.job_type === jobTypeFilter;
 
-      return matchesSearch && matchesDepartment && matchesEmploymentType && matchesJobType;
+      return matchesSearch && matchesDepartment && matchesStatus && matchesEmploymentType && matchesJobType;
     });
 
     // Sort employees
@@ -227,7 +233,7 @@ const HRManagementPage = () => {
     });
 
     return filtered;
-  }, [employees, searchTerm, departmentFilter, employmentTypeFilter, jobTypeFilter, sortColumn, sortDirection]);
+  }, [employees, searchTerm, departmentFilter, statusFilter, employmentTypeFilter, jobTypeFilter, sortColumn, sortDirection]);
 
   const handleSort = (column: string) => {
     if (sortColumn === column) {
@@ -250,8 +256,29 @@ const HRManagementPage = () => {
   const clearFilters = () => {
     setSearchTerm('');
     setDepartmentFilter('all');
+    setStatusFilter('all');
     setEmploymentTypeFilter('all');
     setJobTypeFilter('all');
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'active': return <Badge className="bg-green-100 text-green-800">Active</Badge>;
+      case 'terminated': return <Badge className="bg-red-100 text-red-800">Terminated</Badge>;
+      case 'on_leave': return <Badge className="bg-yellow-100 text-yellow-800">On Leave</Badge>;
+      case 'resigned': return <Badge className="bg-gray-100 text-gray-800">Resigned</Badge>;
+      default: return <Badge variant="outline">{status}</Badge>;
+    }
+  };
+
+  const getEmploymentTypeLabel = (type: string | null) => {
+    switch (type) {
+      case 'full_time': return 'Full Time';
+      case 'part_time': return 'Part Time';
+      case 'contract': return 'Contract';
+      case 'internship': return 'Internship';
+      default: return '-';
+    }
   };
 
   const uniqueDepartments = [...new Set(employees.map(emp => emp.department).filter(Boolean))];
@@ -402,7 +429,7 @@ const HRManagementPage = () => {
                     </SelectContent>
                   </Select>
 
-                  <Select value={employmentTypeFilter} onValueChange={setEmploymentTypeFilter}>
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
                     <SelectTrigger className="w-full sm:w-40">
                       <SelectValue />
                     </SelectTrigger>
@@ -412,6 +439,19 @@ const HRManagementPage = () => {
                       <SelectItem value="on_leave">On Leave</SelectItem>
                       <SelectItem value="terminated">Terminated</SelectItem>
                       <SelectItem value="resigned">Resigned</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <Select value={employmentTypeFilter} onValueChange={setEmploymentTypeFilter}>
+                    <SelectTrigger className="w-full sm:w-44">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Types</SelectItem>
+                      <SelectItem value="full_time">Full Time</SelectItem>
+                      <SelectItem value="part_time">Part Time</SelectItem>
+                      <SelectItem value="contract">Contract</SelectItem>
+                      <SelectItem value="internship">Internship</SelectItem>
                     </SelectContent>
                   </Select>
 
@@ -426,7 +466,7 @@ const HRManagementPage = () => {
                     </SelectContent>
                   </Select>
 
-                  {(searchTerm || departmentFilter !== 'all' || employmentTypeFilter !== 'all' || jobTypeFilter !== 'all') && (
+                  {(searchTerm || departmentFilter !== 'all' || statusFilter !== 'all' || employmentTypeFilter !== 'all' || jobTypeFilter !== 'all') && (
                     <Button variant="outline" onClick={clearFilters} size="sm">
                       <X className="h-4 w-4 mr-2" />
                       Clear
@@ -461,19 +501,10 @@ const HRManagementPage = () => {
                 </div>
               ) : (
                 <div className="rounded-md border overflow-x-auto min-w-full">
-                  <Table className="min-w-[1800px]">
+                  <Table className="min-w-[1000px]">
                     <TableHeader>
                       <TableRow>
-                        {/* Basic Information */}
-                        <TableHead 
-                          className="cursor-pointer select-none min-w-[100px]"
-                          onClick={() => handleSort('employee_number')}
-                        >
-                          <div className="flex items-center gap-2">
-                            Employee #
-                            {getSortIcon('employee_number')}
-                          </div>
-                        </TableHead>
+                        <TableHead className="w-[50px]">Photo</TableHead>
                         <TableHead 
                           className="cursor-pointer select-none min-w-[150px]"
                           onClick={() => handleSort('name')}
@@ -481,6 +512,15 @@ const HRManagementPage = () => {
                           <div className="flex items-center gap-2">
                             Name
                             {getSortIcon('name')}
+                          </div>
+                        </TableHead>
+                        <TableHead 
+                          className="cursor-pointer select-none min-w-[100px]"
+                          onClick={() => handleSort('employee_number')}
+                        >
+                          <div className="flex items-center gap-2">
+                            Employee #
+                            {getSortIcon('employee_number')}
                           </div>
                         </TableHead>
                         <TableHead 
@@ -501,8 +541,6 @@ const HRManagementPage = () => {
                             {getSortIcon('department')}
                           </div>
                         </TableHead>
-                        
-                        {/* Employment Details */}
                         <TableHead 
                           className="cursor-pointer select-none min-w-[100px]"
                           onClick={() => handleSort('status')}
@@ -510,6 +548,15 @@ const HRManagementPage = () => {
                           <div className="flex items-center gap-2">
                             Status
                             {getSortIcon('status')}
+                          </div>
+                        </TableHead>
+                        <TableHead 
+                          className="cursor-pointer select-none min-w-[120px]"
+                          onClick={() => handleSort('employment_type')}
+                        >
+                          <div className="flex items-center gap-2">
+                            Employment Type
+                            {getSortIcon('employment_type')}
                           </div>
                         </TableHead>
                         <TableHead 
@@ -521,135 +568,35 @@ const HRManagementPage = () => {
                             {getSortIcon('job_type')}
                           </div>
                         </TableHead>
-                        <TableHead 
-                          className="cursor-pointer select-none min-w-[100px]"
-                          onClick={() => handleSort('start_date')}
-                        >
-                          <div className="flex items-center gap-2">
-                            Start Date
-                            {getSortIcon('start_date')}
-                          </div>
-                        </TableHead>
-                        <TableHead 
-                          className="cursor-pointer select-none min-w-[100px]"
-                          onClick={() => handleSort('end_date')}
-                        >
-                          <div className="flex items-center gap-2">
-                            End Date
-                            {getSortIcon('end_date')}
-                          </div>
-                        </TableHead>
-                        
-                        {/* Contact Information */}
-                        <TableHead className="min-w-[120px]">Phone</TableHead>
-                        <TableHead className="min-w-[150px]">Personal Email</TableHead>
-                        <TableHead className="min-w-[200px]">Address</TableHead>
-                        
-                        {/* Personal Details */}
-                        <TableHead 
-                          className="cursor-pointer select-none min-w-[100px]"
-                          onClick={() => handleSort('date_of_birth')}
-                        >
-                          <div className="flex items-center gap-2">
-                            Date of Birth
-                            {getSortIcon('date_of_birth')}
-                          </div>
-                        </TableHead>
-                        
-                        {/* Financial Information */}
-                        <TableHead 
-                          className="cursor-pointer select-none min-w-[100px]"
-                          onClick={() => handleSort('salary')}
-                        >
-                          <div className="flex items-center gap-2">
-                            Salary
-                            {getSortIcon('salary')}
-                          </div>
-                        </TableHead>
-                        <TableHead className="min-w-[100px]">Pay Frequency</TableHead>
-                        <TableHead className="min-w-[150px]">Bank Details</TableHead>
-                        
-                        {/* Documents */}
-                        <TableHead className="min-w-[120px]">Contract ID</TableHead>
-                        
                         <TableHead className="min-w-[120px]">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {filteredAndSortedEmployees.map((employee) => (
                         <TableRow key={employee.id}>
-                          {/* Basic Information */}
-                          <TableCell className="font-medium">
-                            {employee.employee_number}
+                          <TableCell>
+                            <Avatar className="h-8 w-8">
+                              {employee.profile_photo_url ? (
+                                <AvatarImage src={employee.profile_photo_url} alt={employee.name} />
+                              ) : null}
+                              <AvatarFallback className="text-xs">
+                                {employee.name?.charAt(0)}{employee.surname?.charAt(0)}
+                              </AvatarFallback>
+                            </Avatar>
                           </TableCell>
                           <TableCell>
-                            <div>
-                              <div className="font-medium">
-                                {employee.name} {employee.surname}
-                              </div>
-                            </div>
+                            <div className="font-medium">{employee.name} {employee.surname}</div>
                           </TableCell>
+                          <TableCell className="font-medium">{employee.employee_number || '-'}</TableCell>
                           <TableCell>{employee.job_title || '-'}</TableCell>
                           <TableCell>{employee.department || '-'}</TableCell>
-                          
-                          {/* Employment Details */}
-                          <TableCell>
-                            <Badge variant="outline">
-                              {employee.status.replace('_', ' ')}
-                            </Badge>
-                          </TableCell>
+                          <TableCell>{getStatusBadge(employee.status)}</TableCell>
+                          <TableCell>{getEmploymentTypeLabel(employee.employment_type)}</TableCell>
                           <TableCell>
                             <Badge variant={employee.job_type === 'admin' ? 'default' : 'secondary'}>
                               {employee.job_type === 'admin' ? 'Admin' : 'User'}
                             </Badge>
                           </TableCell>
-                          <TableCell>
-                            {(employee as any).start_date ? new Date((employee as any).start_date).toLocaleDateString() : '-'}
-                          </TableCell>
-                          <TableCell>
-                            {employee.status === 'active' ? (
-                              <Badge variant="outline" className="text-green-600">
-                                Active
-                              </Badge>
-                            ) : (
-                              <Badge variant="outline" className="text-destructive">
-                                {employee.status}
-                              </Badge>
-                            )}
-                          </TableCell>
-                          
-                          {/* Contact Information - Redacted for security */}
-                          <TableCell>
-                            <Badge variant="secondary">Protected</Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="secondary">Protected</Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="secondary">Protected</Badge>
-                          </TableCell>
-                          
-                          {/* Personal Details - Redacted */}
-                          <TableCell>
-                            <Badge variant="secondary">Protected</Badge>
-                          </TableCell>
-                          
-                          {/* Financial Information - Redacted */}
-                          <TableCell>
-                            <Badge variant="secondary">Protected</Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="secondary">Protected</Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="secondary">Protected</Badge>
-                          </TableCell>
-                          
-                          {/* Documents - Redacted */}
-                          <TableCell>
-                            <Badge variant="secondary">Protected</Badge>
-                          </TableCell>
-                          
                           <TableCell>
                             <div className="flex items-center gap-2">
                               {userRole === 'admin' && (
@@ -673,7 +620,7 @@ const HRManagementPage = () => {
                                   </Button>
                                 </>
                               )}
-                              {userRole !== 'admin' && employees.length > 0 && (
+                              {userRole !== 'admin' && (
                                 <span className="text-sm text-muted-foreground">View Only</span>
                               )}
                             </div>
