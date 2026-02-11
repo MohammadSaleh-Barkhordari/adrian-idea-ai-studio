@@ -1248,6 +1248,8 @@ export type Database = {
           body: string | null
           created_at: string
           created_by: string | null
+          customer_contact_id: string | null
+          customer_id: string | null
           date: string | null
           document_id: string | null
           file_url: string | null
@@ -1279,6 +1281,8 @@ export type Database = {
           body?: string | null
           created_at?: string
           created_by?: string | null
+          customer_contact_id?: string | null
+          customer_id?: string | null
           date?: string | null
           document_id?: string | null
           file_url?: string | null
@@ -1310,6 +1314,8 @@ export type Database = {
           body?: string | null
           created_at?: string
           created_by?: string | null
+          customer_contact_id?: string | null
+          customer_id?: string | null
           date?: string | null
           document_id?: string | null
           file_url?: string | null
@@ -1350,6 +1356,20 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "letters_customer_contact_id_fkey"
+            columns: ["customer_contact_id"]
+            isOneToOne: false
+            referencedRelation: "customer_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "letters_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
             referencedColumns: ["id"]
           },
           {
