@@ -730,6 +730,7 @@ export type Database = {
           end_date: string | null
           id: string
           job_title: string | null
+          job_title_fa: string | null
           job_type: string | null
           manager_id: string | null
           name: string
@@ -754,6 +755,7 @@ export type Database = {
           end_date?: string | null
           id?: string
           job_title?: string | null
+          job_title_fa?: string | null
           job_type?: string | null
           manager_id?: string | null
           name: string
@@ -778,6 +780,7 @@ export type Database = {
           end_date?: string | null
           id?: string
           job_title?: string | null
+          job_title_fa?: string | null
           job_type?: string | null
           manager_id?: string | null
           name?: string
