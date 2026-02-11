@@ -44,6 +44,8 @@ const DataProcessingPageFa = lazy(() => import("./pages/fa/DataProcessingPage"))
 const InstallAppPage = lazy(() => import("./pages/InstallAppPage"));
 const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
 const EmailPage = lazy(() => import("./pages/EmailPage"));
+const CustomerManagementPage = lazy(() => import("./pages/CustomerManagementPage"));
+const CustomerDetailPage = lazy(() => import("./pages/CustomerDetailPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
@@ -105,6 +107,8 @@ const App = () => (
                 <Route path="/install" element={<InstallAppPage />} />
                 <Route path="/reset-password" element={<ResetPasswordPage />} />
                 <Route path="/email" element={<EmailPage />} />
+                <Route path="/customers" element={<CustomerManagementPage />} />
+                <Route path="/customers/:customerId" element={<CustomerDetailPage />} />
                 
                 {/* Blog Dashboard routes */}
                 <Route path="/dashboard/blog" element={<BlogDashboardPage />} />
