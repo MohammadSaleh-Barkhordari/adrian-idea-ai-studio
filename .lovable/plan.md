@@ -1,71 +1,71 @@
 
 
-# Add Job Title (Persian) Field
+# Customer Management (B2B CRM) -- Phase A: Database + Navigation
 
 ## Overview
 
-Add a `job_title_fa` column to the `employees` table and integrate it into the Employment tab of the Employee Form and the HR Management directory table.
+Create 3 database tables (customers, customer_contacts, customer_interactions), add "Customers" to the dashboard navigation, create routing, and scaffold an empty Customer Management page.
 
 ## Step 1: Database Migration
 
-Add `job_title_fa` column to the `employees` table:
+Single migration with all 3 tables, RLS policies, indexes, and triggers. The SQL is exactly as specified in the request, with minor adjustments:
 
-```sql
-ALTER TABLE employees ADD COLUMN job_title_fa text;
+- `customers` table with 25+ columns, RLS (admins manage all, employees can view), indexes on status and account_manager_id, updated_at trigger
+- `customer_contacts` table with CASCADE delete on customer_id, RLS matching customers pattern, indexes on customer_id and primary contact, updated_at trigger
+- `customer_interactions` table with CASCADE on customer_id and SET NULL on contact_id, RLS (admins manage all, employees view + insert), indexes on customer_id, date, and follow-up
+
+## Step 2: Add "Customers" to Dashboard Navigation
+
+In `src/pages/DashboardPage.tsx`, add a new dashboard item after "HR Management":
+
+```typescript
+{
+  title: 'Customers',
+  description: 'Manage B2B customers and contacts',
+  icon: Building2,
+  path: '/customers',
+  color: 'text-amber-500',
+  requiresAdmin: true
+}
 ```
 
-No RLS changes needed -- existing policies cover the column.
+Import `Building2` from lucide-react.
 
-## Step 2: Update `src/components/EmployeeForm.tsx`
+## Step 3: Add Routes in App.tsx
 
-### 2a. Add to Employee interface (line 20 area)
-Add `job_title_fa?: string | null;`
+Add two new routes:
+- `/customers` -- CustomerManagementPage (list)
+- `/customers/:customerId` -- CustomerDetailPage (detail)
 
-### 2b. Add to formData initial state (line 79 area)
-Add `job_title_fa: '',` in the Employment tab section.
+Both lazy-loaded following existing pattern.
 
-### 2c. Update loadEmployeeData
-Map `job_title_fa` from the employee object.
+## Step 4: Create Empty Pages
 
-### 2d. Update handleSubmit employeeData object
-Add `job_title_fa: formData.job_title_fa || null,`
+### `src/pages/CustomerManagementPage.tsx`
+Scaffold with Navigation, Footer, auth check, admin role check -- matching HRManagementPage pattern. Show "Customer Management" header with an "Add Customer" button (disabled for now). Empty state message.
 
-### 2e. Update Employment tab JSX (after line 640)
+### `src/pages/CustomerDetailPage.tsx`
+Scaffold with Navigation, Footer, auth check. Show "Customer Detail" header with back button. Placeholder content.
 
-Change Row 1 from a 2-column grid to include Job Title Persian. The new layout:
+## Step 5: Storage Bucket
 
-- Row 1: Employee Number | Job Title (English)
-- Row 1b (new): Job Title (Persian) -- full width input below
+Create a `customer-logos` public storage bucket for company logos and contact photos.
 
-```tsx
-{/* Job Title Persian */}
-<div>
-  <Label htmlFor="job_title_fa">Job Title (Persian)</Label>
-  <Input
-    id="job_title_fa"
-    value={formData.job_title_fa}
-    onChange={(e) => setFormData(prev => ({ ...prev, job_title_fa: e.target.value }))}
-    dir="rtl"
-    placeholder="عنوان شغلی"
-  />
-</div>
-```
+## Files to create/modify
 
-## Step 3: Update `src/pages/HRManagementPage.tsx`
-
-### 3a. Add to Employee interface (line 41 area)
-Add `job_title_fa: string | null;`
-
-### 3b. Update fetchEmployees select query
-Add `job_title_fa` to the selected fields.
-
-### 3c. Add Job Title (Persian) column to the directory table
-Add a new column header and cell after Job Title, showing `job_title_fa` or `-` if null.
+| File | Action |
+|------|--------|
+| Migration SQL | Create 3 tables + RLS + indexes + triggers |
+| `src/App.tsx` | Add 2 lazy routes |
+| `src/pages/DashboardPage.tsx` | Add Customers card + Building2 import |
+| `src/pages/CustomerManagementPage.tsx` | New scaffold page |
+| `src/pages/CustomerDetailPage.tsx` | New scaffold page |
 
 ## Technical Notes
 
-- One migration: adding a single nullable text column
-- Three code touch points: Employee interface, form state/JSX, and directory table
-- The field is optional (nullable) so no existing data breaks
-- Input uses `dir="rtl"` for proper Persian text entry
+- No changes to existing tables
+- RLS uses `has_role()` for admins and subquery on `employees.user_id` for employee access -- same pattern as other tables
+- The `account_manager_id` references `employees(id)`, linking customers to internal staff
+- `created_by` references `profiles(id)` for audit trail consistency
+- Phase B will implement the full customer list UI with stats, filters, table, and Add Customer form
 
