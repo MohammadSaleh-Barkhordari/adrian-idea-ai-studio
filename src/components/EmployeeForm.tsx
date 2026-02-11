@@ -8,13 +8,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { Calendar, CalendarIcon } from 'lucide-react';
+import { CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
-import ContractUpload from './ContractUpload';
-import UserSelector from './UserSelector';
+import EmployeeFormDocuments from '@/components/hr/EmployeeFormDocuments';
+import EmployeeFormInsurance from '@/components/hr/EmployeeFormInsurance';
 
 interface Employee {
   id: string;
@@ -26,22 +26,7 @@ interface Employee {
   department: string | null;
   status: string;
   user_id: string | null;
-}
-
-interface EmployeeSensitiveData {
-  home_address?: string;
-  phone_number?: string;
-  date_of_birth?: string;
-  personal_email?: string;
-  national_id?: string;
-  bank_account_type?: 'iranian_bank' | 'international_bank';
-  bank_account_number?: string;
-  bank_name?: string;
-  sort_code?: string;
-  bank_sheba?: string;
-  salary?: number;
-  pay_frequency?: 'monthly' | 'bi_weekly' | 'weekly' | 'annual';
-  employment_contract_id?: string;
+  profile_photo_url?: string | null;
 }
 
 interface EmployeeFormProps {
@@ -53,7 +38,12 @@ interface EmployeeFormProps {
 const EmployeeForm = ({ employee, onSuccess, onCancel }: EmployeeFormProps) => {
   const [loading, setLoading] = useState(false);
   const [dataLoading, setDataLoading] = useState(false);
+  const [profilePhotoFile, setProfilePhotoFile] = useState<File | null>(null);
   const [formData, setFormData] = useState({
+    // Documents tab
+    user_id: '',
+    profile_photo_url: '',
+    // Personal tab
     name: '',
     surname: '',
     home_address: '',
@@ -61,11 +51,14 @@ const EmployeeForm = ({ employee, onSuccess, onCancel }: EmployeeFormProps) => {
     date_of_birth: undefined as Date | undefined,
     personal_email: '',
     national_id: '',
+    // Employment tab
     job_title: '',
     job_type: 'general_user',
     employee_number: '',
     department: '',
     status: 'active',
+    employment_contract_id: '',
+    // Banking tab
     bank_account_type: '',
     bank_account_number: '',
     bank_name: '',
@@ -73,10 +66,6 @@ const EmployeeForm = ({ employee, onSuccess, onCancel }: EmployeeFormProps) => {
     bank_sheba: '',
     salary: '',
     pay_frequency: 'monthly',
-    employment_contract_id: '',
-    user_id: '',
-    contract_file_url: '',
-    contract_file_name: '',
   });
 
   const { toast } = useToast();
@@ -85,7 +74,6 @@ const EmployeeForm = ({ employee, onSuccess, onCancel }: EmployeeFormProps) => {
     const loadEmployeeData = async () => {
       if (employee) {
         setDataLoading(true);
-        // Fetch sensitive data separately
         const { data: sensitiveData } = await supabase
           .from('employee_sensitive_data')
           .select('*')
@@ -93,6 +81,8 @@ const EmployeeForm = ({ employee, onSuccess, onCancel }: EmployeeFormProps) => {
           .single();
 
         setFormData({
+          user_id: employee.user_id || '',
+          profile_photo_url: employee.profile_photo_url || '',
           name: employee.name || '',
           surname: employee.surname || '',
           home_address: sensitiveData?.home_address || '',
@@ -105,6 +95,7 @@ const EmployeeForm = ({ employee, onSuccess, onCancel }: EmployeeFormProps) => {
           employee_number: employee.employee_number || '',
           department: employee.department || '',
           status: (employee as any).status || 'active',
+          employment_contract_id: sensitiveData?.employment_contract_id || '',
           bank_account_type: sensitiveData?.bank_account_type || '',
           bank_account_number: sensitiveData?.bank_account_number || '',
           bank_name: sensitiveData?.bank_name || '',
@@ -112,18 +103,12 @@ const EmployeeForm = ({ employee, onSuccess, onCancel }: EmployeeFormProps) => {
           bank_sheba: sensitiveData?.bank_sheba || '',
           salary: sensitiveData?.salary ? sensitiveData.salary.toString() : '',
           pay_frequency: sensitiveData?.pay_frequency || 'monthly',
-          employment_contract_id: sensitiveData?.employment_contract_id || '',
-          user_id: employee.user_id || '',
-          contract_file_url: '',
-          contract_file_name: '',
         });
         setDataLoading(false);
       } else {
-        // Generate employee number for new employees
         generateEmployeeNumber();
       }
     };
-    
     loadEmployeeData();
   }, [employee]);
 
@@ -160,13 +145,11 @@ const EmployeeForm = ({ employee, onSuccess, onCancel }: EmployeeFormProps) => {
         throw new Error('No authenticated user');
       }
 
-      // Validate required fields - fallback to employee.user_id for edit mode
       const userId = formData.user_id || employee?.user_id;
       if (!userId) {
         throw new Error('Associated User is required');
       }
 
-      // Split data into basic employee info and sensitive data
       const employeeData = {
         name: formData.name,
         surname: formData.surname,
@@ -177,6 +160,7 @@ const EmployeeForm = ({ employee, onSuccess, onCancel }: EmployeeFormProps) => {
         status: formData.status,
         user_id: userId,
         created_by: currentUser.data.user.id,
+        profile_photo_url: formData.profile_photo_url || null,
       };
 
       const sensitiveData = {
@@ -196,57 +180,57 @@ const EmployeeForm = ({ employee, onSuccess, onCancel }: EmployeeFormProps) => {
       };
 
       let employeeId: string;
-      
+
       if (employee) {
-        // Update existing employee
         const { error: updateError } = await supabase
           .from('employees')
           .update(employeeData)
           .eq('id', employee.id);
-        
         if (updateError) throw updateError;
         employeeId = employee.id;
-        
-        // Update sensitive data
+
         const { error: sensitiveUpdateError } = await supabase
           .from('employee_sensitive_data')
-          .upsert({
-            employee_id: employeeId,
-            ...sensitiveData
-          }, { onConflict: 'employee_id' });
-        
+          .upsert({ employee_id: employeeId, ...sensitiveData }, { onConflict: 'employee_id' });
         if (sensitiveUpdateError) throw sensitiveUpdateError;
-
-        // Role sync is handled automatically by database trigger on employees.job_type
       } else {
-        // Insert new employee
         const { data: newEmployee, error: insertError } = await supabase
           .from('employees')
           .insert([employeeData])
           .select()
           .single();
-        
         if (insertError) throw insertError;
         employeeId = newEmployee.id;
-        
-        // Insert sensitive data
+
         const { error: sensitiveInsertError } = await supabase
           .from('employee_sensitive_data')
-          .insert({
-            employee_id: employeeId,
-            ...sensitiveData
-          });
-        
+          .insert({ employee_id: employeeId, ...sensitiveData });
         if (sensitiveInsertError) throw sensitiveInsertError;
 
-        // Role sync is handled automatically by database trigger on employees.job_type
+        // Upload buffered profile photo for new employee
+        if (profilePhotoFile) {
+          const filePath = `${employeeId}/profile/${profilePhotoFile.name}`;
+          const { error: uploadError } = await supabase.storage
+            .from('employee-documents')
+            .upload(filePath, profilePhotoFile, { upsert: true });
+
+          if (!uploadError) {
+            const { data: urlData } = supabase.storage
+              .from('employee-documents')
+              .getPublicUrl(filePath);
+
+            await supabase
+              .from('employees')
+              .update({ profile_photo_url: urlData.publicUrl })
+              .eq('id', employeeId);
+          }
+        }
       }
 
       toast({
         title: "Success",
         description: `Employee ${employee ? 'updated' : 'created'} successfully`,
       });
-
       onSuccess();
     } catch (error) {
       console.error('Error saving employee:', error);
@@ -260,50 +244,30 @@ const EmployeeForm = ({ employee, onSuccess, onCancel }: EmployeeFormProps) => {
     }
   };
 
-  const handleContractDataExtracted = (contractData: any) => {
-    setFormData(prev => ({
-      ...prev,
-      // Personal Information
-      name: contractData.name || prev.name,
-      surname: contractData.surname || prev.surname,
-      home_address: contractData.homeAddress || prev.home_address,
-      phone_number: contractData.phoneNumber || prev.phone_number,
-      date_of_birth: contractData.dateOfBirth ? new Date(contractData.dateOfBirth) : prev.date_of_birth,
-      national_id: contractData.nationalId || prev.national_id,
-      // Employment Information
-      employment_contract_id: contractData.contractId || prev.employment_contract_id,
-      job_title: contractData.jobTitle || prev.job_title,
-      department: contractData.department || prev.department,
-      status: contractData.employmentType || prev.status,
-      salary: contractData.salary || prev.salary,
-      pay_frequency: contractData.payFrequency || prev.pay_frequency,
-    }));
-
-    // Show success toast
-    toast({
-      title: "Contract Analyzed Successfully",
-      description: "Personal and employment details have been extracted and populated in the form. Please review and edit as needed.",
-    });
-  };
-
-  const handleContractFileUploaded = (fileUrl: string, fileName: string) => {
-    setFormData(prev => ({
-      ...prev,
-      contract_file_url: fileUrl,
-      contract_file_name: fileName,
-    }));
-  };
-
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <Tabs defaultValue="contract" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="contract">Contract</TabsTrigger>
+      <Tabs defaultValue="documents" className="w-full">
+        <TabsList className="grid w-full grid-cols-5">
+          <TabsTrigger value="documents">Documents</TabsTrigger>
           <TabsTrigger value="personal">Personal</TabsTrigger>
           <TabsTrigger value="employment">Employment</TabsTrigger>
           <TabsTrigger value="banking">Banking</TabsTrigger>
+          <TabsTrigger value="insurance">Insurance & Tax</TabsTrigger>
         </TabsList>
 
+        {/* Tab 1: Documents */}
+        <TabsContent value="documents" className="space-y-4">
+          <EmployeeFormDocuments
+            formData={formData}
+            setFormData={setFormData}
+            employee={employee ? { id: employee.id, user_id: employee.user_id } : null}
+            profilePhotoFile={profilePhotoFile}
+            setProfilePhotoFile={setProfilePhotoFile}
+            dataLoading={dataLoading}
+          />
+        </TabsContent>
+
+        {/* Tab 2: Personal (existing) */}
         <TabsContent value="personal" className="space-y-4">
           <Card>
             <CardHeader>
@@ -390,6 +354,7 @@ const EmployeeForm = ({ employee, onSuccess, onCancel }: EmployeeFormProps) => {
           </Card>
         </TabsContent>
 
+        {/* Tab 3: Employment (existing) */}
         <TabsContent value="employment" className="space-y-4">
           <Card>
             <CardHeader>
@@ -432,9 +397,7 @@ const EmployeeForm = ({ employee, onSuccess, onCancel }: EmployeeFormProps) => {
                   <Label htmlFor="job_type">Job Type *</Label>
                   <Select
                     value={formData.job_type}
-                    onValueChange={(value) => 
-                      setFormData(prev => ({ ...prev, job_type: value }))
-                    }
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, job_type: value }))}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -449,9 +412,7 @@ const EmployeeForm = ({ employee, onSuccess, onCancel }: EmployeeFormProps) => {
                   <Label htmlFor="status">Employment Status *</Label>
                   <Select
                     value={formData.status}
-                    onValueChange={(value) => 
-                      setFormData(prev => ({ ...prev, status: value }))
-                    }
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, status: value }))}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -465,11 +426,11 @@ const EmployeeForm = ({ employee, onSuccess, onCancel }: EmployeeFormProps) => {
                   </Select>
                 </div>
               </div>
-
             </CardContent>
           </Card>
         </TabsContent>
 
+        {/* Tab 4: Banking (existing) */}
         <TabsContent value="banking" className="space-y-4">
           <Card>
             <CardHeader>
@@ -492,7 +453,7 @@ const EmployeeForm = ({ employee, onSuccess, onCancel }: EmployeeFormProps) => {
                   <Label htmlFor="pay_frequency">Pay Frequency</Label>
                   <Select
                     value={formData.pay_frequency}
-                    onValueChange={(value: 'monthly' | 'bi_weekly' | 'weekly' | 'annual') => 
+                    onValueChange={(value: 'monthly' | 'bi_weekly' | 'weekly' | 'annual') =>
                       setFormData(prev => ({ ...prev, pay_frequency: value }))
                     }
                   >
@@ -513,7 +474,7 @@ const EmployeeForm = ({ employee, onSuccess, onCancel }: EmployeeFormProps) => {
                 <Label htmlFor="bank_account_type">Bank Account Type</Label>
                 <Select
                   value={formData.bank_account_type || ''}
-                  onValueChange={(value: 'iranian_bank' | 'international_bank') => 
+                  onValueChange={(value: 'iranian_bank' | 'international_bank') =>
                     setFormData(prev => ({ ...prev, bank_account_type: value }))
                   }
                 >
@@ -571,58 +532,9 @@ const EmployeeForm = ({ employee, onSuccess, onCancel }: EmployeeFormProps) => {
           </Card>
         </TabsContent>
 
-        <TabsContent value="contract" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Contract Information</CardTitle>
-              <CardDescription>Upload and analyze employment contract</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div>
-                <h3 className="text-lg font-semibold mb-4">Upload Contract</h3>
-                <ContractUpload 
-                  onDataExtracted={handleContractDataExtracted}
-                  onFileUploaded={handleContractFileUploaded}
-                />
-              </div>
-              
-              <div className="grid grid-cols-1 gap-4">
-                <div>
-                  <Label htmlFor="employment_contract_id">Contract ID</Label>
-                  <Input
-                    id="employment_contract_id"
-                    value={formData.employment_contract_id}
-                    onChange={(e) => setFormData(prev => ({ ...prev, employment_contract_id: e.target.value }))}
-                    placeholder="Contract reference number or ID"
-                  />
-                </div>
-
-                <UserSelector
-                  value={formData.user_id}
-                  onValueChange={(value, email) => setFormData(prev => ({ 
-                    ...prev, 
-                    user_id: value,
-                    personal_email: email || prev.personal_email
-                  }))}
-                  required={true}
-                />
-
-                {formData.personal_email && (
-                  <div>
-                    <Label htmlFor="auto_personal_email">Personal Email (Auto-populated)</Label>
-                    <Input
-                      id="auto_personal_email"
-                      type="email"
-                      value={formData.personal_email}
-                      disabled
-                      className="bg-muted"
-                      placeholder="Email will be populated from selected user"
-                    />
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+        {/* Tab 5: Insurance & Tax (placeholder) */}
+        <TabsContent value="insurance" className="space-y-4">
+          <EmployeeFormInsurance />
         </TabsContent>
       </Tabs>
 
