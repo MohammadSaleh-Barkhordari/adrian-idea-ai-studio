@@ -1,50 +1,35 @@
 
 
-# Fix: "Associated User is required" Error on Employee Edit
+# Fix: Employee Update Errors
 
-## Root Cause
+## Two bugs found
 
-In `EmployeeForm.tsx`, when editing an employee, the `loadEmployeeData` function is async (it awaits a database query for sensitive data). During this await, `formData` still has its default values including `user_id: ''`. If the user clicks "Update Employee" before the async load completes, the validation at line 170 fails because `formData.user_id` is still empty.
+### Bug 1: "violates check constraint employees_employment_status_check"
+The database CHECK constraint on `employment_type` only allows: **active, on_leave, terminated, resigned**.
+But the form dropdown offers **"inactive"** which is not in that list. Selecting it causes the save to fail.
 
-## Fix (single file change)
+**Fix:** Update the form dropdown in `EmployeeForm.tsx` (line 486) to replace `"inactive"` with values matching the constraint. The valid options should be:
+- Active
+- On Leave
+- Terminated
+- Resigned
 
-**File: `src/components/EmployeeForm.tsx`**
+### Bug 2: "duplicate key violates unique constraint employee_sensitive_data_employee_id_key"
+When updating an employee, the code uses `.upsert()` for `employee_sensitive_data` but without specifying the conflict column. Since `employee_id` has a unique constraint, the upsert needs to specify `onConflict: 'employee_id'` so it updates the existing row instead of trying to insert a duplicate.
 
-1. Add a `dataLoading` state (separate from the submit `loading` state)
-2. Set `dataLoading = true` at the start of `loadEmployeeData`, set it to `false` after `setFormData`
-3. Disable the Submit button while `dataLoading` is true (show "Loading..." text)
-4. As a safety net, in `handleSubmit`, if editing and `formData.user_id` is empty, fall back to `employee.user_id` directly
-
-### Technical Details
-
+**Fix:** Update the upsert call in `EmployeeForm.tsx` (around line 225) to add the `onConflict` option:
 ```typescript
-// Add state
-const [dataLoading, setDataLoading] = useState(false);
-
-// In loadEmployeeData:
-const loadEmployeeData = async () => {
-  if (employee) {
-    setDataLoading(true);
-    // ... existing fetch code ...
-    setFormData({...});
-    setDataLoading(false);
-  } else {
-    generateEmployeeNumber();
-  }
-};
-
-// In handleSubmit, add fallback:
-const userId = formData.user_id || employee?.user_id;
-if (!userId) {
-  throw new Error('Associated User is required');
-}
-// Use userId instead of formData.user_id in employeeData
-
-// In the submit button:
-<Button type="submit" disabled={loading || dataLoading}>
-  {dataLoading ? 'Loading...' : loading ? 'Saving...' : (employee ? 'Update Employee' : 'Create Employee')}
-</Button>
+.upsert({
+  employee_id: employeeId,
+  ...sensitiveData
+}, { onConflict: 'employee_id' })
 ```
 
-This is a minimal, safe fix. No database changes. No other files affected.
+## Files to change
 
+| File | Change |
+|------|--------|
+| `src/components/EmployeeForm.tsx` (line 486) | Replace `"inactive"` dropdown option with `"terminated"` and add `"resigned"` |
+| `src/components/EmployeeForm.tsx` (line ~225) | Add `{ onConflict: 'employee_id' }` to the `.upsert()` call |
+
+No database changes needed. Single file, two small edits.
