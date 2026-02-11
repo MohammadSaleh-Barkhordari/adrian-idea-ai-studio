@@ -39,7 +39,7 @@ interface Employee {
   job_type: string | null;
   employee_number: string | null;
   department: string | null;
-  employment_type: string;
+  status: string;
   hire_date: string | null;
   email: string | null;
   phone: string | null;
@@ -203,7 +203,7 @@ const HRManagementPage = () => {
         (employee.email && employee.email.toLowerCase().includes(searchTerm.toLowerCase()));
 
       const matchesDepartment = departmentFilter === 'all' || employee.department === departmentFilter;
-      const matchesEmploymentType = employmentTypeFilter === 'all' || employee.employment_type === employmentTypeFilter;
+      const matchesEmploymentType = employmentTypeFilter === 'all' || employee.status === employmentTypeFilter;
       const matchesJobType = jobTypeFilter === 'all' || employee.job_type === jobTypeFilter;
 
       return matchesSearch && matchesDepartment && matchesEmploymentType && matchesJobType;
@@ -335,7 +335,7 @@ const HRManagementPage = () => {
                   <div>
                     <p className="text-sm text-muted-foreground">Active Employees</p>
                     <p className="text-2xl font-bold">
-                      {employees.filter(emp => emp.employment_type === 'active').length}
+                      {employees.filter(emp => emp.status === 'active').length}
                     </p>
                   </div>
                 </div>
@@ -410,11 +410,11 @@ const HRManagementPage = () => {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Types</SelectItem>
-                      <SelectItem value="full_time">Full-time</SelectItem>
-                      <SelectItem value="part_time">Part-time</SelectItem>
-                      <SelectItem value="contractor">Contractor</SelectItem>
-                      <SelectItem value="intern">Intern</SelectItem>
+                      <SelectItem value="all">All Status</SelectItem>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="on_leave">On Leave</SelectItem>
+                      <SelectItem value="terminated">Terminated</SelectItem>
+                      <SelectItem value="resigned">Resigned</SelectItem>
                     </SelectContent>
                   </Select>
 
@@ -508,11 +508,11 @@ const HRManagementPage = () => {
                         {/* Employment Details */}
                         <TableHead 
                           className="cursor-pointer select-none min-w-[100px]"
-                          onClick={() => handleSort('employment_type')}
+                          onClick={() => handleSort('status')}
                         >
                           <div className="flex items-center gap-2">
-                            Type
-                            {getSortIcon('employment_type')}
+                            Status
+                            {getSortIcon('status')}
                           </div>
                         </TableHead>
                         <TableHead 
@@ -603,7 +603,7 @@ const HRManagementPage = () => {
                           {/* Employment Details */}
                           <TableCell>
                             <Badge variant="outline">
-                              {employee.employment_type.replace('_', ' ')}
+                              {employee.status.replace('_', ' ')}
                             </Badge>
                           </TableCell>
                           <TableCell>
@@ -615,13 +615,13 @@ const HRManagementPage = () => {
                             {employee.hire_date ? new Date(employee.hire_date).toLocaleDateString() : '-'}
                           </TableCell>
                           <TableCell>
-                            {employee.employment_type === 'active' ? (
+                            {employee.status === 'active' ? (
                               <Badge variant="outline" className="text-green-600">
                                 Active
                               </Badge>
                             ) : (
                               <Badge variant="outline" className="text-destructive">
-                                {employee.employment_type}
+                                {employee.status}
                               </Badge>
                             )}
                           </TableCell>
