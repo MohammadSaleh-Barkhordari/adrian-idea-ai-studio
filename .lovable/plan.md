@@ -1,97 +1,129 @@
 
 
-# Link Writing a Letter to CRM
+# Letter-CRM Integration: Honorifics + Persian Data
 
 ## Overview
 
-Add Customer and Client Contact dropdowns to the letter composition form, enabling auto-fill of recipient fields from CRM data. Support pre-filling when navigating from a project page. Add optional `customer_id` and `customer_contact_id` FK columns to the `letters` table for traceability.
+Add Persian honorific and job title fields to customer contacts, update the contact form, and modify the Writing a Letter page to auto-fill recipient fields with Persian data (honorific + last name, Persian job title, Persian company name) instead of English.
 
-## Step 1: Database Migration (Optional FK columns)
+## Step 1: Database Migration
+
+Add two new columns to `customer_contacts`:
 
 ```sql
-ALTER TABLE letters ADD COLUMN IF NOT EXISTS customer_id uuid REFERENCES customers(id);
-ALTER TABLE letters ADD COLUMN IF NOT EXISTS customer_contact_id uuid REFERENCES customer_contacts(id);
+ALTER TABLE customer_contacts ADD COLUMN IF NOT EXISTS honorific_fa text;
+ALTER TABLE customer_contacts ADD COLUMN IF NOT EXISTS job_title_fa text;
 ```
 
-Lightweight change -- just two nullable columns for optional CRM linkage.
+No other schema changes needed. `first_name_fa`, `last_name_fa` already exist on `customer_contacts`, and `company_name_fa` already exists on `customers`.
 
-## Step 2: Update `src/pages/WritingLetterPage.tsx`
+## Step 2: Update `src/components/CustomerContactForm.tsx`
 
-This is the only file that needs significant changes.
+### Form State
 
-### New State Variables
+Add two new fields to the form state object:
+- `honorific_fa: ''`
+- `job_title_fa: ''`
 
-- `customers` -- array of `{ id, company_name, customer_status }` fetched from `customers` table
-- `contacts` -- array of customer contacts, loaded when a customer is selected
-- `selectedCustomer` -- selected customer ID
-- `selectedContact` -- selected contact ID
-- `crmAutoFilled` -- object tracking which fields were auto-filled (for "from CRM" hints)
+Update the `useEffect` that populates form from `contact` prop to include these fields.
 
-### New Data Fetching
+### ContactType Interface
 
-- `fetchCustomers()` -- called on mount: `supabase.from('customers').select('id, company_name, customer_status').order('company_name')`
-- `fetchContacts(customerId)` -- called when customer changes: `supabase.from('customer_contacts').select('*').eq('customer_id', customerId).eq('is_active', true)`
-- Update `fetchProjects()` -- when a customer is selected, filter: `.eq('customer_id', selectedCustomerId)` plus include unlinked projects. When no customer, show all projects.
+Add to the exported `ContactType` interface:
+- `honorific_fa: string | null`
+- `job_title_fa: string | null`
 
-### Customer Selection Handler
+### New Form Fields (placed after the Persian name row)
 
-When a customer is selected:
-1. Set `selectedCustomer`, clear `selectedContact`
-2. Auto-fill `recipientCompany` from `company_name`
-3. Fetch contacts for that customer
-4. Auto-select primary contact (`is_primary_contact = true`) if one exists
-5. Re-fetch projects filtered by `customer_id`
-6. Mark `crmAutoFilled` flags for company field
+**Honorific (Persian)** -- a Select dropdown with predefined options + a custom text input fallback:
+- Options: `آقای`, `خانم`, `جناب`, `سرکار خانم`, `دکتر`, `مهندس`, `حجت‌الاسلام`, `custom`
+- When "custom" is selected, show a text Input below for free-form entry
+- Label: `Honorific (FA)`, RTL
 
-### Contact Selection Handler
+**Job Title (Persian)** -- a text Input:
+- Label: `Job Title (FA)`, `dir="rtl"`
+- Placeholder: e.g., `مدیر عامل`
 
-When a contact is selected:
-1. Set `selectedContact`
-2. Auto-fill `recipientName` from `first_name + ' ' + last_name`
-3. Auto-fill `recipientPosition` from `job_title`
-4. Mark `crmAutoFilled` flags for name and position fields
-
-### Pre-fill from Project (location.state)
-
-Enhance the existing `location.state?.selectedProjectId` logic:
-- After selecting the project, fetch the project's `customer_id` and `client_contact_id`
-- If `customer_id` exists: auto-select customer, load contacts, load filtered projects
-- If `client_contact_id` exists: auto-select contact, fill recipient fields
-
-### Updated Form Layout
-
-```text
-Row 1: Customer (dropdown)          | Client Contact (dropdown, disabled until customer selected)
-Row 2: Recipient Name (editable)    | Recipient Position (editable)
-Row 3: Recipient Company (editable) | Date
-Row 4: Project (filtered)           | Document
+Place these in a 2-column grid row right after the Persian names row:
+```
+Row: Honorific (FA) dropdown | Job Title (FA) text input
 ```
 
-Each auto-filled field shows a small "from CRM" text hint below the input in muted text. Fields remain fully editable.
+### Submit Payload
 
-### Submit Updates
+Add `honorific_fa` and `job_title_fa` to the insert/update payload.
 
-When inserting into `letters` table, include `customer_id` and `customer_contact_id` if selected. These are stored alongside the text fields for traceability.
+## Step 3: Update `src/pages/WritingLetterPage.tsx`
+
+### CrmContact Interface Update
+
+Add Persian fields to the `CrmContact` interface:
+- `first_name_fa: string | null`
+- `last_name_fa: string | null`
+- `honorific_fa: string | null`
+- `job_title_fa: string | null`
+
+### CrmCustomer Interface Update
+
+Add `company_name_fa: string | null` to the `CrmCustomer` interface.
+
+### fetchCustomers Update
+
+Change the select to include `company_name_fa`:
+```
+.select('id, company_name, company_name_fa, customer_status')
+```
+
+### fetchContacts Update
+
+Change the select to include Persian fields:
+```
+.select('id, first_name, last_name, first_name_fa, last_name_fa, honorific_fa, job_title, job_title_fa, is_primary_contact')
+```
+
+### Auto-fill Logic Changes
+
+**`handleCustomerChange`**: When a customer is selected:
+- Set `recipientCompany` to `company_name_fa` if available, otherwise `company_name` (Persian first)
+
+**`applyContact`**: When a contact is selected/applied:
+- Set `recipientName` to:
+  - `honorific_fa + ' ' + last_name_fa` if both exist (e.g., "جناب کریمی")
+  - Just `last_name_fa` if honorific is empty but last_name_fa exists
+  - Fallback to `first_name + ' ' + last_name` (English) if no Persian data
+- Set `recipientPosition` to:
+  - `job_title_fa` if available
+  - Fallback to `job_title` (English)
+
+**`prefillFromProject`**: Same cascading logic applies -- when fetching the customer for pre-fill, include `company_name_fa` and use Persian-first auto-fill.
+
+### Dropdown Display (Bilingual)
+
+**Customer dropdown items**: Show both languages for identification:
+```
+company_name — company_name_fa
+```
+Example: "ISACO -- ایساکو". If no FA name, show EN only.
+
+**Contact dropdown items**: Show both languages + Persian job title:
+```
+First Last — first_name_fa last_name_fa — job_title_fa
+```
+Example: "Davood Karimi -- داوود کریمی -- قائم مقام". Omit parts that are null.
+
+### Recipient Text Fields
+
+Add `dir="rtl"` to the Recipient Name, Position, and Company Input elements since the auto-filled content will be Persian. The fields remain fully editable.
 
 ### Voice Input Enhancement
 
-In `handleFieldsExtracted`, after setting text fields, attempt fuzzy matching:
-- Search `customers` for a company name match using `.ilike('company_name', '%extracted_company%')`
-- If found, auto-select the customer and trigger the cascading logic
-- If not found, just fill text fields as before (current behavior preserved)
-
-### Reset Form
-
-Add `selectedCustomer`, `selectedContact`, and `crmAutoFilled` to the `resetForm()` function.
+In `handleFieldsExtracted`, when a CRM match is found, the `applyContact` and `handleCustomerChange` functions will now automatically use Persian data. No additional changes needed beyond what those functions already do -- the voice handler calls them and they now output Persian.
 
 ## File Summary
 
 | File | Action | Changes |
 |------|--------|---------|
-| Migration SQL | Create | Add `customer_id`, `customer_contact_id` to `letters` |
-| `src/pages/WritingLetterPage.tsx` | Modify | Add CRM dropdowns, auto-fill logic, project filtering, pre-fill from project, voice matching |
-
-## No Other Files Affected
-
-The `VoiceRecorder`, `LetterBuilder`, and `NewLetterDialog` components do not need changes -- they work with the text fields which remain the source of truth for letter content.
+| Migration SQL | Create | Add `honorific_fa`, `job_title_fa` to `customer_contacts` |
+| `src/components/CustomerContactForm.tsx` | Modify | Add honorific dropdown + job_title_fa field, update interface + payload |
+| `src/pages/WritingLetterPage.tsx` | Modify | Update interfaces, fetch Persian fields, Persian-first auto-fill, bilingual dropdowns, RTL inputs |
 
