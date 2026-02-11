@@ -225,7 +225,7 @@ const EmployeeForm = ({ employee, onSuccess, onCancel }: EmployeeFormProps) => {
           .upsert({
             employee_id: employeeId,
             ...sensitiveData
-          });
+          }, { onConflict: 'employee_id' });
         
         if (sensitiveUpdateError) throw sensitiveUpdateError;
 
@@ -483,8 +483,9 @@ const EmployeeForm = ({ employee, onSuccess, onCancel }: EmployeeFormProps) => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="active">Active</SelectItem>
-                      <SelectItem value="inactive">Inactive</SelectItem>
                       <SelectItem value="on_leave">On Leave</SelectItem>
+                      <SelectItem value="terminated">Terminated</SelectItem>
+                      <SelectItem value="resigned">Resigned</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
