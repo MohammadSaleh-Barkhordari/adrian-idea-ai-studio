@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Navigation from '@/components/Navigation';
@@ -13,6 +13,20 @@ import { ArrowLeft, FileText, Sparkles } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import VoiceRecorder from '@/components/VoiceRecorder';
 import LetterBuilder from '@/components/LetterBuilder';
+
+interface CrmCustomer {
+  id: string;
+  company_name: string;
+  customer_status: string;
+}
+
+interface CrmContact {
+  id: string;
+  first_name: string;
+  last_name: string;
+  job_title: string | null;
+  is_primary_contact: boolean | null;
+}
 
 const WritingLetterPage = () => {
   const navigate = useNavigate();
@@ -42,8 +56,145 @@ const WritingLetterPage = () => {
   const [editableBody, setEditableBody] = useState('');
   const [currentLetter, setCurrentLetter] = useState<any>(null);
   const [showLetterBuilder, setShowLetterBuilder] = useState(false);
-  
+
+  // CRM state
+  const [customers, setCustomers] = useState<CrmCustomer[]>([]);
+  const [contacts, setContacts] = useState<CrmContact[]>([]);
+  const [selectedCustomer, setSelectedCustomer] = useState('');
+  const [selectedContact, setSelectedContact] = useState('');
+  const [crmAutoFilled, setCrmAutoFilled] = useState<{
+    recipientName?: boolean;
+    recipientPosition?: boolean;
+    recipientCompany?: boolean;
+  }>({});
+
   const { toast } = useToast();
+
+  // ---- Data fetching ----
+
+  const fetchCustomers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('customers')
+        .select('id, company_name, customer_status')
+        .order('company_name');
+      if (error) throw error;
+      setCustomers(data || []);
+    } catch (error) {
+      console.error('Error fetching customers:', error);
+    }
+  };
+
+  const fetchContacts = async (customerId: string) => {
+    if (!customerId) { setContacts([]); return; }
+    try {
+      const { data, error } = await supabase
+        .from('customer_contacts')
+        .select('id, first_name, last_name, job_title, is_primary_contact')
+        .eq('customer_id', customerId)
+        .eq('is_active', true)
+        .order('is_primary_contact', { ascending: false });
+      if (error) throw error;
+      setContacts(data || []);
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching contacts:', error);
+      setContacts([]);
+      return [];
+    }
+  };
+
+  const fetchProjects = useCallback(async (customerId?: string) => {
+    try {
+      let query = supabase
+        .from('adrian_projects')
+        .select('project_id, project_name, customer_id')
+        .order('created_at', { ascending: false });
+
+      // If a customer is selected, show their projects + unlinked projects
+      // We'll filter client-side for the OR condition
+      const { data, error } = await query;
+      if (error) throw error;
+
+      if (customerId) {
+        const filtered = (data || []).filter(
+          p => p.customer_id === customerId || !p.customer_id
+        );
+        setProjects(filtered);
+      } else {
+        setProjects(data || []);
+      }
+    } catch (error) {
+      console.error('Error fetching projects:', error);
+    }
+  }, []);
+
+  const fetchDocuments = async (projectId: string) => {
+    if (!projectId) { setDocuments([]); return; }
+    try {
+      const { data, error } = await supabase
+        .from('documents')
+        .select('id, title')
+        .eq('project_id', projectId)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      setDocuments(data || []);
+    } catch (error) {
+      console.error('Error fetching documents:', error);
+      setDocuments([]);
+    }
+  };
+
+  // ---- CRM handlers ----
+
+  const handleCustomerChange = async (customerId: string) => {
+    setSelectedCustomer(customerId);
+    setSelectedContact('');
+
+    const customer = customers.find(c => c.id === customerId);
+    if (customer) {
+      setRecipientCompany(customer.company_name);
+      setCrmAutoFilled(prev => ({ ...prev, recipientCompany: true }));
+    }
+
+    // Fetch contacts and auto-select primary
+    const contactList = await fetchContacts(customerId);
+    if (contactList && contactList.length > 0) {
+      const primary = contactList.find(c => c.is_primary_contact);
+      if (primary) {
+        applyContact(primary);
+      }
+    }
+
+    // Re-fetch projects filtered by customer
+    await fetchProjects(customerId);
+  };
+
+  const applyContact = (contact: CrmContact) => {
+    setSelectedContact(contact.id);
+    setRecipientName(`${contact.first_name} ${contact.last_name}`);
+    setRecipientPosition(contact.job_title || '');
+    setCrmAutoFilled(prev => ({
+      ...prev,
+      recipientName: true,
+      recipientPosition: true,
+    }));
+  };
+
+  const handleContactChange = (contactId: string) => {
+    const contact = contacts.find(c => c.id === contactId);
+    if (contact) {
+      applyContact(contact);
+    }
+  };
+
+  const handleProjectChange = (projectId: string) => {
+    setSelectedProject(projectId);
+    setSelectedDocument('');
+    fetchDocuments(projectId);
+  };
+
+  // ---- Voice extracted fields with CRM matching ----
 
   const handleFieldsExtracted = async (fields: {
     recipientName: string;
@@ -56,7 +207,27 @@ const WritingLetterPage = () => {
     setRecipientCompany(fields.recipientCompany);
     setUserRequest(fields.userRequest);
 
-    // Create letter record with extracted fields and status
+    // Try to match company name against CRM customers
+    if (fields.recipientCompany && customers.length > 0) {
+      const match = customers.find(c =>
+        c.company_name.toLowerCase().includes(fields.recipientCompany.toLowerCase()) ||
+        fields.recipientCompany.toLowerCase().includes(c.company_name.toLowerCase())
+      );
+      if (match) {
+        await handleCustomerChange(match.id);
+        // Try to match contact name
+        if (fields.recipientName) {
+          const contactMatch = contacts.find(c =>
+            `${c.first_name} ${c.last_name}`.toLowerCase().includes(fields.recipientName.toLowerCase())
+          );
+          if (contactMatch) {
+            applyContact(contactMatch);
+          }
+        }
+      }
+    }
+
+    // Create letter record with extracted fields
     if (user) {
       const { data: letterData, error } = await supabase
         .from('letters')
@@ -68,7 +239,9 @@ const WritingLetterPage = () => {
           recipient_position: fields.recipientPosition,
           recipient_company: fields.recipientCompany,
           user_request: fields.userRequest,
-          status: 'fields_extracted'
+          status: 'fields_extracted',
+          customer_id: selectedCustomer || null,
+          customer_contact_id: selectedContact || null,
         })
         .select()
         .single();
@@ -88,31 +261,24 @@ const WritingLetterPage = () => {
     }
   };
 
+  // ---- Auth & role ----
+
   const checkUserRole = async () => {
     if (!user) return;
-    
     try {
       const { data, error } = await supabase
         .from('user_roles')
         .select('role')
         .eq('user_id', user.id)
         .single();
-      
       if (error && error.code !== 'PGRST116') {
         console.error('Error fetching user role:', error);
         return;
       }
-      
       const role = data?.role || 'general_user';
       setUserRole(role);
-      
-      // Redirect non-admin users
       if (role !== 'admin') {
-        toast({
-          title: "Access Denied",
-          description: "You don't have permission to access this page.",
-          variant: "destructive",
-        });
+        toast({ title: "Access Denied", description: "You don't have permission to access this page.", variant: "destructive" });
         navigate('/dashboard');
       }
     } catch (error) {
@@ -121,52 +287,12 @@ const WritingLetterPage = () => {
     }
   };
 
-  useEffect(() => {
-    checkUser();
-    
-    // Check if a project was pre-selected from the project details page
-    if (location.state?.selectedProjectId) {
-      setSelectedProject(location.state.selectedProjectId);
-    }
-    
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        if (event === 'SIGNED_OUT' || !session) {
-          navigate('/auth');
-        } else {
-          setUser(session.user);
-          fetchProjects();
-        }
-      }
-    );
-
-    return () => subscription.unsubscribe();
-  }, [navigate, location.state]);
-
-  useEffect(() => {
-    if (user) {
-      checkUserRole();
-    }
-  }, [user]);
-
-  // Fetch documents when selectedProject changes
-  useEffect(() => {
-    if (selectedProject) {
-      fetchDocuments(selectedProject);
-    }
-  }, [selectedProject]);
-
   const checkUser = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        navigate('/auth');
-        return;
-      }
-      
+      if (!session) { navigate('/auth'); return; }
       setUser(session.user);
-      await fetchProjects();
+      await Promise.all([fetchProjects(), fetchCustomers()]);
     } catch (error) {
       console.error('Error checking user:', error);
       navigate('/auth');
@@ -175,61 +301,109 @@ const WritingLetterPage = () => {
     }
   };
 
-  const fetchProjects = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('adrian_projects')
-        .select('project_id, project_name')
-        .order('created_at', { ascending: false });
+  // ---- Pre-fill from project page ----
 
-      if (error) throw error;
-      setProjects(data || []);
-    } catch (error) {
-      console.error('Error fetching projects:', error);
-    }
-  };
-
-  const fetchDocuments = async (projectId: string) => {
-    if (!projectId) {
-      setDocuments([]);
-      return;
-    }
-
-    try {
-      const { data, error } = await supabase
-        .from('documents')
-        .select('id, title')
-        .eq('project_id', projectId)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setDocuments(data || []);
-    } catch (error) {
-      console.error('Error fetching documents:', error);
-      setDocuments([]);
-    }
-  };
-
-  const handleProjectChange = (projectId: string) => {
+  const prefillFromProject = async (projectId: string) => {
     setSelectedProject(projectId);
-    setSelectedDocument('');
-    fetchDocuments(projectId);
+    try {
+      const { data: project } = await supabase
+        .from('adrian_projects')
+        .select('customer_id, client_contact_id, client_name, client_company')
+        .eq('project_id', projectId)
+        .single();
+
+      if (!project) return;
+
+      if (project.customer_id) {
+        // Auto-select customer and cascade
+        setSelectedCustomer(project.customer_id);
+        const customer = customers.find(c => c.id === project.customer_id);
+        if (customer) {
+          setRecipientCompany(customer.company_name);
+          setCrmAutoFilled(prev => ({ ...prev, recipientCompany: true }));
+        } else {
+          // Customers may not be loaded yet, fetch the specific one
+          const { data: custData } = await supabase
+            .from('customers')
+            .select('id, company_name, customer_status')
+            .eq('id', project.customer_id)
+            .single();
+          if (custData) {
+            setRecipientCompany(custData.company_name);
+            setCrmAutoFilled(prev => ({ ...prev, recipientCompany: true }));
+          }
+        }
+
+        // Load contacts for this customer
+        const contactList = await fetchContacts(project.customer_id);
+
+        if (project.client_contact_id && contactList) {
+          const contact = contactList.find(c => c.id === project.client_contact_id);
+          if (contact) {
+            applyContact(contact);
+          }
+        } else if (contactList && contactList.length > 0) {
+          const primary = contactList.find(c => c.is_primary_contact);
+          if (primary) applyContact(primary);
+        }
+
+        // Filter projects by this customer
+        await fetchProjects(project.customer_id);
+        setSelectedProject(projectId); // re-set after projects refresh
+      } else {
+        // Legacy project — fill text fields if available
+        if (project.client_name) setRecipientName(project.client_name);
+        if (project.client_company) setRecipientCompany(project.client_company);
+      }
+    } catch (error) {
+      console.error('Error pre-filling from project:', error);
+    }
   };
+
+  // ---- Effects ----
+
+  useEffect(() => {
+    checkUser();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (event === 'SIGNED_OUT' || !session) {
+          navigate('/auth');
+        } else {
+          setUser(session.user);
+          fetchProjects();
+          fetchCustomers();
+        }
+      }
+    );
+    return () => subscription.unsubscribe();
+  }, [navigate]);
+
+  // Pre-fill from project after initial data loads
+  useEffect(() => {
+    if (!loading && location.state?.selectedProjectId && user) {
+      prefillFromProject(location.state.selectedProjectId);
+    }
+  }, [loading, user]);
+
+  useEffect(() => {
+    if (user) checkUserRole();
+  }, [user]);
+
+  useEffect(() => {
+    if (selectedProject) fetchDocuments(selectedProject);
+  }, [selectedProject]);
+
+  // ---- Letter generation ----
 
   const handleAILetterGeneration = async () => {
     if (!recipientName.trim() || !userRequest.trim()) {
-      toast({
-        title: "اطلاعات ناقص",
-        description: "لطفاً نام گیرنده و درخواست کاربر را پر کنید.",
-        variant: "destructive",
-      });
+      toast({ title: "اطلاعات ناقص", description: "لطفاً نام گیرنده و درخواست کاربر را پر کنید.", variant: "destructive" });
       return;
     }
 
     setIsGenerating(true);
-
     try {
-      // First, create a temporary letter record to get an ID
       const { data: letterData, error: insertError } = await supabase
         .from('letters')
         .insert({
@@ -242,65 +416,44 @@ const WritingLetterPage = () => {
           user_request: userRequest,
           writer_name: user?.user_metadata?.full_name || user?.email || 'Unknown',
           user_id: user.id,
-          created_by: user.id
+          created_by: user.id,
+          customer_id: selectedCustomer || null,
+          customer_contact_id: selectedContact || null,
         })
         .select()
         .single();
 
       if (insertError) throw insertError;
 
-      // Then, call the generate-letter function to add AI-generated content
       const { data: generateData, error: generateError } = await supabase.functions.invoke('generate-letter', {
         body: {
           letterId: letterData.id,
-          recipientName: recipientName,
-          recipientPosition: recipientPosition,
-          recipientCompany: recipientCompany,
-          userRequest: userRequest,
+          recipientName, recipientPosition, recipientCompany,
+          userRequest,
           projectId: selectedProject || null,
           documentId: selectedDocument || null,
-          userId: user.id
+          userId: user.id,
         }
       });
 
       if (generateError) throw generateError;
+      if (!generateData.success) throw new Error(generateData.error || 'Failed to generate letter');
 
-      if (!generateData.success) {
-        throw new Error(generateData.error || 'Failed to generate letter');
-      }
-
-      // Set the generated letter for display
       setGeneratedLetter({
         subject_line: generateData.subject_line,
         body: generateData.body,
-        date: date,
-        recipient_name: recipientName,
+        date, recipient_name: recipientName,
         recipient_position: recipientPosition,
-        recipient_company: recipientCompany
+        recipient_company: recipientCompany,
       });
-
-      // Set editable fields
       setEditableSubject(generateData.subject_line);
       setEditableBody(generateData.body);
-      
-      // Store current letter data for image generation and update status
-      setCurrentLetter({
-        ...letterData,
-        status: 'letter_generated'
-      });
+      setCurrentLetter({ ...letterData, status: 'letter_generated' });
 
-      toast({
-        title: "نامه تولید شد",
-        description: "نامه شما با موفقیت تولید شد.",
-      });
-
+      toast({ title: "نامه تولید شد", description: "نامه شما با موفقیت تولید شد." });
     } catch (error) {
       console.error('Error generating letter:', error);
-      toast({
-        title: "خطا",
-        description: "خطا در تولید نامه. لطفاً دوباره تلاش کنید.",
-        variant: "destructive",
-      });
+      toast({ title: "خطا", description: "خطا در تولید نامه. لطفاً دوباره تلاش کنید.", variant: "destructive" });
     } finally {
       setIsGenerating(false);
     }
@@ -308,43 +461,42 @@ const WritingLetterPage = () => {
 
   const handleProceedToComposition = async () => {
     try {
-      // Update status to preview_generated when proceeding to composition
       if (currentLetter?.id) {
-        await supabase
-          .from('letters')
-          .update({ status: 'preview_generated' })
-          .eq('id', currentLetter.id);
-        
-        // Update current letter state
-        setCurrentLetter(prev => ({ ...prev, status: 'preview_generated' }));
+        await supabase.from('letters').update({ status: 'preview_generated' }).eq('id', currentLetter.id);
+        setCurrentLetter((prev: any) => ({ ...prev, status: 'preview_generated' }));
       }
       setShowLetterBuilder(true);
     } catch (error) {
       console.error('Error updating letter status:', error);
-      setShowLetterBuilder(true); // Show builder anyway
+      setShowLetterBuilder(true);
     }
   };
 
   const handleLetterGenerated = () => {
-    toast({
-      title: "نامه تولید شد",
-      description: "نامه شما با موفقیت دانلود شد.",
-    });
+    toast({ title: "نامه تولید شد", description: "نامه شما با موفقیت دانلود شد." });
   };
 
   const resetForm = () => {
-    setRecipientName('');
-    setRecipientPosition('');
-    setRecipientCompany('');
+    setRecipientName(''); setRecipientPosition(''); setRecipientCompany('');
     setDate(new Date().toISOString().split('T')[0]);
-    setSelectedProject('');
-    setSelectedDocument('');
-    setUserRequest('');
-    setGeneratedLetter(null);
-    setEditableSubject('');
-    setEditableBody('');
-    setCurrentLetter(null);
-    setShowLetterBuilder(false);
+    setSelectedProject(''); setSelectedDocument(''); setUserRequest('');
+    setGeneratedLetter(null); setEditableSubject(''); setEditableBody('');
+    setCurrentLetter(null); setShowLetterBuilder(false);
+    setSelectedCustomer(''); setSelectedContact('');
+    setCrmAutoFilled({});
+    setContacts([]);
+    fetchProjects();
+  };
+
+  // ---- Status badge helper ----
+  const statusBadge = (status: string) => {
+    const colors: Record<string, string> = {
+      active: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
+      lead: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
+      prospect: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
+      inactive: 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400',
+    };
+    return colors[status] || colors.inactive;
   };
 
   if (loading) {
@@ -358,14 +510,10 @@ const WritingLetterPage = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
-      
+
       <main className="container mx-auto px-6 py-20" dir="ltr">
         <div className="max-w-4xl mx-auto">
-          <Button
-            variant="ghost"
-            className="mb-6"
-            onClick={() => navigate('/dashboard')}
-          >
+          <Button variant="ghost" className="mb-6" onClick={() => navigate('/dashboard')}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Dashboard
           </Button>
@@ -375,9 +523,7 @@ const WritingLetterPage = () => {
               <FileText className="h-8 w-8 text-accent" />
               Writing a Letter
             </h1>
-            <p className="text-muted-foreground">
-              Create professional business letters with ease
-            </p>
+            <p className="text-muted-foreground">Create professional business letters with ease</p>
           </div>
 
           <div className="mb-6">
@@ -387,11 +533,54 @@ const WritingLetterPage = () => {
           <Card className="glass">
             <CardHeader>
               <CardTitle>Compose New Letter</CardTitle>
-              <CardDescription>
-                Fill in the details below to create your letter
-              </CardDescription>
+              <CardDescription>Fill in the details below to create your letter</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
+              {/* Row 1: Customer | Client Contact */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="customer">Customer</Label>
+                  <Select value={selectedCustomer} onValueChange={handleCustomerChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a customer (optional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {customers.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          <span className="flex items-center gap-2">
+                            {c.company_name}
+                            <span className={`text-xs px-1.5 py-0.5 rounded-full ${statusBadge(c.customer_status)}`}>
+                              {c.customer_status}
+                            </span>
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="contact">Client Contact</Label>
+                  <Select
+                    value={selectedContact}
+                    onValueChange={handleContactChange}
+                    disabled={!selectedCustomer}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={selectedCustomer ? "Select a contact" : "Select customer first"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {contacts.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.first_name} {c.last_name}{c.job_title ? ` — ${c.job_title}` : ''}
+                          {c.is_primary_contact ? ' ★' : ''}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Row 2: Recipient Name | Recipient Position */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="recipientName">Recipient Name *</Label>
@@ -399,8 +588,11 @@ const WritingLetterPage = () => {
                     id="recipientName"
                     placeholder="Enter recipient name..."
                     value={recipientName}
-                    onChange={(e) => setRecipientName(e.target.value)}
+                    onChange={(e) => { setRecipientName(e.target.value); setCrmAutoFilled(prev => ({ ...prev, recipientName: false })); }}
                   />
+                  {crmAutoFilled.recipientName && (
+                    <p className="text-xs text-muted-foreground">from CRM</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="recipientPosition">Recipient Position</Label>
@@ -408,11 +600,15 @@ const WritingLetterPage = () => {
                     id="recipientPosition"
                     placeholder="Enter recipient position..."
                     value={recipientPosition}
-                    onChange={(e) => setRecipientPosition(e.target.value)}
+                    onChange={(e) => { setRecipientPosition(e.target.value); setCrmAutoFilled(prev => ({ ...prev, recipientPosition: false })); }}
                   />
+                  {crmAutoFilled.recipientPosition && (
+                    <p className="text-xs text-muted-foreground">from CRM</p>
+                  )}
                 </div>
               </div>
 
+              {/* Row 3: Recipient Company | Date */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="recipientCompany">Recipient Company</Label>
@@ -420,8 +616,11 @@ const WritingLetterPage = () => {
                     id="recipientCompany"
                     placeholder="Enter recipient company..."
                     value={recipientCompany}
-                    onChange={(e) => setRecipientCompany(e.target.value)}
+                    onChange={(e) => { setRecipientCompany(e.target.value); setCrmAutoFilled(prev => ({ ...prev, recipientCompany: false })); }}
                   />
+                  {crmAutoFilled.recipientCompany && (
+                    <p className="text-xs text-muted-foreground">from CRM</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="date">Date</Label>
@@ -434,6 +633,7 @@ const WritingLetterPage = () => {
                 </div>
               </div>
 
+              {/* Row 4: Project | Document */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="project">Project</Label>
@@ -452,8 +652,8 @@ const WritingLetterPage = () => {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="document">Document</Label>
-                  <Select 
-                    value={selectedDocument} 
+                  <Select
+                    value={selectedDocument}
                     onValueChange={setSelectedDocument}
                     disabled={!selectedProject}
                   >
@@ -471,6 +671,7 @@ const WritingLetterPage = () => {
                 </div>
               </div>
 
+              {/* User Request */}
               <div className="space-y-2">
                 <Label htmlFor="userRequest">User Request *</Label>
                 <Textarea
@@ -521,48 +722,22 @@ const WritingLetterPage = () => {
             <Card className="glass mt-8">
               <CardHeader>
                 <CardTitle>Generated Letter Content</CardTitle>
-                <CardDescription>
-                  Review and edit the generated subject and body before creating the final letter
-                </CardDescription>
+                <CardDescription>Review and edit the generated subject and body before creating the final letter</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="space-y-2">
                   <Label htmlFor="editableSubject">Subject</Label>
-                  <Input
-                    id="editableSubject"
-                    value={editableSubject}
-                    onChange={(e) => setEditableSubject(e.target.value)}
-                    placeholder="Letter subject..."
-                    className="text-right"
-                    dir="rtl"
-                  />
+                  <Input id="editableSubject" value={editableSubject} onChange={(e) => setEditableSubject(e.target.value)} placeholder="Letter subject..." className="text-right" dir="rtl" />
                 </div>
-
                 <div className="space-y-2">
                   <Label htmlFor="editableBody">Body</Label>
-                  <Textarea
-                    id="editableBody"
-                    value={editableBody}
-                    onChange={(e) => setEditableBody(e.target.value)}
-                    placeholder="Letter body content..."
-                    className="min-h-[200px] resize-none text-right"
-                    dir="rtl"
-                  />
+                  <Textarea id="editableBody" value={editableBody} onChange={(e) => setEditableBody(e.target.value)} placeholder="Letter body content..." className="min-h-[200px] resize-none text-right" dir="rtl" />
                 </div>
-
-                {/* Proceed to Composition Section */}
                 <div className="composition-section border-t pt-6">
                   <h3 className="text-lg font-semibold mb-4">Create Final Letter</h3>
-                  <p className="text-muted-foreground mb-4">
-                    Proceed to the drag-and-drop composition mode to position your letter elements and generate the final image.
-                  </p>
-                  
+                  <p className="text-muted-foreground mb-4">Proceed to the drag-and-drop composition mode to position your letter elements and generate the final image.</p>
                   <div className="flex justify-center">
-                    <Button
-                      onClick={handleProceedToComposition}
-                      className="flex items-center gap-2 bg-gradient-accent px-8"
-                      size="lg"
-                    >
+                    <Button onClick={handleProceedToComposition} className="flex items-center gap-2 bg-gradient-accent px-8" size="lg">
                       <FileText className="h-5 w-5" />
                       Proceed to Letter Composition
                     </Button>
@@ -580,14 +755,12 @@ const WritingLetterPage = () => {
                   id: currentLetter?.id || '',
                   project_id: selectedProject,
                   document_id: selectedDocument || undefined,
-                  recipientName: recipientName,
-                  recipientPosition: recipientPosition,
-                  recipientCompany: recipientCompany,
-                  date: date,
+                  recipientName, recipientPosition, recipientCompany,
+                  date,
                   generatedSubject: editableSubject,
                   generatedBody: editableBody,
                   writerName: user?.user_metadata?.full_name || user?.email || 'Unknown',
-                  letter_number: currentLetter?.letter_number || undefined
+                  letter_number: currentLetter?.letter_number || undefined,
                 }}
                 onLetterGenerated={handleLetterGenerated}
               />
@@ -595,7 +768,7 @@ const WritingLetterPage = () => {
           )}
         </div>
       </main>
-      
+
       <Footer />
     </div>
   );
