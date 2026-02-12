@@ -39,6 +39,8 @@ const WritingLetterPage = () => {
   const location = useLocation();
   const [user, setUser] = useState<any>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [writerNameFa, setWriterNameFa] = useState<string>('');
+  const [writerJobTitleFa, setWriterJobTitleFa] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [recipientName, setRecipientName] = useState('');
   const [recipientPosition, setRecipientPosition] = useState('');
@@ -305,6 +307,17 @@ const WritingLetterPage = () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { navigate('/auth'); return; }
       setUser(session.user);
+      // Fetch Persian name and job title for the current user
+      const { data: empData } = await supabase
+        .from('employees')
+        .select('name_fa, surname_fa, job_title_fa')
+        .eq('user_id', session.user.id)
+        .maybeSingle();
+      if (empData) {
+        const nameParts = [empData.name_fa, empData.surname_fa].filter(Boolean);
+        setWriterNameFa(nameParts.join(' '));
+        setWriterJobTitleFa(empData.job_title_fa || '');
+      }
       await Promise.all([fetchProjects(), fetchCustomers()]);
     } catch (error) {
       console.error('Error checking user:', error);
@@ -789,6 +802,8 @@ const WritingLetterPage = () => {
                   generatedSubject: editableSubject,
                   generatedBody: editableBody,
                   writerName: user?.user_metadata?.full_name || user?.email || 'Unknown',
+                  writerNameFa,
+                  writerJobTitleFa,
                   letter_number: currentLetter?.letter_number || undefined,
                 }}
                 onLetterGenerated={handleLetterGenerated}
