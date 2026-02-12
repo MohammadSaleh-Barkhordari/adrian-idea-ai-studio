@@ -235,9 +235,8 @@ export default function BlogEditorPage() {
     }
 
     setUploading(true);
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
-    const filePath = `${fileName}`;
+    const fileId = crypto.randomUUID();
+    const filePath = `${fileId}/${file.name}`;
 
     const { error: uploadError } = await supabase.storage
       .from('blog-images')
