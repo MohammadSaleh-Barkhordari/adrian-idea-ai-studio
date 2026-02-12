@@ -469,8 +469,8 @@ const LetterBuilder: React.FC<LetterBuilderProps> = ({
           
           {/* Basmala - Top center */}
           <CustomDraggable id="basmala" initialPosition={positions.basmala} onPositionChange={handlePositionChange} previewMode={previewMode}>
-            <div className="text-lg font-bold text-center" style={{
-            direction: 'rtl'
+            <div className="text-lg font-bold text-right" style={{
+            direction: 'rtl', textAlign: 'right'
           }}>
               بسمه تعالی
             </div>
@@ -560,8 +560,8 @@ const LetterBuilder: React.FC<LetterBuilderProps> = ({
 
           {/* Closing 2 */}
           <CustomDraggable id="closing2" initialPosition={positions.closing2} onPositionChange={handlePositionChange} previewMode={previewMode}>
-            <div className="text-center space-y-1" style={{
-            direction: 'rtl'
+            <div className="text-right space-y-1" style={{
+            direction: 'rtl', textAlign: 'right'
           }}>
               <div>با تشکر</div>
               <div>برخورداری</div>
@@ -571,7 +571,7 @@ const LetterBuilder: React.FC<LetterBuilderProps> = ({
 
           {/* Company Stamp */}
           {includeStamp && <CustomDraggable id="stamp" initialPosition={positions.stamp} onPositionChange={handlePositionChange} previewMode={previewMode}>
-              <div className="select-none">
+              <div className="text-right select-none" style={{ direction: 'rtl', textAlign: 'right' }}>
                 {stampUrl ? <img src={stampUrl} alt="Company Stamp" crossOrigin="anonymous" className="max-w-48 max-h-48 select-none pointer-events-none" draggable="false" /> : <div className="w-48 h-48 border-2 border-dashed border-gray-400 rounded-full flex items-center justify-center text-xs text-gray-500 select-none">
                     Stamp
                   </div>}
