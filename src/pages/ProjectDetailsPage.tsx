@@ -924,7 +924,7 @@ const ProjectDetailsPage = () => {
                             onClick={async () => {
                               try {
                                 const { data, error } = await supabase.storage
-                                  .from('Documents')
+                                  .from('Files')
                                   .download(file.file_url!);
                                 
                                 if (error) throw error;

@@ -123,8 +123,8 @@ const CustomerContactForm = ({ customerId, contact, onSuccess, onCancel }: Props
     if (!file) return;
     setUploading(true);
     try {
-      const ext = file.name.split('.').pop();
-      const path = `contacts/${Date.now()}.${ext}`;
+      const fileId = crypto.randomUUID();
+      const path = `contacts/${fileId}/${file.name}`;
       const { error: uploadError } = await supabase.storage.from('customer-logos').upload(path, file);
       if (uploadError) throw uploadError;
       const { data: { publicUrl } } = supabase.storage.from('customer-logos').getPublicUrl(path);

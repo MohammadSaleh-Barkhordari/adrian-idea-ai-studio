@@ -76,8 +76,8 @@ const ContractUpload = ({ onDataExtracted, onFileUploaded }: ContractUploadProps
         .from('documents')
         .getPublicUrl(filePath);
 
-      setUploadedFile({ name: file.name, url: publicUrl });
-      onFileUploaded(publicUrl, file.name);
+      setUploadedFile({ name: file.name, url: filePath });
+      onFileUploaded(filePath, file.name);
 
       toast({
         title: "File uploaded successfully",

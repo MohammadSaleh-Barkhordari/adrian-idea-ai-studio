@@ -159,7 +159,7 @@ const OurFinancialPage = () => {
             project_id: 'our-life', // Using a standard project_id for our life
             title: `Our Financial Document - ${uploadedFileInfo.fileName}`,
             file_name: uploadedFileInfo.fileName,
-            file_path: `OurLife/Financial/${uploadedFileInfo.fileName}`,
+            file_path: '', // Will be updated after upload
             file_type: uploadedFileInfo.fileType,
             file_size: uploadedFileInfo.file.size
           })
@@ -174,19 +174,15 @@ const OurFinancialPage = () => {
         const filePath = `Financial/${documentId}/${uploadedFileInfo.fileName}`;
         
         const { error: uploadError } = await supabase.storage
-          .from('our-life')
+          .from('Our_Life')
           .upload(filePath, uploadedFileInfo.file);
 
         if (uploadError) throw uploadError;
 
-        // Update document record with file URL
-        const { data: { publicUrl } } = supabase.storage
-          .from('our-life')
-          .getPublicUrl(filePath);
-
+        // Update document record with correct file path and url
         const { error: updateError } = await supabase
           .from('documents')
-          .update({ file_url: publicUrl })
+          .update({ file_path: filePath, file_url: filePath })
           .eq('id', documentId);
 
         if (updateError) throw updateError;
