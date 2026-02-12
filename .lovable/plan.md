@@ -1,38 +1,36 @@
 
 
-# Fix RTL on Writing Letter Form Inputs
+# Fix: RTL Override for Persian Text Fields on Writing Letter Page
 
-## Issue 1: Form Input Fields
+## Root Cause
 
-| Element | Line | Current | Fix |
-|---------|------|---------|-----|
-| recipientName Input | 605 | has `dir="rtl"`, no `text-right` class | Add `className="text-right"` |
-| recipientPosition Input | 618 | has `dir="rtl"`, no `text-right` class | Add `className="text-right"` |
-| recipientCompany Input | 635 | has `dir="rtl"`, no `text-right` class | Add `className="text-right"` |
-| userRequest Textarea | 698 | no `dir="rtl"`, no `text-right` | Add `dir="rtl"` and `text-right` to className |
+Line 526 of `WritingLetterPage.tsx` sets `dir="ltr"` on the `<main>` container. This is intentional (internal pages use LTR layout per project conventions), but it overrides the child-level `dir="rtl"` on form inputs. The `dir` HTML attribute alone is not reliably overriding the parent's CSS `direction` inheritance.
 
-## Issue 2: Generated Letter Content
+## Solution
 
-The Subject input (line 751) and Body textarea (line 755) already have both `dir="rtl"` and `className="text-right"`. No changes needed here.
+Add explicit `style={{ direction: 'rtl', textAlign: 'right' }}` to every Persian text input and textarea. This inline style has the highest CSS specificity and will reliably override the parent's LTR direction. Keep `dir="rtl"` as well for semantic correctness.
 
-## Issue 3: AI Prompt Update
+## Changes
 
-Add Persian typography instruction to the `generate-letter` edge function prompt to ensure proper RTL punctuation ordering.
+### File: `src/pages/WritingLetterPage.tsx`
 
-## File Changes
+**4 form input fields (Issue 1):**
 
-### `src/pages/WritingLetterPage.tsx` (4 edits)
+| Field | Fix |
+|-------|-----|
+| recipientName Input | Add `style={{ direction: 'rtl', textAlign: 'right' }}` |
+| recipientPosition Input | Add `style={{ direction: 'rtl', textAlign: 'right' }}` |
+| recipientCompany Input | Add `style={{ direction: 'rtl', textAlign: 'right' }}` |
+| userRequest Textarea | Add `style={{ direction: 'rtl', textAlign: 'right' }}` |
 
-1. **Line 605** (recipientName): Add `className="text-right"`
-2. **Line 618** (recipientPosition): Add `className="text-right"`
-3. **Line 635** (recipientCompany): Add `className="text-right"`
-4. **Lines 698-704** (userRequest): Add `dir="rtl"` and add `text-right` to className
+**2 generated content fields (Issue 2):**
 
-### `supabase/functions/generate-letter/index.ts` (1 edit)
+| Field | Fix |
+|-------|-----|
+| editableSubject Input | Add `style={{ direction: 'rtl', textAlign: 'right' }}` |
+| editableBody Textarea | Add `style={{ direction: 'rtl', textAlign: 'right' }}` |
 
-Add to the prompt's critical requirements section:
-```
-- Write the letter in proper Persian/Farsi with correct RTL text direction
-- Punctuation marks (period, comma, colon) should follow Persian typography rules
-```
+All 6 elements already have `dir="rtl"` and `className="text-right"`. The inline `style` is added as a guaranteed override that cannot be affected by parent `dir="ltr"`.
+
+No other files need changes. The shadcn Input and Textarea components correctly pass through all props including `dir` and `style`.
 
