@@ -1,36 +1,31 @@
 
 
-# Add CRM Contact Picker to Email Compose
+# Add Default Persian Signature to New Emails
 
-## What Changes
+When composing a new email (not from the letter builder), the body should be pre-filled with a default Persian signature at the bottom.
 
-Add two optional dropdown selectors (Company and Contact) above the "To" field in the Email Compose dialog. When a user selects a company, the contacts dropdown populates with that company's contacts. Selecting a contact auto-fills the "To" email field with the contact's email address. The "To" field remains fully editable -- users can still type manually or use the existing email_contacts autocomplete.
+## Format
 
-## Technical Details
+```
+باتشکر
+{Persian full name}
+{Persian job title} شرکت آدرین ایده
+```
+
+## Changes
 
 ### File: `src/components/email/EmailCompose.tsx`
 
-**New state variables:**
-- `crmCustomers` -- list of customers fetched from `customers` table
-- `crmContacts` -- list of contacts for the selected customer
-- `selectedCustomerId` -- currently selected customer
-- `selectedContactId` -- currently selected contact
+1. **Fetch sender's Persian info on open** -- When the dialog opens in `mode === 'new'` and there is no `initialBody` (i.e. not coming from the letter builder which already has its own signature), query the `employees` table for the current user's `name_fa`, `surname_fa`, and `job_title_fa` using `userId`.
 
-**New data fetching:**
-- `fetchCustomers()` -- called when dialog opens in `mode === 'new'`, queries `customers` table for `id, company_name, company_name_fa`
-- `fetchCrmContacts(customerId)` -- queries `customer_contacts` for `id, first_name, last_name, first_name_fa, last_name_fa, email` filtered by `customer_id` and `is_active = true`
+2. **Build default body with signature** -- Construct a default body string:
+   ```
+   \n\nباتشکر\n{name_fa} {surname_fa}\n{job_title_fa} شرکت آدرین ایده
+   ```
+   Set this as the initial `body` value so the user sees the signature pre-filled and can type their message above it.
 
-**New UI (above the "To" input, only shown when `mode === 'new'`):**
-- Two `<Select>` dropdowns side by side:
-  1. **Company** -- shows `company_name -- company_name_fa` (bilingual)
-  2. **Contact** -- shows `first_name last_name` (filtered by selected company), disabled until a company is selected
-- When a contact is selected: auto-fill `to` with `contact.email` and `toName` with `contact.first_name + ' ' + contact.last_name`
-
-**Reset logic:**
-- Clear CRM state when dialog closes or on discard
-- Clear contacts dropdown and "To" field when company changes
-- Company/contact dropdowns only visible for `mode === 'new'` (not reply/forward)
+3. **Skip when prefilled** -- If `initialBody` or `initialBodyHtml` is provided (e.g. from the letter builder), use those instead and do not add the default signature (it already has one).
 
 ### No other files need changes
-The Select component from `@radix-ui/react-select` is already available via `src/components/ui/select.tsx`.
+All logic is contained within `EmailCompose.tsx`.
 
