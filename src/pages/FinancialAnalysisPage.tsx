@@ -243,7 +243,7 @@ const FinancialAnalysisPage = () => {
             project_id: selectedProject,
             title: `Financial Document - ${uploadedFileInfo.fileName}`,
             file_name: uploadedFileInfo.fileName,
-            file_path: `Financial/${uploadedFileInfo.fileName}`,
+            file_path: '', // Will be updated after upload
             file_type: uploadedFileInfo.fileType,
             file_size: uploadedFileInfo.file.size
           })
@@ -263,14 +263,10 @@ const FinancialAnalysisPage = () => {
 
         if (uploadError) throw uploadError;
 
-        // Update document record with file URL
-        const { data: { publicUrl } } = supabase.storage
-          .from('documents')
-          .getPublicUrl(filePath);
-
+        // Update document record with correct file path and url
         const { error: updateError } = await supabase
           .from('documents')
-          .update({ file_url: publicUrl })
+          .update({ file_path: filePath, file_url: filePath })
           .eq('id', documentId);
 
         if (updateError) throw updateError;

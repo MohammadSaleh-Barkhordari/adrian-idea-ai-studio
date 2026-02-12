@@ -243,7 +243,7 @@ export const NewTaskDialog: React.FC<NewTaskDialogProps> = ({
           .insert({
             file_name: file.name,
             file_path: filePath,
-            file_url: publicUrl,
+            file_url: filePath,
             file_size: file.size,
             file_type: file.type,
             description: 'Outcome',

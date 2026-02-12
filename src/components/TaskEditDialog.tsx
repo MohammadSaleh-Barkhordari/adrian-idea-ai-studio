@@ -210,7 +210,7 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
         const { data: fileRecord, error: fileError } = await supabase
           .from('files')
           .insert({
-            file_name: file.name, file_path: filePath, file_url: publicUrl,
+            file_name: file.name, file_path: filePath, file_url: filePath,
             file_size: file.size, file_type: file.type, project_id: task.project_id,
             uploaded_by: (await supabase.auth.getUser()).data.user?.id, description: 'Task outcome file'
           })
