@@ -1,98 +1,44 @@
 
 
-# Split Honorific into Gender + Title
+# Fix Letter PDF Layout: RTL Alignment
 
-## Overview
+## Step 1: Enhanced Position Logging
 
-Split the single `honorific_fa` dropdown into two separate fields:
-- **Gender** (جنسیت): `جناب آقای` / `سرکار خانم`
-- **Title** (عنوان): `دکتر` / `مهندس` / `حجت‌الاسلام`
+Update the `logCurrentPositions` function in `LetterBuilder.tsx` to measure actual rendered element sizes from the DOM.
 
-These combine in letters as: **"جناب آقای دکتر کریمی"** (gender + title + last name).
+### How it works
 
-## Database Migration
+Each letter element is rendered inside a `CustomDraggable` wrapper. The function will:
 
-Add a new column for the professional title, repurpose `honorific_fa` for gender only:
+1. Query each draggable element inside `#letter-canvas` by its `id` prop
+2. Get the inner content div's `getBoundingClientRect()` relative to the canvas
+3. Calculate and log the full bounding box:
 
-```sql
-ALTER TABLE customer_contacts ADD COLUMN IF NOT EXISTS title_fa text;
+```
+Box: [name] -> High X: [x + width], High Y: [y], Low X: [x], Low Y: [y + height], Width: [width], Height: [height]
 ```
 
-No need to rename `honorific_fa` -- it stays but its usage changes to gender-only values. Existing data with old values (e.g., `دکتر` stored in `honorific_fa`) will need to be handled in the form's loading logic.
+### Technical detail
 
-## Changes to `CustomerContactForm.tsx`
+`CustomDraggable` positions elements using `style.left` and `style.top`. The actual width/height comes from the rendered content. We will iterate over all position keys, find their corresponding DOM elements in the canvas, and measure them using `getBoundingClientRect()` offset by the canvas rect.
 
-### Form State
-- Add `title_fa: ''` to form state
-- Keep `honorific_fa` for gender
+After this change, clicking "Log Current Positions" will print the full bounding box for every element to the console. You can then generate a test letter and share the log output.
 
-### Dropdown Changes
+## Step 2: RTL Right-Edge Alignment (after log confirmation)
 
-Replace the single Honorific dropdown with two:
+Once you confirm the logged values, apply these rules:
 
-**Gender (FA)** -- Select dropdown:
-- `جناب آقای`
-- `سرکار خانم`
+- **Keep unchanged**: basmala, closing2, signature, stamp
+- **Date**: Anchor from its current High X (right edge), keep current High Y
+- **6 aligned boxes** (recipientName, recipientInfo, subject, greeting, body, closing1): Set all their High X (right edge) equal to greeting's current High X. Each box keeps its own High Y (vertical position). New `x = greeting_highX - box_width`.
 
-**Title (FA)** -- Select dropdown:
-- (empty / none)
-- `دکتر`
-- `مهندس`
-- `حجت‌الاسلام`
-- `Custom...` (with text input fallback)
+## Step 3: Save as New Defaults
 
-Layout:
-```text
-Row: Gender (FA) dropdown | Title (FA) dropdown
-```
+Update the default `positions` state in `LetterBuilder.tsx` with the calculated values.
 
-### Loading Logic (useEffect)
+## Files Changed
 
-When editing an existing contact, detect if the old `honorific_fa` value contains a title value (`دکتر`, `مهندس`, `حجت‌الاسلام`) and migrate it to the `title_fa` field in the form. This handles backward compatibility with contacts saved before the split.
-
-### Submit Payload
-
-- `honorific_fa` saves the gender value (or null)
-- `title_fa` saves the professional title (or null)
-
-### Remove Custom Honorific
-
-The `honorificCustom` / `honorificCustomValue` state moves to the Title field instead, since gender options are fixed but professional titles could be custom.
-
-## Changes to `WritingLetterPage.tsx`
-
-### CrmContact Interface
-
-Add `title_fa: string | null` to the interface.
-
-### fetchContacts
-
-Update select to include `title_fa`:
-```
-.select('id, first_name, last_name, first_name_fa, last_name_fa, honorific_fa, title_fa, job_title, job_title_fa, is_primary_contact')
-```
-
-### applyContact
-
-Update recipient name construction to combine all parts:
-```
-parts = [honorific_fa, title_fa, last_name_fa].filter(Boolean).join(' ')
-```
-Example output: "جناب آقای دکتر کریمی"
-
-### Contact Dropdown Display
-
-Include title in the bilingual display if present.
-
-## Changes to `ContactType` Interface
-
-Add `title_fa: string | null` to the exported `ContactType` interface in `CustomerContactForm.tsx`.
-
-## File Summary
-
-| File | Action | Changes |
-|------|--------|---------|
-| Migration SQL | Create | Add `title_fa` column to `customer_contacts` |
-| `CustomerContactForm.tsx` | Modify | Split into Gender + Title dropdowns, update interface, form state, payload |
-| `WritingLetterPage.tsx` | Modify | Add `title_fa` to interface/fetch, update name construction |
+| File | Action | Detail |
+|------|--------|--------|
+| `src/components/LetterBuilder.tsx` | Modify | Enhanced `logCurrentPositions` with bounding box measurement; later update default positions |
 
