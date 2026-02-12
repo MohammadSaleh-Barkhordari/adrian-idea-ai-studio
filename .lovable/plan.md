@@ -1,45 +1,37 @@
 
-# Fix: Letter Attachment Storage Path and Display in Sent Emails
+
+# Fix: Attachment Download Failing Due to Wrong Storage Path
 
 ## Root Cause
 
-Two issues found:
+The letter PNG files in storage use the **project name** (e.g., `IWS`) in the path, NOT the **project ID** (e.g., `PROJ-20251012-660`).
 
-### 1. Wrong storage path for letters
-The letter PNG files are stored in the `Letters` bucket at path `{project_id}/{letter_id}/letter.png` (e.g., `IWS/fc86fe3b-.../letter.png`), but the fallback path in the code constructs `letters/{id}.png` which doesn't exist. This causes the edge function to fail downloading the attachment, so the email is sent **without** the attachment.
+- Actual storage path: `IWS/fc86fe3b-.../letter.png`
+- What the code sends: `PROJ-20251012-660/fc86fe3b-.../letter.png`
 
-### 2. Attachment record not saved on failure
-When the download fails, the edge function logs an error but `continue`s, so no attachment is included in the Resend email and no `email_attachments` record is saved. That's why the sent email shows no attachment.
+This happens because the LetterBuilder uploads files using the project name (`project_name` from `adrian_projects`), but the ProjectAttachPicker constructs the fallback path using `project_id`.
+
+Additionally, `final_image_url` and `file_url` are both `null` for these letters (status is `letter_generated`, not `final_generated`), so the fallback path is always used -- and it's wrong.
 
 ## Fix
 
 ### File: `src/components/email/ProjectAttachPicker.tsx`
 
-Update the letter mapping (around line 90) to construct the correct storage path using the project ID:
+Change the fallback storage path to use the **project name** instead of the project ID.
 
-**Before:**
-```typescript
-storage_path: d.final_image_url || d.file_url || `letters/${d.id}.png`,
-```
+The `project` object (from the `projects` state) already has `project_name` available. Use it to construct the correct path:
 
-**After:**
+**Before (line 89):**
 ```typescript
 storage_path: d.final_image_url || d.file_url || `${pid}/${d.id}/letter.png`,
 ```
 
-Where `pid` is the `project_id` already available in scope. This matches the actual storage structure `{project_id}/{letter_id}/letter.png`.
-
-Also add `.png` extension to the filename so the recipient sees a proper file name:
-
-**Before:**
-```typescript
-name: d.letter_title || d.generated_subject || d.subject || 'Untitled Letter',
-```
-
 **After:**
 ```typescript
-name: (d.letter_title || d.generated_subject || d.subject || 'Untitled Letter') + '.png',
+storage_path: d.final_image_url || d.file_url || `${project?.project_name || pid}/${d.id}/letter.png`,
 ```
 
-### No other changes needed
-The `send-email` edge function already handles the `Letters` bucket correctly -- the only problem was the wrong path being sent from the frontend.
+Where `project` is already looked up from the `projects` array (used to get `pid`). This makes the fallback path `IWS/fc86fe3b-.../letter.png` which matches the actual storage structure.
+
+No edge function changes needed -- the download logic is correct, it just receives the wrong path.
+
