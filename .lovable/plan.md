@@ -1,39 +1,45 @@
 
-# Fix: Letters Not Appearing in Project Attach Picker
+# Fix: Letter Attachment Storage Path and Display in Sent Emails
 
-## Problem Found
+## Root Cause
 
-After investigating the database, I found two issues preventing letters from showing up:
+Two issues found:
 
-1. **Wrong status filter**: The code filters for `status = 'final_generated'`, but all your letters have status `letter_generated`. The final PNG generation step was never completed for these letters, so none match.
-2. **Missing `final_image_url`**: The code requires `final_image_url` to be set, but it's null for all letters. Since the final step wasn't completed, no PNG path was saved to the database.
-3. **Missing display name**: `letter_title` and `subject` are both null, but `generated_subject` has the actual Persian subject text.
+### 1. Wrong storage path for letters
+The letter PNG files are stored in the `Letters` bucket at path `{project_id}/{letter_id}/letter.png` (e.g., `IWS/fc86fe3b-.../letter.png`), but the fallback path in the code constructs `letters/{id}.png` which doesn't exist. This causes the edge function to fail downloading the attachment, so the email is sent **without** the attachment.
+
+### 2. Attachment record not saved on failure
+When the download fails, the edge function logs an error but `continue`s, so no attachment is included in the Resend email and no `email_attachments` record is saved. That's why the sent email shows no attachment.
 
 ## Fix
 
 ### File: `src/components/email/ProjectAttachPicker.tsx`
 
-Update the letter query (lines 82-93) to:
+Update the letter mapping (around line 90) to construct the correct storage path using the project ID:
 
-- **Remove the status filter** -- show all letters for the project regardless of status (or filter for `letter_generated` as well)
-- **Also select `generated_subject` and `file_url`** -- since `letter_title` and `subject` are null, use `generated_subject` for the display name
-- **Use `file_url` as fallback** for `final_image_url` -- if `final_image_url` is null, try `file_url`
-- **If neither URL exists**, still show the letter in the list but construct the expected storage path from the letter ID (e.g., `letters/{id}.png`) since the PNG files may exist in storage even though the URL wasn't saved to the database
-
-The updated query will look like:
+**Before:**
 ```typescript
-const { data } = await supabase
-  .from('letters')
-  .select('id, letter_title, subject, generated_subject, final_image_url, file_url')
-  .eq('project_id', pid)
-  .order('created_at', { ascending: false });
-
-setItems((data || []).map(d => ({
-  id: d.id,
-  name: d.letter_title || d.generated_subject || d.subject || 'Untitled Letter',
-  storage_path: d.final_image_url || d.file_url || `letters/${d.id}.png`,
-  bucket: 'Letters',
-})));
+storage_path: d.final_image_url || d.file_url || `letters/${d.id}.png`,
 ```
 
-This single change will make all your letters visible in the picker with their Persian subject as the display name.
+**After:**
+```typescript
+storage_path: d.final_image_url || d.file_url || `${pid}/${d.id}/letter.png`,
+```
+
+Where `pid` is the `project_id` already available in scope. This matches the actual storage structure `{project_id}/{letter_id}/letter.png`.
+
+Also add `.png` extension to the filename so the recipient sees a proper file name:
+
+**Before:**
+```typescript
+name: d.letter_title || d.generated_subject || d.subject || 'Untitled Letter',
+```
+
+**After:**
+```typescript
+name: (d.letter_title || d.generated_subject || d.subject || 'Untitled Letter') + '.png',
+```
+
+### No other changes needed
+The `send-email` edge function already handles the `Letters` bucket correctly -- the only problem was the wrong path being sent from the frontend.
