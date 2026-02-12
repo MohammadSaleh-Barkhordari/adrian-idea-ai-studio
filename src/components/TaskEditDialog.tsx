@@ -26,9 +26,10 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
-import { CalendarIcon, Upload, X, FileText, Download, Paperclip } from 'lucide-react';
+import { CalendarIcon, Upload, X, FileText, Download, Paperclip, Play } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { sendNotification } from '@/lib/notifications';
+import TaskVoiceRecorder from '@/components/TaskVoiceRecorder';
 
 interface TaskEditDialogProps {
   open: boolean;
@@ -88,6 +89,8 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
   const [userOutcome, setUserOutcome] = useState('');
   const [userCompletionNotes, setUserCompletionNotes] = useState('');
   const [userStatus, setUserStatus] = useState('in_progress');
+  const [outcomeAudioUrl, setOutcomeAudioUrl] = useState<string | null>(null);
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
 
   const { toast } = useToast();
   const isAdmin = userRole === 'admin';
@@ -112,6 +115,8 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
       setDueDate(task.due_date ? new Date(task.due_date) : undefined);
       setCompletionDate(task.completion_date ? new Date(task.completion_date) : undefined);
       setSelectedFiles([]);
+      setOutcomeAudioUrl(task.outcome_audio_url || null);
+      setAudioBlob(null);
 
       // Non-admin defaults
       setUserOutcome(task.outcome || '');
@@ -261,6 +266,23 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
           completion_date: completionDate ? format(completionDate, 'yyyy-MM-dd') : null,
           status: userStatus,
         };
+      }
+
+      // Upload audio blob if recorded
+      if (audioBlob) {
+        try {
+          const timestamp = Date.now();
+          const audioPath = `task-audio/${task.id}/${timestamp}.webm`;
+          const { error: audioUploadError } = await supabase.storage.from('Files').upload(audioPath, audioBlob, {
+            contentType: 'audio/webm',
+          });
+          if (audioUploadError) throw audioUploadError;
+          const { data: { publicUrl } } = supabase.storage.from('Files').getPublicUrl(audioPath);
+          await supabase.from('tasks').update({ outcome_audio_url: publicUrl } as any).eq('id', task.id);
+          setOutcomeAudioUrl(publicUrl);
+        } catch (audioErr) {
+          console.error('Error uploading audio:', audioErr);
+        }
       }
 
       const { error: updateError } = await supabase.from('tasks').update(updateData).eq('id', task.id);
@@ -501,11 +523,28 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
                       onClick={() => document.getElementById('edit-outcome-file-upload')?.click()}
                     />
                   </div>
-                  <Input
+                  <Textarea
                     value={formData.outcome}
                     onChange={(e) => handleInputChange('outcome', e.target.value)}
                     placeholder="Expected or achieved outcome"
+                    rows={3}
                   />
+                  <TaskVoiceRecorder
+                    onTranscribed={(text) => {
+                      setFormData(prev => ({
+                        ...prev,
+                        outcome: prev.outcome ? prev.outcome + '\n' + text : text,
+                      }));
+                    }}
+                    onAudioReady={(blob) => setAudioBlob(blob)}
+                    disabled={loading}
+                  />
+                  {outcomeAudioUrl && (
+                    <div className="flex items-center gap-2">
+                      <Play className="h-4 w-4 text-muted-foreground" />
+                      <audio controls src={outcomeAudioUrl} className="h-8 w-full" />
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -575,6 +614,19 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
                       placeholder="Describe what you did..."
                       rows={3}
                     />
+                    <TaskVoiceRecorder
+                      onTranscribed={(text) => {
+                        setUserOutcome(prev => prev ? prev + '\n' + text : text);
+                      }}
+                      onAudioReady={(blob) => setAudioBlob(blob)}
+                      disabled={loading}
+                    />
+                    {outcomeAudioUrl && (
+                      <div className="flex items-center gap-2">
+                        <Play className="h-4 w-4 text-muted-foreground" />
+                        <audio controls src={outcomeAudioUrl} className="h-8 w-full" />
+                      </div>
+                    )}
                   </div>
 
                   {/* Completion Notes */}

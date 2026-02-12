@@ -1839,6 +1839,7 @@ export type Database = {
           id: string
           notes: string | null
           outcome: string | null
+          outcome_audio_url: string | null
           priority: string
           project_id: string | null
           related_task_id: string | null
@@ -1864,6 +1865,7 @@ export type Database = {
           id?: string
           notes?: string | null
           outcome?: string | null
+          outcome_audio_url?: string | null
           priority?: string
           project_id?: string | null
           related_task_id?: string | null
@@ -1889,6 +1891,7 @@ export type Database = {
           id?: string
           notes?: string | null
           outcome?: string | null
+          outcome_audio_url?: string | null
           priority?: string
           project_id?: string | null
           related_task_id?: string | null
