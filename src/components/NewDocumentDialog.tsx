@@ -192,7 +192,11 @@ export const NewDocumentDialog: React.FC<NewDocumentDialogProps> = ({
     const documentId = crypto.randomUUID();
     
     // Create file path with sanitized filename for storage
-    const sanitizedFilename = sanitizeFilename(selectedFile.name);
+    // Use the document title (AI-suggested or user-entered) as the storage filename
+    const ext = selectedFile.name.includes('.') 
+      ? selectedFile.name.substring(selectedFile.name.lastIndexOf('.')) 
+      : '';
+    const sanitizedFilename = sanitizeFilename(title.trim() + ext);
     const filePath = `${projectName}/${documentId}/${sanitizedFilename}`;
 
     try {
