@@ -1,21 +1,44 @@
 
 
-# Adjust Date Block Position in PNG Export
+# Update recipientInfo Format
 
-## Change
+## What Changes
 
-### File: `src/components/LetterBuilder.tsx` -- `buildCleanLetterDiv` function only
+Update the recipientInfo text in both the live canvas preview and the PNG export to follow this Persian format:
 
-Update the date element's `top` value from `62px` to `75px`. The `right` is already at `100px`.
+**"{Recipient Position} محترم شرکت {Recipient Company}"**
 
-**Line ~185** -- Change:
+For example: "مدیرعامل محترم شرکت ایرانسل"
+
+## Technical Details
+
+### File: `src/components/LetterBuilder.tsx`
+
+**1. PNG Export (`buildCleanLetterDiv`) -- Lines 192-198**
+
+Replace the current dash-separated format with the new Persian format:
+
+```tsx
+// Current:
+recipientInfoHtml = `${letterData.recipientPosition} - ${letterData.recipientCompany}`;
+
+// New:
+recipientInfoHtml = `${letterData.recipientPosition} محترم شرکت ${letterData.recipientCompany}`;
 ```
-right:100px;top:62px;
-```
-to:
-```
-right:100px;top:75px;
+
+Keep the fallback for when only one field is present (show whichever exists).
+
+**2. Live Canvas Preview -- Lines 518-521**
+
+Same format change for the combined display:
+
+```tsx
+// Current:
+{letterData.recipientPosition} - {letterData.recipientCompany}
+
+// New:
+{letterData.recipientPosition} محترم شرکت {letterData.recipientCompany}
 ```
 
-Single value change, nothing else.
+Two line-level edits, nothing else changes.
 
