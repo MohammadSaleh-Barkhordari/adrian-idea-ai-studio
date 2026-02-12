@@ -192,7 +192,7 @@ const LetterBuilder: React.FC<LetterBuilderProps> = ({
     // Recipient info
     let recipientInfoHtml = '';
     if (letterData.recipientPosition && letterData.recipientCompany) {
-      recipientInfoHtml = `${letterData.recipientPosition} - ${letterData.recipientCompany}`;
+      recipientInfoHtml = `${letterData.recipientPosition} محترم شرکت ${letterData.recipientCompany}`;
     } else {
       recipientInfoHtml = [letterData.recipientPosition, letterData.recipientCompany].filter(Boolean).join('<br/>');
     }
@@ -515,7 +515,7 @@ const LetterBuilder: React.FC<LetterBuilderProps> = ({
             <div className="text-base text-right space-y-1" style={{
             direction: 'rtl', textAlign: 'right'
           }}>
-              {letterData.recipientPosition && letterData.recipientCompany ? <div>{letterData.recipientPosition} - {letterData.recipientCompany}</div> : <>
+              {letterData.recipientPosition && letterData.recipientCompany ? <div>{letterData.recipientPosition} محترم شرکت {letterData.recipientCompany}</div> : <>
                   {letterData.recipientPosition && <div>{letterData.recipientPosition}</div>}
                   {letterData.recipientCompany && <div>{letterData.recipientCompany}</div>}
                 </>}
