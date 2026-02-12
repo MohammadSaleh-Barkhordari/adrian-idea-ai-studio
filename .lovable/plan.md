@@ -1,36 +1,28 @@
 
-
-# Fix: RTL Override for Persian Text Fields on Writing Letter Page
+# Fix: Add `textAlign: 'right'` to Inline Styles on Letter Canvas Elements
 
 ## Root Cause
 
-Line 526 of `WritingLetterPage.tsx` sets `dir="ltr"` on the `<main>` container. This is intentional (internal pages use LTR layout per project conventions), but it overrides the child-level `dir="rtl"` on form inputs. The `dir` HTML attribute alone is not reliably overriding the parent's CSS `direction` inheritance.
-
-## Solution
-
-Add explicit `style={{ direction: 'rtl', textAlign: 'right' }}` to every Persian text input and textarea. This inline style has the highest CSS specificity and will reliably override the parent's LTR direction. Keep `dir="rtl"` as well for semantic correctness.
+The WritingLetterPage `<main>` container has `dir="ltr"`, which causes CSS inheritance to override the `className="text-right"` on child elements. Most canvas text divs already have `style={{ direction: 'rtl' }}` but are missing `textAlign: 'right'` in the inline style, so the Tailwind `text-right` class gets overridden.
 
 ## Changes
 
-### File: `src/pages/WritingLetterPage.tsx`
+### File: `src/components/LetterBuilder.tsx`
 
-**4 form input fields (Issue 1):**
+Add `textAlign: 'right'` to the inline `style` object on elements that are missing it. Two elements (basmala and closing2) already have it. The rest need it added:
 
-| Field | Fix |
-|-------|-----|
-| recipientName Input | Add `style={{ direction: 'rtl', textAlign: 'right' }}` |
-| recipientPosition Input | Add `style={{ direction: 'rtl', textAlign: 'right' }}` |
-| recipientCompany Input | Add `style={{ direction: 'rtl', textAlign: 'right' }}` |
-| userRequest Textarea | Add `style={{ direction: 'rtl', textAlign: 'right' }}` |
+| Element | Line | Current inline style | Fix |
+|---------|------|---------------------|-----|
+| basmala | 472 | `direction: 'rtl', textAlign: 'right'` | Already correct |
+| date | 481 | `direction: 'rtl'` | Add `textAlign: 'right'` |
+| recipientName | 492 | `direction: 'rtl'` | Add `textAlign: 'right'` |
+| recipientInfo | 501 | `direction: 'rtl'` | Add `textAlign: 'right'` |
+| subject | 513 | `direction: 'rtl'` | Add `textAlign: 'right'` |
+| greeting | 523 | `direction: 'rtl'` | Add `textAlign: 'right'` |
+| body | 532 | `direction: 'rtl'` | Add `textAlign: 'right'` |
+| closing1 | 541 | `direction: 'rtl'` | Add `textAlign: 'right'` |
+| signature | 550 | `direction: 'rtl'` | Add `textAlign: 'right'` |
+| closing2 | 563 | `direction: 'rtl', textAlign: 'right'` | Already correct |
+| stamp | 574 | `direction: 'rtl', textAlign: 'right'` | Already correct |
 
-**2 generated content fields (Issue 2):**
-
-| Field | Fix |
-|-------|-----|
-| editableSubject Input | Add `style={{ direction: 'rtl', textAlign: 'right' }}` |
-| editableBody Textarea | Add `style={{ direction: 'rtl', textAlign: 'right' }}` |
-
-All 6 elements already have `dir="rtl"` and `className="text-right"`. The inline `style` is added as a guaranteed override that cannot be affected by parent `dir="ltr"`.
-
-No other files need changes. The shadcn Input and Textarea components correctly pass through all props including `dir` and `style`.
-
+**8 one-line edits** -- each just adds `, textAlign: 'right'` to the existing `style` object. No structural changes.
