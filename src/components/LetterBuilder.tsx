@@ -21,6 +21,7 @@ interface LetterBuilderProps {
     writerName: string;
     writerNameFa?: string;
     writerJobTitleFa?: string;
+    contactEmail?: string;
     project_id: string;
     document_id?: string;
     letter_number?: string;
@@ -444,6 +445,7 @@ const LetterBuilder: React.FC<LetterBuilderProps> = ({
                 state: {
                   composeMode: 'new',
                   prefill: {
+                    to: letterData.contactEmail || undefined,
                     subject,
                     body_html: htmlBody,
                     body_text: plainText,

@@ -205,6 +205,7 @@ const EmailPage = () => {
         userId={user.id}
         userEmail={userEmail}
         onSent={handleRefresh}
+        initialTo={prefillData?.to}
         initialSubject={prefillData?.subject}
         initialBody={prefillData?.body_text}
         initialBodyHtml={prefillData?.body_html}
