@@ -1,129 +1,102 @@
 
 
-# Letter-CRM Integration: Honorifics + Persian Data
+# Add Voice & Text Report to Task Outcome
 
 ## Overview
 
-Add Persian honorific and job title fields to customer contacts, update the contact form, and modify the Writing a Letter page to auto-fill recipient fields with Persian data (honorific + last name, Persian job title, Persian company name) instead of English.
+Add a voice recording option to the task outcome section in TaskEditDialog, allowing users to record their voice explanation of the outcome. The recording gets transcribed to text via the existing `voice-to-text` edge function and fills the outcome/completion notes fields. Also optionally store the audio file itself as an attachment.
 
 ## Step 1: Database Migration
 
-Add two new columns to `customer_contacts`:
+Add a column to store the voice report audio URL for playback later:
 
 ```sql
-ALTER TABLE customer_contacts ADD COLUMN IF NOT EXISTS honorific_fa text;
-ALTER TABLE customer_contacts ADD COLUMN IF NOT EXISTS job_title_fa text;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS outcome_audio_url text;
 ```
 
-No other schema changes needed. `first_name_fa`, `last_name_fa` already exist on `customer_contacts`, and `company_name_fa` already exists on `customers`.
+This lets users listen back to the original voice recording even after transcription.
 
-## Step 2: Update `src/components/CustomerContactForm.tsx`
+## Step 2: Create `src/components/TaskVoiceRecorder.tsx`
 
-### Form State
+A lightweight voice recorder component (based on the existing VoiceRecorder/FinancialVoiceRecorder pattern) specifically for task outcomes:
 
-Add two new fields to the form state object:
-- `honorific_fa: ''`
-- `job_title_fa: ''`
+- Record audio using `navigator.mediaDevices.getUserMedia` with the same config as existing recorders (16kHz, mono, noise suppression)
+- On stop: convert to base64 (chunked, 32KB chunks per mobile stability memory), send to `voice-to-text` edge function
+- Return transcribed text via `onTranscribed(text: string)` callback
+- Also return audio blob via `onAudioReady(blob: Blob)` callback for optional storage
+- Show recording state (recording indicator, timer, processing spinner)
+- Compact design to fit inside the task dialog
 
-Update the `useEffect` that populates form from `contact` prop to include these fields.
-
-### ContactType Interface
-
-Add to the exported `ContactType` interface:
-- `honorific_fa: string | null`
-- `job_title_fa: string | null`
-
-### New Form Fields (placed after the Persian name row)
-
-**Honorific (Persian)** -- a Select dropdown with predefined options + a custom text input fallback:
-- Options: `آقای`, `خانم`, `جناب`, `سرکار خانم`, `دکتر`, `مهندس`, `حجت‌الاسلام`, `custom`
-- When "custom" is selected, show a text Input below for free-form entry
-- Label: `Honorific (FA)`, RTL
-
-**Job Title (Persian)** -- a text Input:
-- Label: `Job Title (FA)`, `dir="rtl"`
-- Placeholder: e.g., `مدیر عامل`
-
-Place these in a 2-column grid row right after the Persian names row:
-```
-Row: Honorific (FA) dropdown | Job Title (FA) text input
+Props interface:
+```typescript
+interface TaskVoiceRecorderProps {
+  onTranscribed: (text: string) => void;
+  onAudioReady?: (blob: Blob) => void;
+  disabled?: boolean;
+}
 ```
 
-### Submit Payload
+## Step 3: Update `src/components/TaskEditDialog.tsx`
 
-Add `honorific_fa` and `job_title_fa` to the insert/update payload.
+### For Non-Admin Users ("Your Task Update" section, lines 550-607)
 
-## Step 3: Update `src/pages/WritingLetterPage.tsx`
+Add voice recording option to the Outcome field:
 
-### CrmContact Interface Update
+- Below the existing Outcome textarea, add the TaskVoiceRecorder component
+- When voice is transcribed, append the text to the existing `userOutcome` value (or replace if empty)
+- Add a toggle or tab-like UI: "Type" | "Record" so users can choose their input method
+- Both methods can be used together (type some, record some)
 
-Add Persian fields to the `CrmContact` interface:
-- `first_name_fa: string | null`
-- `last_name_fa: string | null`
-- `honorific_fa: string | null`
-- `job_title_fa: string | null`
+### For Admin Users (Outcome section, lines 494-510)
 
-### CrmCustomer Interface Update
+Add the same voice recorder below the admin Outcome input field.
 
-Add `company_name_fa: string | null` to the `CrmCustomer` interface.
+### Audio File Storage
 
-### fetchCustomers Update
+When the user records audio:
+1. Upload the audio blob to Supabase Storage (`Files` bucket) under `task-audio/{taskId}/{timestamp}.webm`
+2. Store the public URL in `tasks.outcome_audio_url`
+3. Show a playback button next to the outcome field if `outcome_audio_url` exists
 
-Change the select to include `company_name_fa`:
+### Updated Submit Logic
+
+- Include `outcome_audio_url` in the update payload for both admin and non-admin paths
+
+### Audio Playback
+
+If `task.outcome_audio_url` exists, show a small audio player or play button next to the outcome text, so reviewers can listen to the original voice explanation.
+
+## UI Layout (Non-Admin Outcome Section)
+
+```text
+Outcome
++-----------------------------------------+
+| [Textarea: Describe what you did...]    |
++-----------------------------------------+
+
+Voice Report
++------------------+----------------------+
+| [Mic icon] Start Recording              |
+| Recording... 0:05  [Stop]               |
+| Processing...  [====>    ]              |
++------------------------------------------+
+
+[Play icon] Listen to voice report  (if audio exists)
 ```
-.select('id, company_name, company_name_fa, customer_status')
-```
-
-### fetchContacts Update
-
-Change the select to include Persian fields:
-```
-.select('id, first_name, last_name, first_name_fa, last_name_fa, honorific_fa, job_title, job_title_fa, is_primary_contact')
-```
-
-### Auto-fill Logic Changes
-
-**`handleCustomerChange`**: When a customer is selected:
-- Set `recipientCompany` to `company_name_fa` if available, otherwise `company_name` (Persian first)
-
-**`applyContact`**: When a contact is selected/applied:
-- Set `recipientName` to:
-  - `honorific_fa + ' ' + last_name_fa` if both exist (e.g., "جناب کریمی")
-  - Just `last_name_fa` if honorific is empty but last_name_fa exists
-  - Fallback to `first_name + ' ' + last_name` (English) if no Persian data
-- Set `recipientPosition` to:
-  - `job_title_fa` if available
-  - Fallback to `job_title` (English)
-
-**`prefillFromProject`**: Same cascading logic applies -- when fetching the customer for pre-fill, include `company_name_fa` and use Persian-first auto-fill.
-
-### Dropdown Display (Bilingual)
-
-**Customer dropdown items**: Show both languages for identification:
-```
-company_name — company_name_fa
-```
-Example: "ISACO -- ایساکو". If no FA name, show EN only.
-
-**Contact dropdown items**: Show both languages + Persian job title:
-```
-First Last — first_name_fa last_name_fa — job_title_fa
-```
-Example: "Davood Karimi -- داوود کریمی -- قائم مقام". Omit parts that are null.
-
-### Recipient Text Fields
-
-Add `dir="rtl"` to the Recipient Name, Position, and Company Input elements since the auto-filled content will be Persian. The fields remain fully editable.
-
-### Voice Input Enhancement
-
-In `handleFieldsExtracted`, when a CRM match is found, the `applyContact` and `handleCustomerChange` functions will now automatically use Persian data. No additional changes needed beyond what those functions already do -- the voice handler calls them and they now output Persian.
 
 ## File Summary
 
 | File | Action | Changes |
 |------|--------|---------|
-| Migration SQL | Create | Add `honorific_fa`, `job_title_fa` to `customer_contacts` |
-| `src/components/CustomerContactForm.tsx` | Modify | Add honorific dropdown + job_title_fa field, update interface + payload |
-| `src/pages/WritingLetterPage.tsx` | Modify | Update interfaces, fetch Persian fields, Persian-first auto-fill, bilingual dropdowns, RTL inputs |
+| Migration SQL | Create | Add `outcome_audio_url` to `tasks` |
+| `src/components/TaskVoiceRecorder.tsx` | Create | Compact voice recorder component for task outcomes |
+| `src/components/TaskEditDialog.tsx` | Modify | Add voice recorder to outcome sections (admin + non-admin), audio upload/playback |
+
+## Technical Notes
+
+- Reuses the existing `voice-to-text` edge function (no backend changes needed)
+- Follows the same 32KB chunked base64 conversion pattern for mobile stability
+- Audio is stored in the existing `Files` storage bucket
+- The transcribed text is appended to the outcome field, not replacing existing text
+- Audio playback uses a native HTML `<audio>` element for simplicity
 
