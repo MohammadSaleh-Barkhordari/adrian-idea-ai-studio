@@ -1,31 +1,36 @@
 
 
-# Pre-fill Recipient Email from CRM Contact
+# Add CRM Contact Picker to Email Compose
 
-When sending a letter by email, the selected contact's email address will be automatically filled in the "To" field, while remaining editable.
+## What Changes
 
-## Changes
+Add two optional dropdown selectors (Company and Contact) above the "To" field in the Email Compose dialog. When a user selects a company, the contacts dropdown populates with that company's contacts. Selecting a contact auto-fills the "To" email field with the contact's email address. The "To" field remains fully editable -- users can still type manually or use the existing email_contacts autocomplete.
 
-### 1. Add `email` to CrmContact interface and fetch query
-**File: `src/pages/WritingLetterPage.tsx`**
-- Add `email: string | null` to the `CrmContact` interface.
-- Add `email` to the `.select(...)` query that fetches contacts for the selected customer.
-- Store the selected contact's email in a new state variable (e.g., `contactEmail`).
-- In `applyContact`, set `contactEmail` from `contact.email`.
-- Pass `contactEmail` to the `LetterBuilder` component via `letterData`.
-- Reset `contactEmail` when the form is cleared.
+## Technical Details
 
-### 2. Pass contact email through to email navigation
-**File: `src/components/LetterBuilder.tsx`**
-- Add `contactEmail?: string` to the `LetterBuilderProps` `letterData` interface.
-- In the email button's `navigate('/email', { state: ... })` call, add `to: letterData.contactEmail` inside the `prefill` object.
+### File: `src/components/email/EmailCompose.tsx`
 
-### 3. Consume the `to` field in EmailPage and EmailCompose
-**File: `src/pages/EmailPage.tsx`**
-- Pass `prefillData?.to` as a new `initialTo` prop to `EmailCompose`.
+**New state variables:**
+- `crmCustomers` -- list of customers fetched from `customers` table
+- `crmContacts` -- list of contacts for the selected customer
+- `selectedCustomerId` -- currently selected customer
+- `selectedContactId` -- currently selected contact
 
-**File: `src/components/email/EmailCompose.tsx`**
-- Add `initialTo?: string` to the `EmailComposeProps` interface.
-- In the `useEffect` that runs on open (for `mode === 'new'`), set `setTo(initialTo || '')` so the To field is pre-filled but editable.
+**New data fetching:**
+- `fetchCustomers()` -- called when dialog opens in `mode === 'new'`, queries `customers` table for `id, company_name, company_name_fa`
+- `fetchCrmContacts(customerId)` -- queries `customer_contacts` for `id, first_name, last_name, first_name_fa, last_name_fa, email` filtered by `customer_id` and `is_active = true`
 
-This way, when a user clicks "Email Letter", the contact's email from the CRM is automatically placed in the recipient field. The user can still edit it before sending.
+**New UI (above the "To" input, only shown when `mode === 'new'`):**
+- Two `<Select>` dropdowns side by side:
+  1. **Company** -- shows `company_name -- company_name_fa` (bilingual)
+  2. **Contact** -- shows `first_name last_name` (filtered by selected company), disabled until a company is selected
+- When a contact is selected: auto-fill `to` with `contact.email` and `toName` with `contact.first_name + ' ' + contact.last_name`
+
+**Reset logic:**
+- Clear CRM state when dialog closes or on discard
+- Clear contacts dropdown and "To" field when company changes
+- Company/contact dropdowns only visible for `mode === 'new'` (not reply/forward)
+
+### No other files need changes
+The Select component from `@radix-ui/react-select` is already available via `src/components/ui/select.tsx`.
+
