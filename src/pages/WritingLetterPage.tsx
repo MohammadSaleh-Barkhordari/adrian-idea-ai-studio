@@ -28,6 +28,7 @@ interface CrmContact {
   first_name_fa: string | null;
   last_name_fa: string | null;
   honorific_fa: string | null;
+  title_fa: string | null;
   job_title: string | null;
   job_title_fa: string | null;
   is_primary_contact: boolean | null;
@@ -95,7 +96,7 @@ const WritingLetterPage = () => {
     try {
       const { data, error } = await supabase
         .from('customer_contacts')
-        .select('id, first_name, last_name, first_name_fa, last_name_fa, honorific_fa, job_title, job_title_fa, is_primary_contact')
+        .select('id, first_name, last_name, first_name_fa, last_name_fa, honorific_fa, title_fa, job_title, job_title_fa, is_primary_contact')
         .eq('customer_id', customerId)
         .eq('is_active', true)
         .order('is_primary_contact', { ascending: false });
@@ -177,9 +178,9 @@ const WritingLetterPage = () => {
 
   const applyContact = (contact: CrmContact) => {
     setSelectedContact(contact.id);
-    // Persian-first recipient name: honorific_fa + last_name_fa
+    // Persian-first recipient name: honorific_fa + title_fa + last_name_fa
     if (contact.last_name_fa) {
-      const parts = [contact.honorific_fa, contact.last_name_fa].filter(Boolean);
+      const parts = [contact.honorific_fa, contact.title_fa, contact.last_name_fa].filter(Boolean);
       setRecipientName(parts.join(' '));
     } else {
       setRecipientName(`${contact.first_name} ${contact.last_name}`);

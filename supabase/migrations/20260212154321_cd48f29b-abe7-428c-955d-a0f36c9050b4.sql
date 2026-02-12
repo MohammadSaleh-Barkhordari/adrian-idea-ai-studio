@@ -1,0 +1,1 @@
+ALTER TABLE customer_contacts ADD COLUMN IF NOT EXISTS title_fa text;
