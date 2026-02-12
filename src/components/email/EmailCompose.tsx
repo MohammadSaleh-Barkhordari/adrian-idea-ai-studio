@@ -132,12 +132,32 @@ const EmailCompose = ({
       setTo(initialTo || '');
       setToName('');
       setSubject(initialSubject || '');
-      setBody(initialBody || '');
-      setBodyHtml(initialBodyHtml || '');
       setPreloadedAttachments(initialAttachments || []);
       fetchCustomers();
+
+      if (initialBody || initialBodyHtml) {
+        setBody(initialBody || '');
+        setBodyHtml(initialBodyHtml || '');
+      } else {
+        // Fetch Persian identity for default signature
+        (async () => {
+          const { data: emp } = await supabase
+            .from('employees')
+            .select('name_fa, surname_fa, job_title_fa')
+            .eq('user_id', userId)
+            .maybeSingle();
+          const nameFa = emp ? `${emp.name_fa || ''} ${emp.surname_fa || ''}`.trim() : '';
+          const titleFa = emp?.job_title_fa || '';
+          const sigParts = ['\n\nباتشکر'];
+          if (nameFa) sigParts.push(nameFa);
+          if (titleFa) sigParts.push(`${titleFa} شرکت آدرین ایده`);
+          else sigParts.push('شرکت آدرین ایده');
+          setBody(sigParts.join('\n'));
+          setBodyHtml('');
+        })();
+      }
     }
-  }, [isOpen, mode, replyToEmail, initialTo, initialSubject, initialBody, initialBodyHtml, initialAttachments]);
+  }, [isOpen, mode, replyToEmail, initialTo, initialSubject, initialBody, initialBodyHtml, initialAttachments, userId]);
 
   const searchContacts = (q: string) => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
