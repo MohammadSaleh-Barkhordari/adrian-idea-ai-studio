@@ -1,49 +1,39 @@
 
+# Fix: Letters Not Appearing in Project Attach Picker
 
-# Attach Files from Projects in Email Compose
+## Problem Found
 
-## What It Does
+After investigating the database, I found two issues preventing letters from showing up:
 
-Adds a new "Attach from Project" option alongside the existing "Attach File" button. Users can:
-1. Select a project from the project list
-2. Choose a category: Document, File, or Letter
-3. See the list of items in that category for the selected project
-4. Pick one to attach -- it gets added to the attachment list using its storage path
-5. Repeat or manually attach files as usual
+1. **Wrong status filter**: The code filters for `status = 'final_generated'`, but all your letters have status `letter_generated`. The final PNG generation step was never completed for these letters, so none match.
+2. **Missing `final_image_url`**: The code requires `final_image_url` to be set, but it's null for all letters. Since the final step wasn't completed, no PNG path was saved to the database.
+3. **Missing display name**: `letter_title` and `subject` are both null, but `generated_subject` has the actual Persian subject text.
 
-## Technical Details
+## Fix
 
-### File: `src/components/email/EmailCompose.tsx`
+### File: `src/components/email/ProjectAttachPicker.tsx`
 
-**New state variables:**
-- `showProjectAttach` (boolean) -- toggles the project attachment picker UI
-- `attachProjects` -- list of projects from `adrian_projects` (id, project_id, project_name)
-- `attachSelectedProjectId` -- selected project's `project_id` (text)
-- `attachCategory` -- `'document' | 'file' | 'letter' | ''`
-- `attachItems` -- list of items fetched based on category (id, name, storage_path, bucket)
+Update the letter query (lines 82-93) to:
 
-**Data fetching:**
-- `fetchProjects()` -- queries `adrian_projects` for `project_id, project_name`, ordered by name
-- `fetchAttachItems(projectId, category)` -- based on category:
-  - **Document**: queries `documents` where `project_id = projectId`, returns `file_name`, `file_path` (bucket: `Documents`)
-  - **File**: queries `files` where `project_id = projectId`, returns `file_name`, `file_path` (bucket: `Files`)
-  - **Letter**: queries `letters` where `project_id = projectId` and `status = 'final_generated'`, returns `letter_title` or `subject` as name, `final_image_url` as path (bucket: `Letters`)
+- **Remove the status filter** -- show all letters for the project regardless of status (or filter for `letter_generated` as well)
+- **Also select `generated_subject` and `file_url`** -- since `letter_title` and `subject` are null, use `generated_subject` for the display name
+- **Use `file_url` as fallback** for `final_image_url` -- if `final_image_url` is null, try `file_url`
+- **If neither URL exists**, still show the letter in the list but construct the expected storage path from the letter ID (e.g., `letters/{id}.png`) since the PNG files may exist in storage even though the URL wasn't saved to the database
 
-**When user selects an item:**
-- Add it to `preloadedAttachments` array with `{ name, storage_path, bucket }` -- these are already handled by the existing send logic which passes them to the `send-email` edge function
+The updated query will look like:
+```typescript
+const { data } = await supabase
+  .from('letters')
+  .select('id, letter_title, subject, generated_subject, final_image_url, file_url')
+  .eq('project_id', pid)
+  .order('created_at', { ascending: false });
 
-**New UI (in the attachments section):**
-- A second button "Attach from Project" next to the existing "Attach File" button
-- When clicked, shows a small inline panel with three cascading selects:
-  1. Project dropdown
-  2. Category dropdown (Document / File / Letter) -- disabled until project is selected
-  3. Item list -- disabled until category is selected, shows matching items
-- A small "Add" button to confirm and add the selected item to attachments
-- The panel can be collapsed/dismissed
+setItems((data || []).map(d => ({
+  id: d.id,
+  name: d.letter_title || d.generated_subject || d.subject || 'Untitled Letter',
+  storage_path: d.final_image_url || d.file_url || `letters/${d.id}.png`,
+  bucket: 'Letters',
+})));
+```
 
-**Reset logic:**
-- Clear project attachment state on dialog close/discard
-
-### No database changes needed
-All tables and storage buckets already exist.
-
+This single change will make all your letters visible in the picker with their Persian subject as the display name.
