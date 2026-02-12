@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Download, Eye, Edit, Terminal, Mail } from 'lucide-react';
+import { Download, Eye, Edit, Mail } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 interface LetterBuilderProps {
   letterData: {
@@ -34,51 +34,17 @@ const LetterBuilder: React.FC<LetterBuilderProps> = ({
   const [generatedFilePath, setGeneratedFilePath] = useState<string | null>(null);
   // State for element positions - Updated to match professional layout from reference letter
   const [positions, setPositions] = useState({
-    basmala: {
-      x: 320,
-      y: 245
-    },
-    date: {
-      x: 562,
-      y: 75
-    },
-    recipientName: {
-      x: 548,
-      y: 328
-    },
-    recipientInfo: {
-      x: 594,
-      y: 385
-    },
-    // combined position+company
-    subject: {
-      x: 197,
-      y: 444
-    },
-    greeting: {
-      x: 575,
-      y: 502
-    },
-    body: {
-      x: 121,
-      y: 557
-    },
-    closing1: {
-      x: 351,
-      y: 767
-    },
-    signature: {
-      x: 56,
-      y: 933
-    },
-    closing2: {
-      x: 101,
-      y: 828
-    },
-    stamp: {
-      x: 218,
-      y: 933
-    }
+    basmala: { x: 320, y: 245 },
+    date: { x: 549, y: 62 },
+    recipientName: { x: 506, y: 326 },
+    recipientInfo: { x: 577, y: 385 },
+    subject: { x: 331, y: 441 },
+    greeting: { x: 577, y: 502 },
+    body: { x: 129, y: 561 },
+    closing1: { x: 385, y: 766 },
+    signature: { x: 56, y: 933 },
+    closing2: { x: 101, y: 828 },
+    stamp: { x: 218, y: 933 },
   });
 
   // Options state
@@ -173,46 +139,6 @@ const LetterBuilder: React.FC<LetterBuilderProps> = ({
     }));
   };
 
-  const logCurrentPositions = () => {
-    const canvas = document.getElementById('letter-canvas');
-    if (!canvas) {
-      console.error('letter-canvas not found');
-      return;
-    }
-    const canvasRect = canvas.getBoundingClientRect();
-    
-    console.log('=== Letter Element Bounding Boxes ===');
-    console.log(`Canvas: ${canvasRect.width}x${canvasRect.height}`);
-    
-    const elementNames = Object.keys(positions);
-    elementNames.forEach(name => {
-      // Each CustomDraggable has an absolutely positioned div; find by iterating canvas children
-      const allDraggables = canvas.querySelectorAll('[class*="absolute"]');
-      let found = false;
-      allDraggables.forEach(el => {
-        const htmlEl = el as HTMLElement;
-        // Match by checking style.left and style.top against known position
-        const pos = positions[name as keyof typeof positions];
-        const elLeft = parseFloat(htmlEl.style.left);
-        const elTop = parseFloat(htmlEl.style.top);
-        if (Math.abs(elLeft - pos.x) < 2 && Math.abs(elTop - pos.y) < 2) {
-          const rect = htmlEl.getBoundingClientRect();
-          const x = rect.left - canvasRect.left;
-          const y = rect.top - canvasRect.top;
-          const w = rect.width;
-          const h = rect.height;
-          console.log(`Box: ${name} → High X: ${Math.round(x + w)}, High Y: ${Math.round(y)}, Low X: ${Math.round(x)}, Low Y: ${Math.round(y + h)}, Width: ${Math.round(w)}, Height: ${Math.round(h)}`);
-          found = true;
-        }
-      });
-      if (!found) {
-        console.log(`Box: ${name} → NOT FOUND IN DOM (may be hidden)`);
-      }
-    });
-    
-    console.log('=== Raw positions (x,y) ===');
-    console.log(JSON.stringify(positions, null, 2));
-  };
 
   const buildCleanLetterDiv = (): HTMLDivElement => {
     const container = document.createElement('div');
@@ -520,10 +446,6 @@ const LetterBuilder: React.FC<LetterBuilderProps> = ({
             ارسال نامه با ایمیل
           </Button>
 
-          <Button onClick={logCurrentPositions} variant="outline" className="flex items-center gap-2">
-            <Terminal className="w-4 h-4" />
-            Log Current Positions
-          </Button>
         </div>
       </div>
 
