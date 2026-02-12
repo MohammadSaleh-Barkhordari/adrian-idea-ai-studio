@@ -1,44 +1,44 @@
 
 
-# Fix Letter PDF Layout: RTL Alignment
+# Step 2: Apply RTL Alignment to Letter Defaults
 
-## Step 1: Enhanced Position Logging
+## Changes to `src/components/LetterBuilder.tsx`
 
-Update the `logCurrentPositions` function in `LetterBuilder.tsx` to measure actual rendered element sizes from the DOM.
+### 1. Update default positions (lines 36-82)
 
-### How it works
+Replace the current default positions with the new RTL-aligned values:
 
-Each letter element is rendered inside a `CustomDraggable` wrapper. The function will:
-
-1. Query each draggable element inside `#letter-canvas` by its `id` prop
-2. Get the inner content div's `getBoundingClientRect()` relative to the canvas
-3. Calculate and log the full bounding box:
-
+```javascript
+basmala:       { x: 320, y: 245 },  // unchanged
+date:          { x: 549, y: 62 },   // updated
+recipientName: { x: 506, y: 326 },  // aligned to High X 705
+recipientInfo: { x: 577, y: 385 },  // aligned to High X 705
+subject:       { x: 331, y: 441 },  // aligned to High X 705
+greeting:      { x: 577, y: 502 },  // aligned to High X 705
+body:          { x: 129, y: 561 },  // aligned to High X 705
+closing1:      { x: 385, y: 766 },  // aligned to High X 705
+closing2:      { x: 101, y: 828 },  // unchanged
+signature:     { x: 56, y: 933 },   // unchanged
+stamp:         { x: 218, y: 933 },  // unchanged
 ```
-Box: [name] -> High X: [x + width], High Y: [y], Low X: [x], Low Y: [y + height], Width: [width], Height: [height]
-```
 
-### Technical detail
+### 2. Remove "Log Current Positions" button and function
 
-`CustomDraggable` positions elements using `style.left` and `style.top`. The actual width/height comes from the rendered content. We will iterate over all position keys, find their corresponding DOM elements in the canvas, and measure them using `getBoundingClientRect()` offset by the canvas rect.
+- Delete the `logCurrentPositions` function (lines 176-215)
+- Delete the "Log Current Positions" button (lines 523-526)
+- Remove the `Terminal` import from lucide-react (line 10)
 
-After this change, clicking "Log Current Positions" will print the full bounding box for every element to the console. You can then generate a test letter and share the log output.
+### 3. Ensure text-align: right on the 6 aligned boxes in `buildCleanLetterDiv`
 
-## Step 2: RTL Right-Edge Alignment (after log confirmation)
+The `buildCleanLetterDiv` function (used for PNG generation) already sets `text-align:right` on recipientName, recipientInfo, subject, greeting, body, and closing1. No changes needed there.
 
-Once you confirm the logged values, apply these rules:
+The canvas preview elements (JSX) also already have `text-right` and `direction: 'rtl'` on all 6 boxes. No changes needed there either.
 
-- **Keep unchanged**: basmala, closing2, signature, stamp
-- **Date**: Anchor from its current High X (right edge), keep current High Y
-- **6 aligned boxes** (recipientName, recipientInfo, subject, greeting, body, closing1): Set all their High X (right edge) equal to greeting's current High X. Each box keeps its own High Y (vertical position). New `x = greeting_highX - box_width`.
+## Summary
 
-## Step 3: Save as New Defaults
-
-Update the default `positions` state in `LetterBuilder.tsx` with the calculated values.
-
-## Files Changed
-
-| File | Action | Detail |
-|------|--------|--------|
-| `src/components/LetterBuilder.tsx` | Modify | Enhanced `logCurrentPositions` with bounding box measurement; later update default positions |
+| Area | Action |
+|------|--------|
+| Default positions | Update 6 boxes to right-edge align at X=705; update date to (549, 62) |
+| Log button/function | Remove entirely |
+| RTL text alignment | Already correct, no changes needed |
 
