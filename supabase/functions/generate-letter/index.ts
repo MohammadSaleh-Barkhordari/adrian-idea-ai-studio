@@ -311,6 +311,8 @@ CRITICAL REQUIREMENTS:
 - Do NOT include: "احتراماً", "با سلام و احترام", "با تشکر", closing phrases, signatures
 - Do NOT include: any greetings, openings, closings, or formal letter elements
 - Write in professional Persian business language
+- Write the letter in proper Persian/Farsi with correct RTL text direction
+- Punctuation marks (period, comma, colon) should follow Persian typography rules
 - Keep subject_line under 50 words
 - Body should be 1-3 paragraphs maximum, focused only on the main request
 
