@@ -301,9 +301,12 @@ const LetterBuilder: React.FC<LetterBuilderProps> = ({
           .eq('project_id', letterData.project_id)
           .maybeSingle();
 
-        // Upload with structure: {project_name}/{id}/letter.png
+        // Upload with structure: {project_name}/{id}/{safeTitle}.png
         const projectName = project?.project_name || letterData.project_id;
-        const filePath = `${projectName}/${letterData.id}/letter.png`;
+        const safeTitle = (letterData.generatedSubject || 'letter')
+          .replace(/[^a-zA-Z0-9\u0600-\u06FF._-]/g, '_')
+          .substring(0, 100);
+        const filePath = `${projectName}/${letterData.id}/${safeTitle}.png`;
         
         const { error: uploadError } = await supabase.storage
           .from('Letters')

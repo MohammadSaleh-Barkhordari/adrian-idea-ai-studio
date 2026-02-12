@@ -83,11 +83,12 @@ const ProjectAttachPicker = ({ onAttach }: ProjectAttachPickerProps) => {
           .from('letters')
           .select('id, letter_title, subject, generated_subject, final_image_url, file_url')
           .eq('project_id', pid)
+          .or('final_image_url.not.is.null,file_url.not.is.null')
           .order('created_at', { ascending: false });
         setItems((data || []).map(d => ({
           id: d.id,
           name: (d.letter_title || d.generated_subject || d.subject || 'Untitled Letter') + '.png',
-          storage_path: d.final_image_url || d.file_url || `${project?.project_name || pid}/${d.id}/letter.png`,
+          storage_path: (d.final_image_url || d.file_url)!,
           bucket: 'Letters',
         })));
       }

@@ -63,9 +63,8 @@ const ContractUpload = ({ onDataExtracted, onFileUploaded }: ContractUploadProps
 
     try {
       // Upload file to Supabase Storage
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-      const filePath = `contracts/${fileName}`;
+      const fileId = crypto.randomUUID();
+      const filePath = `contracts/${fileId}/${file.name}`;
 
       const { error: uploadError, data } = await supabase.storage
         .from('documents')
