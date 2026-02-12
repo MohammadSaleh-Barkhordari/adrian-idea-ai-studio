@@ -602,10 +602,11 @@ const WritingLetterPage = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="recipientName">Recipient Name *</Label>
-                  <Input
+                   <Input
                     id="recipientName"
                     dir="rtl"
                     className="text-right"
+                    style={{ direction: 'rtl', textAlign: 'right' }}
                     placeholder="نام گیرنده..."
                     value={recipientName}
                     onChange={(e) => { setRecipientName(e.target.value); setCrmAutoFilled(prev => ({ ...prev, recipientName: false })); }}
@@ -616,10 +617,11 @@ const WritingLetterPage = () => {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="recipientPosition">Recipient Position</Label>
-                  <Input
+                   <Input
                     id="recipientPosition"
                     dir="rtl"
                     className="text-right"
+                    style={{ direction: 'rtl', textAlign: 'right' }}
                     placeholder="سمت گیرنده..."
                     value={recipientPosition}
                     onChange={(e) => { setRecipientPosition(e.target.value); setCrmAutoFilled(prev => ({ ...prev, recipientPosition: false })); }}
@@ -634,10 +636,11 @@ const WritingLetterPage = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="recipientCompany">Recipient Company</Label>
-                  <Input
+                   <Input
                     id="recipientCompany"
                     dir="rtl"
                     className="text-right"
+                    style={{ direction: 'rtl', textAlign: 'right' }}
                     placeholder="نام شرکت..."
                     value={recipientCompany}
                     onChange={(e) => { setRecipientCompany(e.target.value); setCrmAutoFilled(prev => ({ ...prev, recipientCompany: false })); }}
@@ -698,13 +701,14 @@ const WritingLetterPage = () => {
               {/* User Request */}
               <div className="space-y-2">
                 <Label htmlFor="userRequest">User Request *</Label>
-                <Textarea
+                 <Textarea
                   id="userRequest"
                   dir="rtl"
                   placeholder="Write your request and reason for the letter here..."
                   value={userRequest}
                   onChange={(e) => setUserRequest(e.target.value)}
                   className="min-h-[200px] resize-none text-right"
+                  style={{ direction: 'rtl', textAlign: 'right' }}
                 />
               </div>
 
@@ -752,11 +756,11 @@ const WritingLetterPage = () => {
               <CardContent className="space-y-6">
                 <div className="space-y-2">
                   <Label htmlFor="editableSubject">Subject</Label>
-                  <Input id="editableSubject" value={editableSubject} onChange={(e) => setEditableSubject(e.target.value)} placeholder="Letter subject..." className="text-right" dir="rtl" />
+                  <Input id="editableSubject" value={editableSubject} onChange={(e) => setEditableSubject(e.target.value)} placeholder="Letter subject..." className="text-right" dir="rtl" style={{ direction: 'rtl', textAlign: 'right' }} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="editableBody">Body</Label>
-                  <Textarea id="editableBody" value={editableBody} onChange={(e) => setEditableBody(e.target.value)} placeholder="Letter body content..." className="min-h-[200px] resize-none text-right" dir="rtl" />
+                  <Textarea id="editableBody" value={editableBody} onChange={(e) => setEditableBody(e.target.value)} placeholder="Letter body content..." className="min-h-[200px] resize-none text-right" dir="rtl" style={{ direction: 'rtl', textAlign: 'right' }} />
                 </div>
                 <div className="composition-section border-t pt-6">
                   <h3 className="text-lg font-semibold mb-4">Create Final Letter</h3>
