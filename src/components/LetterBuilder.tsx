@@ -161,41 +161,51 @@ const LetterBuilder: React.FC<LetterBuilderProps> = ({
       container.appendChild(el);
     };
 
-    // Basmala — nowrap
-    addEl(baseShort, positions.basmala, 'بسمه تعالی', 'text-align:center;font-weight:bold;font-size:18px;');
+    const addElRight = (base: string, top: number, html: string, extra: string) => {
+      const el = document.createElement('div');
+      el.style.cssText = base + `right:85px;top:${top}px;` + extra;
+      el.innerHTML = html;
+      container.appendChild(el);
+    };
 
-    // Date block — normal for <br/> support
+    // Basmala — centered horizontally
+    const basmalaEl = document.createElement('div');
+    basmalaEl.style.cssText = baseShort + `left:0;top:${positions.basmala.y}px;width:100%;text-align:center;font-weight:bold;font-size:18px;`;
+    basmalaEl.innerHTML = 'بسمه تعالی';
+    container.appendChild(basmalaEl);
+
+    // Date block — right-aligned, moved down
     const dateLines: string[] = [];
     if (letterNumber || letterData.letter_number) {
       dateLines.push(`شماره: ${letterNumber || letterData.letter_number}`);
     }
     dateLines.push(`تاریخ: ${formatPersianDate(letterData.date)}`);
     dateLines.push(`پیوست: ${hasAttachment ? 'دارد' : 'ندارد'}`);
-    addEl(baseShort, positions.date, dateLines.join('<br/>'), 'white-space:normal;text-align:right;font-size:14px;line-height:1.6;');
+    addElRight(baseShort, 120, dateLines.join('<br/>'), 'white-space:normal;text-align:right;font-size:14px;line-height:1.6;');
 
-    // Recipient name — nowrap
-    addEl(baseShort, positions.recipientName, letterData.recipientName, 'text-align:right;font-weight:bold;font-size:18px;');
+    // Recipient name — right-aligned
+    addElRight(baseShort, positions.recipientName.y, letterData.recipientName, 'text-align:right;font-weight:bold;font-size:18px;');
 
-    // Recipient info — normal for potential <br/>
+    // Recipient info
     let recipientInfoHtml = '';
     if (letterData.recipientPosition && letterData.recipientCompany) {
       recipientInfoHtml = `${letterData.recipientPosition} - ${letterData.recipientCompany}`;
     } else {
       recipientInfoHtml = [letterData.recipientPosition, letterData.recipientCompany].filter(Boolean).join('<br/>');
     }
-    addEl(baseShort, positions.recipientInfo, recipientInfoHtml, 'white-space:normal;text-align:right;font-size:16px;');
+    addElRight(baseShort, positions.recipientInfo.y, recipientInfoHtml, 'white-space:normal;text-align:right;font-size:16px;');
 
     // Subject — long text, pre-wrap
-    addEl(baseLong, positions.subject, `<span style="font-weight:bold;border:none;outline:none;background:none;box-shadow:none;">موضوع: </span><span style="border:none;outline:none;background:none;box-shadow:none;">${letterData.generatedSubject}</span>`, 'text-align:right;font-size:16px;max-width:580px;');
+    addElRight(baseLong, positions.subject.y, `<span style="font-weight:bold;border:none;outline:none;background:none;box-shadow:none;">موضوع: </span><span style="border:none;outline:none;background:none;box-shadow:none;">${letterData.generatedSubject}</span>`, 'text-align:right;font-size:16px;max-width:580px;');
 
-    // Greeting — nowrap
-    addEl(baseShort, positions.greeting, 'با سلام و احترام', 'text-align:right;font-weight:500;font-size:16px;');
+    // Greeting
+    addElRight(baseShort, positions.greeting.y, 'با سلام و احترام', 'text-align:right;font-weight:500;font-size:16px;');
 
     // Body — long text, pre-wrap
-    addEl(baseLong, positions.body, letterData.generatedBody, 'text-align:right;font-size:16px;line-height:1.8;max-width:580px;');
+    addElRight(baseLong, positions.body.y, letterData.generatedBody, 'text-align:right;font-size:16px;line-height:1.8;max-width:580px;');
 
-    // Closing 1 — nowrap
-    addEl(baseShort, positions.closing1, 'پیشاپیش از حسن توجه و همکاری شما سپاسگزاریم.', 'text-align:right;font-size:16px;');
+    // Closing 1
+    addElRight(baseShort, positions.closing1.y, 'پیشاپیش از حسن توجه و همکاری شما سپاسگزاریم.', 'text-align:right;font-size:16px;');
 
     // Closing 2 — normal for <br/> support
     addEl(baseShort, positions.closing2, 'با تشکر<br/>برخورداری<br/>مدیر عامل شرکت آدرین ایده کوشا', 'white-space:normal;text-align:center;font-size:16px;line-height:1.6;');
