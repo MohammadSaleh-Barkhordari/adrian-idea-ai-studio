@@ -1,32 +1,38 @@
 
 
-# Fix RTL Direction on All Letter Canvas Preview Elements
+# Fix RTL on Writing Letter Form Inputs
 
-## Problem
+## Issue 1: Form Input Fields
 
-Some text elements in the canvas preview JSX are missing consistent `direction: 'rtl'` and `text-align: right` styling, causing them to render as LTR. The PNG export (`buildCleanLetterDiv`) is correct, but the live preview is inconsistent.
+| Element | Line | Current | Fix |
+|---------|------|---------|-----|
+| recipientName Input | 605 | has `dir="rtl"`, no `text-right` class | Add `className="text-right"` |
+| recipientPosition Input | 618 | has `dir="rtl"`, no `text-right` class | Add `className="text-right"` |
+| recipientCompany Input | 635 | has `dir="rtl"`, no `text-right` class | Add `className="text-right"` |
+| userRequest Textarea | 698 | no `dir="rtl"`, no `text-right` | Add `dir="rtl"` and `text-right` to className |
 
-## Elements That Need Updates
+## Issue 2: Generated Letter Content
 
-| Element | Current | Change Needed |
-|---------|---------|---------------|
-| basmala (line 472) | `text-center`, has `direction: 'rtl'` | Change `text-center` to `text-right` |
-| date (line 481) | Already correct | None |
-| recipientName (line 492) | Already correct | None |
-| recipientInfo (line 501) | Already correct | None |
-| subject (line 513) | Already correct | None |
-| greeting (line 523) | Already correct | None |
-| body (line 532) | Already correct | None |
-| closing1 (line 541) | Already correct | None |
-| signature (line 550) | Already correct | None |
-| closing2 (line 563) | `text-center`, has `direction: 'rtl'` | Change `text-center` to `text-right` |
-| stamp (line 574) | No direction or textAlign | Add `style={{ direction: 'rtl', textAlign: 'right' }}` |
+The Subject input (line 751) and Body textarea (line 755) already have both `dir="rtl"` and `className="text-right"`. No changes needed here.
 
-## File Changed
+## Issue 3: AI Prompt Update
 
-`src/components/LetterBuilder.tsx` -- 3 small edits:
+Add Persian typography instruction to the `generate-letter` edge function prompt to ensure proper RTL punctuation ordering.
 
-1. **Line 472 (basmala)**: `text-center` to `text-right`
-2. **Line 563 (closing2)**: `text-center` to `text-right`
-3. **Line 574 (stamp)**: Add `style={{ direction: 'rtl' }}` and `text-right` class
+## File Changes
+
+### `src/pages/WritingLetterPage.tsx` (4 edits)
+
+1. **Line 605** (recipientName): Add `className="text-right"`
+2. **Line 618** (recipientPosition): Add `className="text-right"`
+3. **Line 635** (recipientCompany): Add `className="text-right"`
+4. **Lines 698-704** (userRequest): Add `dir="rtl"` and add `text-right` to className
+
+### `supabase/functions/generate-letter/index.ts` (1 edit)
+
+Add to the prompt's critical requirements section:
+```
+- Write the letter in proper Persian/Farsi with correct RTL text direction
+- Punctuation marks (period, comma, colon) should follow Persian typography rules
+```
 
