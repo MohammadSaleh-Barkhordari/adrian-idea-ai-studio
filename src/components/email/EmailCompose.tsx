@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Send, Save, X, Loader2, Paperclip } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -60,14 +61,57 @@ const EmailCompose = ({
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [fileAttachments, setFileAttachments] = useState<FileAttachment[]>([]);
   const [preloadedAttachments, setPreloadedAttachments] = useState<PreloadedAttachment[]>([]);
+  const [crmCustomers, setCrmCustomers] = useState<{ id: string; company_name: string; company_name_fa: string | null }[]>([]);
+  const [crmContacts, setCrmContacts] = useState<{ id: string; first_name: string; last_name: string; first_name_fa: string | null; last_name_fa: string | null; email: string | null }[]>([]);
+  const [selectedCustomerId, setSelectedCustomerId] = useState('');
+  const [selectedContactId, setSelectedContactId] = useState('');
   const debounceRef = useRef<NodeJS.Timeout>();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+
+  const fetchCustomers = async () => {
+    const { data } = await supabase
+      .from('customers')
+      .select('id, company_name, company_name_fa')
+      .order('company_name');
+    setCrmCustomers(data || []);
+  };
+
+  const fetchCrmContacts = async (customerId: string) => {
+    const { data } = await supabase
+      .from('customer_contacts')
+      .select('id, first_name, last_name, first_name_fa, last_name_fa, email')
+      .eq('customer_id', customerId)
+      .eq('is_active', true)
+      .order('first_name');
+    setCrmContacts(data || []);
+  };
+
+  const handleCustomerChange = (customerId: string) => {
+    setSelectedCustomerId(customerId);
+    setSelectedContactId('');
+    setCrmContacts([]);
+    if (customerId) {
+      fetchCrmContacts(customerId);
+    }
+  };
+
+  const handleContactChange = (contactId: string) => {
+    setSelectedContactId(contactId);
+    const contact = crmContacts.find(c => c.id === contactId);
+    if (contact) {
+      if (contact.email) setTo(contact.email);
+      setToName(`${contact.first_name} ${contact.last_name}`);
+    }
+  };
 
   useEffect(() => {
     if (!isOpen) return;
     setFileAttachments([]);
     setBodyHtml('');
+    setSelectedCustomerId('');
+    setSelectedContactId('');
+    setCrmContacts([]);
 
     if (mode === 'reply' && replyToEmail) {
       setTo(replyToEmail.from_email);
@@ -91,6 +135,7 @@ const EmailCompose = ({
       setBody(initialBody || '');
       setBodyHtml(initialBodyHtml || '');
       setPreloadedAttachments(initialAttachments || []);
+      fetchCustomers();
     }
   }, [isOpen, mode, replyToEmail, initialTo, initialSubject, initialBody, initialBodyHtml, initialAttachments]);
 
@@ -243,6 +288,41 @@ const EmailCompose = ({
               <Input value={userEmail} disabled className="bg-muted" />
             </div>
 
+            {mode === 'new' && (
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs text-muted-foreground">Company</Label>
+                  <Select value={selectedCustomerId} onValueChange={handleCustomerChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select company..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {crmCustomers.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.company_name}{c.company_name_fa ? ` — ${c.company_name_fa}` : ''}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Contact</Label>
+                  <Select value={selectedContactId} onValueChange={handleContactChange} disabled={!selectedCustomerId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select contact..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {crmContacts.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.first_name} {c.last_name}{c.first_name_fa ? ` — ${c.first_name_fa} ${c.last_name_fa || ''}` : ''}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
+
             <div className="relative">
               <Label className="text-xs text-muted-foreground">To</Label>
               <Input
@@ -362,7 +442,7 @@ const EmailCompose = ({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={() => { setShowDiscard(false); setTo(''); setSubject(''); setBody(''); setFileAttachments([]); setPreloadedAttachments([]); onClose(); }}>
+            <AlertDialogAction onClick={() => { setShowDiscard(false); setTo(''); setSubject(''); setBody(''); setFileAttachments([]); setPreloadedAttachments([]); setSelectedCustomerId(''); setSelectedContactId(''); setCrmContacts([]); onClose(); }}>
               Discard
             </AlertDialogAction>
           </AlertDialogFooter>
