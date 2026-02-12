@@ -1,36 +1,31 @@
 
 
-# Fix Letter Email Integration
+# Pre-fill Recipient Email from CRM Contact
 
-Three changes to the email body generated when clicking "ارسال نامه با ایمیل":
+When sending a letter by email, the selected contact's email address will be automatically filled in the "To" field, while remaining editable.
 
-## 1. Fix recipientInfo format
-Change `${recipientPosition} - ${recipientCompany}` to `${recipientPosition} محترم شرکت ${recipientCompany}` in both the HTML and plain text email bodies.
+## Changes
 
-## 2. Remove subject from email body
-Remove the `<p><strong>موضوع: ${subject}</strong></p>` line from the HTML body and the `موضوع: ${subject}` line from the plain text body, since the subject is already in the email's subject field.
+### 1. Add `email` to CrmContact interface and fetch query
+**File: `src/pages/WritingLetterPage.tsx`**
+- Add `email: string | null` to the `CrmContact` interface.
+- Add `email` to the `.select(...)` query that fetches contacts for the selected customer.
+- Store the selected contact's email in a new state variable (e.g., `contactEmail`).
+- In `applyContact`, set `contactEmail` from `contact.email`.
+- Pass `contactEmail` to the `LetterBuilder` component via `letterData`.
+- Reset `contactEmail` when the form is cleared.
 
-## 3. Show sender's Persian name and job title
-Currently the closing uses `letterData.writerName` (which is `user_metadata.full_name` -- English) and a hardcoded job title.
+### 2. Pass contact email through to email navigation
+**File: `src/components/LetterBuilder.tsx`**
+- Add `contactEmail?: string` to the `LetterBuilderProps` `letterData` interface.
+- In the email button's `navigate('/email', { state: ... })` call, add `to: letterData.contactEmail` inside the `prefill` object.
 
-### Changes needed:
+### 3. Consume the `to` field in EmailPage and EmailCompose
+**File: `src/pages/EmailPage.tsx`**
+- Pass `prefillData?.to` as a new `initialTo` prop to `EmailCompose`.
 
-**WritingLetterPage.tsx:**
-- After getting the authenticated user, query the `employees` table for the current user's `name_fa`, `surname_fa`, and `job_title_fa` (matching on `user_id`).
-- Pass these as new props: `writerNameFa` and `writerJobTitleFa` to `LetterBuilder`.
+**File: `src/components/email/EmailCompose.tsx`**
+- Add `initialTo?: string` to the `EmailComposeProps` interface.
+- In the `useEffect` that runs on open (for `mode === 'new'`), set `setTo(initialTo || '')` so the To field is pre-filled but editable.
 
-**LetterBuilder.tsx:**
-- Add `writerNameFa` and `writerJobTitleFa` to the `LetterBuilderProps` interface.
-- In the email button handler (lines 419-434), update the closing section:
-  - Replace `${letterData.writerName || 'برخورداری'}` with `${letterData.writerNameFa || letterData.writerName}`.
-  - Replace the hardcoded `مدیر عامل شرکت آدرین ایده کوشا` with `${letterData.writerJobTitleFa || ''} شرکت آدرین ایده کوشا`.
-- Apply the same changes to the plain text version.
-
-## Technical Summary
-
-| File | Change |
-|---|---|
-| `WritingLetterPage.tsx` | Fetch `name_fa`, `surname_fa`, `job_title_fa` from `employees` for current user; pass to LetterBuilder |
-| `LetterBuilder.tsx` (interface) | Add `writerNameFa?: string` and `writerJobTitleFa?: string` |
-| `LetterBuilder.tsx` (email handler) | Fix recipientInfo format, remove subject line from body, use Persian name/title in closing |
-
+This way, when a user clicks "Email Letter", the contact's email from the CRM is automatically placed in the recipient field. The user can still edit it before sending.
