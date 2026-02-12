@@ -81,14 +81,13 @@ const ProjectAttachPicker = ({ onAttach }: ProjectAttachPickerProps) => {
       } else if (cat === 'letter') {
         const { data } = await supabase
           .from('letters')
-          .select('id, letter_title, subject, final_image_url')
+          .select('id, letter_title, subject, generated_subject, final_image_url, file_url')
           .eq('project_id', pid)
-          .eq('status', 'final_generated')
           .order('created_at', { ascending: false });
-        setItems((data || []).filter(d => d.final_image_url).map(d => ({
+        setItems((data || []).map(d => ({
           id: d.id,
-          name: d.letter_title || d.subject || 'Untitled Letter',
-          storage_path: d.final_image_url!,
+          name: d.letter_title || d.generated_subject || d.subject || 'Untitled Letter',
+          storage_path: d.final_image_url || d.file_url || `letters/${d.id}.png`,
           bucket: 'Letters',
         })));
       }
