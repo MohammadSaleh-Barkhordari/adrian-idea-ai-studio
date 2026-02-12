@@ -605,6 +605,7 @@ const WritingLetterPage = () => {
                   <Input
                     id="recipientName"
                     dir="rtl"
+                    className="text-right"
                     placeholder="نام گیرنده..."
                     value={recipientName}
                     onChange={(e) => { setRecipientName(e.target.value); setCrmAutoFilled(prev => ({ ...prev, recipientName: false })); }}
@@ -618,6 +619,7 @@ const WritingLetterPage = () => {
                   <Input
                     id="recipientPosition"
                     dir="rtl"
+                    className="text-right"
                     placeholder="سمت گیرنده..."
                     value={recipientPosition}
                     onChange={(e) => { setRecipientPosition(e.target.value); setCrmAutoFilled(prev => ({ ...prev, recipientPosition: false })); }}
@@ -635,6 +637,7 @@ const WritingLetterPage = () => {
                   <Input
                     id="recipientCompany"
                     dir="rtl"
+                    className="text-right"
                     placeholder="نام شرکت..."
                     value={recipientCompany}
                     onChange={(e) => { setRecipientCompany(e.target.value); setCrmAutoFilled(prev => ({ ...prev, recipientCompany: false })); }}
@@ -697,10 +700,11 @@ const WritingLetterPage = () => {
                 <Label htmlFor="userRequest">User Request *</Label>
                 <Textarea
                   id="userRequest"
+                  dir="rtl"
                   placeholder="Write your request and reason for the letter here..."
                   value={userRequest}
                   onChange={(e) => setUserRequest(e.target.value)}
-                  className="min-h-[200px] resize-none"
+                  className="min-h-[200px] resize-none text-right"
                 />
               </div>
 
