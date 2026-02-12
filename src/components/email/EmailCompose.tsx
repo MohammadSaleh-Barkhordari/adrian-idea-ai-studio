@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Send, Save, X, Loader2, Paperclip } from 'lucide-react';
+import ProjectAttachPicker from './ProjectAttachPicker';
 import { useToast } from '@/hooks/use-toast';
 
 interface PreloadedAttachment {
@@ -387,7 +388,7 @@ const EmailCompose = ({
             {/* Attachments */}
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <Button
+              <Button
                   type="button"
                   variant="outline"
                   size="sm"
@@ -396,6 +397,7 @@ const EmailCompose = ({
                   <Paperclip className="h-4 w-4 mr-1" />
                   Attach File
                 </Button>
+                <ProjectAttachPicker onAttach={(item) => setPreloadedAttachments(prev => [...prev, { name: item.name, url: '', storage_path: item.storage_path, bucket: item.bucket }])} />
                 {totalAttachments > 0 && (
                   <span className="text-xs text-muted-foreground">{totalAttachments} file(s)</span>
                 )}
