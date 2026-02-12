@@ -19,6 +19,8 @@ interface LetterBuilderProps {
     generatedSubject: string;
     generatedBody: string;
     writerName: string;
+    writerNameFa?: string;
+    writerJobTitleFa?: string;
     project_id: string;
     document_id?: string;
     letter_number?: string;
@@ -416,11 +418,16 @@ const LetterBuilder: React.FC<LetterBuilderProps> = ({
           <Button
             onClick={() => {
               const subject = letterData.generatedSubject || '';
+              const recipientInfo = letterData.recipientPosition && letterData.recipientCompany
+                ? `${letterData.recipientPosition} محترم شرکت ${letterData.recipientCompany}`
+                : letterData.recipientPosition || letterData.recipientCompany || '';
+              const senderName = letterData.writerNameFa || letterData.writerName || '';
+              const senderTitle = letterData.writerJobTitleFa
+                ? `${letterData.writerJobTitleFa} شرکت آدرین ایده کوشا`
+                : 'شرکت آدرین ایده کوشا';
               const htmlBody = `<div dir="rtl" style="font-family: Tahoma, sans-serif; line-height: 1.8; text-align: right;">
   <p><strong>${letterData.recipientName}</strong></p>
-  <p>${letterData.recipientPosition} - ${letterData.recipientCompany}</p>
-  <br/>
-  <p><strong>موضوع: ${subject}</strong></p>
+  <p>${recipientInfo}</p>
   <br/>
   <p>با سلام و احترام</p>
   <br/>
@@ -429,10 +436,10 @@ const LetterBuilder: React.FC<LetterBuilderProps> = ({
   <p>پیشاپیش از حسن توجه و همکاری شما سپاسگزاریم.</p>
   <br/>
   <p>با تشکر</p>
-  <p>${letterData.writerName || 'برخورداری'}</p>
-  <p>مدیر عامل شرکت آدرین ایده کوشا</p>
+  <p>${senderName}</p>
+  <p>${senderTitle}</p>
 </div>`;
-              const plainText = `${letterData.recipientName}\n${letterData.recipientPosition} - ${letterData.recipientCompany}\n\nموضوع: ${subject}\n\nبا سلام و احترام\n\n${letterData.generatedBody}\n\nپیشاپیش از حسن توجه و همکاری شما سپاسگزاریم.\n\nبا تشکر\n${letterData.writerName || 'برخورداری'}\nمدیر عامل شرکت آدرین ایده کوشا`;
+              const plainText = `${letterData.recipientName}\n${recipientInfo}\n\nبا سلام و احترام\n\n${letterData.generatedBody}\n\nپیشاپیش از حسن توجه و همکاری شما سپاسگزاریم.\n\nبا تشکر\n${senderName}\n${senderTitle}`;
               navigate('/email', {
                 state: {
                   composeMode: 'new',
