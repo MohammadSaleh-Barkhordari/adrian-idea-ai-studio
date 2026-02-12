@@ -1,28 +1,31 @@
 
-# Fix: Add `textAlign: 'right'` to Inline Styles on Letter Canvas Elements
+
+# Fix: Set RTL on Letter Canvas Container
 
 ## Root Cause
 
-The WritingLetterPage `<main>` container has `dir="ltr"`, which causes CSS inheritance to override the `className="text-right"` on child elements. Most canvas text divs already have `style={{ direction: 'rtl' }}` but are missing `textAlign: 'right'` in the inline style, so the Tailwind `text-right` class gets overridden.
+The DOM hierarchy has **3 intermediate wrapper divs** (from CustomDraggable) between `<main dir="ltr">` and the content divs. While inline `style={{ direction: 'rtl' }}` on the innermost content should theoretically work, setting RTL at the canvas level is the correct architectural fix since the entire letter is Persian.
 
-## Changes
+## The Fix
 
-### File: `src/components/LetterBuilder.tsx`
+### File: `src/components/LetterBuilder.tsx` (1 edit)
 
-Add `textAlign: 'right'` to the inline `style` object on elements that are missing it. Two elements (basmala and closing2) already have it. The rest need it added:
+**Line 459** -- Add `dir="rtl"` and `style` update to the `letter-canvas` container:
 
-| Element | Line | Current inline style | Fix |
-|---------|------|---------------------|-----|
-| basmala | 472 | `direction: 'rtl', textAlign: 'right'` | Already correct |
-| date | 481 | `direction: 'rtl'` | Add `textAlign: 'right'` |
-| recipientName | 492 | `direction: 'rtl'` | Add `textAlign: 'right'` |
-| recipientInfo | 501 | `direction: 'rtl'` | Add `textAlign: 'right'` |
-| subject | 513 | `direction: 'rtl'` | Add `textAlign: 'right'` |
-| greeting | 523 | `direction: 'rtl'` | Add `textAlign: 'right'` |
-| body | 532 | `direction: 'rtl'` | Add `textAlign: 'right'` |
-| closing1 | 541 | `direction: 'rtl'` | Add `textAlign: 'right'` |
-| signature | 550 | `direction: 'rtl'` | Add `textAlign: 'right'` |
-| closing2 | 563 | `direction: 'rtl', textAlign: 'right'` | Already correct |
-| stamp | 574 | `direction: 'rtl', textAlign: 'right'` | Already correct |
+```tsx
+// Before:
+<div id="letter-canvas" className="relative border-2 border-gray-300 bg-white shadow-xl overflow-hidden flex-shrink-0" style={{
+  width: '794px',
+  height: '1123px',
 
-**8 one-line edits** -- each just adds `, textAlign: 'right'` to the existing `style` object. No structural changes.
+// After:
+<div id="letter-canvas" dir="rtl" className="relative border-2 border-gray-300 bg-white shadow-xl overflow-hidden flex-shrink-0" style={{
+  direction: 'rtl',
+  width: '794px',
+  height: '1123px',
+```
+
+This single change makes all child elements (including the 3 CustomDraggable wrapper divs) inherit RTL direction by default. The existing inline `textAlign: 'right'` on individual content divs will then work correctly since they no longer fight against an inherited LTR direction.
+
+No other files need changes. The individual `direction: 'rtl'` and `textAlign: 'right'` styles already added to content divs remain as reinforcement.
+
