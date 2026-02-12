@@ -479,7 +479,7 @@ const LetterBuilder: React.FC<LetterBuilderProps> = ({
           {/* Date and Letter Number - Top right */}
           <CustomDraggable id="date" initialPosition={positions.date} onPositionChange={handlePositionChange} previewMode={previewMode}>
             <div className="text-sm text-right space-y-1" style={{
-            direction: 'rtl'
+            direction: 'rtl', textAlign: 'right'
           }}>
               {(letterNumber || letterData.letter_number) && <div>شماره: {letterNumber || letterData.letter_number}</div>}
               <div>تاریخ: {formatPersianDate(letterData.date)}</div>
@@ -490,7 +490,7 @@ const LetterBuilder: React.FC<LetterBuilderProps> = ({
           {/* Recipient Name */}
           <CustomDraggable id="recipientName" initialPosition={positions.recipientName} onPositionChange={handlePositionChange} previewMode={previewMode}>
             <div className="font-bold text-lg text-right" style={{
-            direction: 'rtl'
+            direction: 'rtl', textAlign: 'right'
           }}>
               {letterData.recipientName}
             </div>
@@ -499,7 +499,7 @@ const LetterBuilder: React.FC<LetterBuilderProps> = ({
           {/* Combined Recipient Info (Position + Company) */}
           <CustomDraggable id="recipientInfo" initialPosition={positions.recipientInfo} onPositionChange={handlePositionChange} previewMode={previewMode}>
             <div className="text-base text-right space-y-1" style={{
-            direction: 'rtl'
+            direction: 'rtl', textAlign: 'right'
           }}>
               {letterData.recipientPosition && letterData.recipientCompany ? <div>{letterData.recipientPosition} - {letterData.recipientCompany}</div> : <>
                   {letterData.recipientPosition && <div>{letterData.recipientPosition}</div>}
@@ -511,7 +511,7 @@ const LetterBuilder: React.FC<LetterBuilderProps> = ({
           {/* Subject - Right aligned */}
           <CustomDraggable id="subject" initialPosition={positions.subject} onPositionChange={handlePositionChange} previewMode={previewMode} className="max-w-2xl">
             <div className="text-right" style={{
-            direction: 'rtl'
+            direction: 'rtl', textAlign: 'right'
           }}>
               <span className="font-bold">موضوع: </span>
               <span>{letterData.generatedSubject}</span>
@@ -521,7 +521,7 @@ const LetterBuilder: React.FC<LetterBuilderProps> = ({
           {/* Greeting - Right side */}
           <CustomDraggable id="greeting" initialPosition={positions.greeting} onPositionChange={handlePositionChange} previewMode={previewMode}>
             <div className="text-right font-medium" style={{
-            direction: 'rtl'
+            direction: 'rtl', textAlign: 'right'
           }}>
               با سلام و احترام
             </div>
@@ -530,7 +530,7 @@ const LetterBuilder: React.FC<LetterBuilderProps> = ({
           {/* Body */}
           <CustomDraggable id="body" initialPosition={positions.body} onPositionChange={handlePositionChange} previewMode={previewMode} className="max-w-xl">
             <div className="text-right leading-relaxed space-y-3" style={{
-            direction: 'rtl'
+            direction: 'rtl', textAlign: 'right'
           }}>
               <div className="whitespace-pre-wrap">{letterData.generatedBody}</div>
             </div>
@@ -539,7 +539,7 @@ const LetterBuilder: React.FC<LetterBuilderProps> = ({
           {/* Closing 1 */}
           <CustomDraggable id="closing1" initialPosition={positions.closing1} onPositionChange={handlePositionChange} previewMode={previewMode}>
             <div className="text-right space-y-2" style={{
-            direction: 'rtl'
+            direction: 'rtl', textAlign: 'right'
           }}>
               <div>پیشاپیش از حسن توجه و همکاری شما سپاسگزاریم.</div>
             </div>
@@ -547,7 +547,7 @@ const LetterBuilder: React.FC<LetterBuilderProps> = ({
 
           {/* Signature */}
           {includeSignature && <CustomDraggable id="signature" initialPosition={positions.signature} onPositionChange={handlePositionChange} previewMode={previewMode}>
-            <div className="text-right select-none" style={{ direction: 'rtl' }}>
+            <div className="text-right select-none" style={{ direction: 'rtl', textAlign: 'right' }}>
               {signatureUrl ? (
                 <img src={signatureUrl} alt="Signature" crossOrigin="anonymous" className="max-w-48 max-h-24 ml-auto select-none pointer-events-none" draggable="false" />
               ) : (
