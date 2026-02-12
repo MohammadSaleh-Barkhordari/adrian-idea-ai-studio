@@ -182,7 +182,7 @@ const LetterBuilder: React.FC<LetterBuilderProps> = ({
     dateLines.push(`تاریخ: ${formatPersianDate(letterData.date)}`);
     dateLines.push(`پیوست: ${hasAttachment ? 'دارد' : 'ندارد'}`);
     const dateEl = document.createElement('div');
-    dateEl.style.cssText = baseShort + `right:65px;top:62px;white-space:normal;text-align:right;font-size:14px;line-height:1.6;`;
+    dateEl.style.cssText = baseShort + `right:100px;top:62px;white-space:normal;text-align:right;font-size:14px;line-height:1.6;`;
     dateEl.innerHTML = dateLines.join('<br/>');
     container.appendChild(dateEl);
 
