@@ -1,21 +1,21 @@
 
 
-# Fix Date Block Right Margin in PNG Export
+# Adjust Date Block Position in PNG Export
 
 ## Change
 
 ### File: `src/components/LetterBuilder.tsx` -- `buildCleanLetterDiv` function only
 
-Update the date element's `right` value from `65px` to `100px` to prevent text clipping at the right edge. The `top` stays at `62px`.
+Update the date element's `top` value from `62px` to `75px`. The `right` is already at `100px`.
 
-**Line ~184** -- Change:
-```
-right:65px;top:62px;
-```
-to:
+**Line ~185** -- Change:
 ```
 right:100px;top:62px;
 ```
+to:
+```
+right:100px;top:75px;
+```
 
-Single character-level edit, nothing else changes.
+Single value change, nothing else.
 
