@@ -174,22 +174,44 @@ const LetterBuilder: React.FC<LetterBuilderProps> = ({
   };
 
   const logCurrentPositions = () => {
-    console.log('=== Current Letter Element Positions ===');
+    const canvas = document.getElementById('letter-canvas');
+    if (!canvas) {
+      console.error('letter-canvas not found');
+      return;
+    }
+    const canvasRect = canvas.getBoundingClientRect();
+    
+    console.log('=== Letter Element Bounding Boxes ===');
+    console.log(`Canvas: ${canvasRect.width}x${canvasRect.height}`);
+    
+    const elementNames = Object.keys(positions);
+    elementNames.forEach(name => {
+      // Each CustomDraggable has an absolutely positioned div; find by iterating canvas children
+      const allDraggables = canvas.querySelectorAll('[class*="absolute"]');
+      let found = false;
+      allDraggables.forEach(el => {
+        const htmlEl = el as HTMLElement;
+        // Match by checking style.left and style.top against known position
+        const pos = positions[name as keyof typeof positions];
+        const elLeft = parseFloat(htmlEl.style.left);
+        const elTop = parseFloat(htmlEl.style.top);
+        if (Math.abs(elLeft - pos.x) < 2 && Math.abs(elTop - pos.y) < 2) {
+          const rect = htmlEl.getBoundingClientRect();
+          const x = rect.left - canvasRect.left;
+          const y = rect.top - canvasRect.top;
+          const w = rect.width;
+          const h = rect.height;
+          console.log(`Box: ${name} → High X: ${Math.round(x + w)}, High Y: ${Math.round(y)}, Low X: ${Math.round(x)}, Low Y: ${Math.round(y + h)}, Width: ${Math.round(w)}, Height: ${Math.round(h)}`);
+          found = true;
+        }
+      });
+      if (!found) {
+        console.log(`Box: ${name} → NOT FOUND IN DOM (may be hidden)`);
+      }
+    });
+    
+    console.log('=== Raw positions (x,y) ===');
     console.log(JSON.stringify(positions, null, 2));
-    console.log('=== Copy-paste ready format ===');
-    console.log(`const [positions, setPositions] = useState({
-  basmala: { x: ${positions.basmala.x}, y: ${positions.basmala.y} },
-  date: { x: ${positions.date.x}, y: ${positions.date.y} },
-  recipientName: { x: ${positions.recipientName.x}, y: ${positions.recipientName.y} },
-  recipientInfo: { x: ${positions.recipientInfo.x}, y: ${positions.recipientInfo.y} },
-  subject: { x: ${positions.subject.x}, y: ${positions.subject.y} },
-  greeting: { x: ${positions.greeting.x}, y: ${positions.greeting.y} },
-  body: { x: ${positions.body.x}, y: ${positions.body.y} },
-  closing1: { x: ${positions.closing1.x}, y: ${positions.closing1.y} },
-  closing2: { x: ${positions.closing2.x}, y: ${positions.closing2.y} },
-  signature: { x: ${positions.signature.x}, y: ${positions.signature.y} },
-  stamp: { x: ${positions.stamp.x}, y: ${positions.stamp.y} }
-});`);
   };
 
   const buildCleanLetterDiv = (): HTMLDivElement => {
