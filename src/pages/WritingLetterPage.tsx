@@ -32,6 +32,7 @@ interface CrmContact {
   job_title: string | null;
   job_title_fa: string | null;
   is_primary_contact: boolean | null;
+  email: string | null;
 }
 
 const WritingLetterPage = () => {
@@ -70,6 +71,7 @@ const WritingLetterPage = () => {
   const [contacts, setContacts] = useState<CrmContact[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState('');
   const [selectedContact, setSelectedContact] = useState('');
+  const [contactEmail, setContactEmail] = useState('');
   const [crmAutoFilled, setCrmAutoFilled] = useState<{
     recipientName?: boolean;
     recipientPosition?: boolean;
@@ -98,7 +100,7 @@ const WritingLetterPage = () => {
     try {
       const { data, error } = await supabase
         .from('customer_contacts')
-        .select('id, first_name, last_name, first_name_fa, last_name_fa, honorific_fa, title_fa, job_title, job_title_fa, is_primary_contact')
+        .select('id, first_name, last_name, first_name_fa, last_name_fa, honorific_fa, title_fa, job_title, job_title_fa, is_primary_contact, email')
         .eq('customer_id', customerId)
         .eq('is_active', true)
         .order('is_primary_contact', { ascending: false });
@@ -194,6 +196,7 @@ const WritingLetterPage = () => {
       recipientName: true,
       recipientPosition: true,
     }));
+    setContactEmail(contact.email || '');
   };
 
   const handleContactChange = (contactId: string) => {
@@ -804,6 +807,7 @@ const WritingLetterPage = () => {
                   writerName: user?.user_metadata?.full_name || user?.email || 'Unknown',
                   writerNameFa,
                   writerJobTitleFa,
+                  contactEmail,
                   letter_number: currentLetter?.letter_number || undefined,
                 }}
                 onLetterGenerated={handleLetterGenerated}

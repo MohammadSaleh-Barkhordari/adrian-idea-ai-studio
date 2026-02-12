@@ -30,6 +30,7 @@ interface EmailComposeProps {
   userId: string;
   userEmail: string;
   onSent: () => void;
+  initialTo?: string;
   initialSubject?: string;
   initialBody?: string;
   initialBodyHtml?: string;
@@ -46,7 +47,7 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
 const EmailCompose = ({
   isOpen, onClose, mode, replyToEmail, userId, userEmail, onSent,
-  initialSubject, initialBody, initialBodyHtml, initialAttachments
+  initialTo, initialSubject, initialBody, initialBodyHtml, initialAttachments
 }: EmailComposeProps) => {
   const [to, setTo] = useState('');
   const [toName, setToName] = useState('');
@@ -84,14 +85,14 @@ const EmailCompose = ({
       setPreloadedAttachments([]);
     } else {
       // mode === 'new'
-      setTo('');
+      setTo(initialTo || '');
       setToName('');
       setSubject(initialSubject || '');
       setBody(initialBody || '');
       setBodyHtml(initialBodyHtml || '');
       setPreloadedAttachments(initialAttachments || []);
     }
-  }, [isOpen, mode, replyToEmail, initialSubject, initialBody, initialBodyHtml, initialAttachments]);
+  }, [isOpen, mode, replyToEmail, initialTo, initialSubject, initialBody, initialBodyHtml, initialAttachments]);
 
   const searchContacts = (q: string) => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
