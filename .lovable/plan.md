@@ -1,44 +1,32 @@
 
 
-# Step 2: Apply RTL Alignment to Letter Defaults
+# Fix RTL Direction on All Letter Canvas Preview Elements
 
-## Changes to `src/components/LetterBuilder.tsx`
+## Problem
 
-### 1. Update default positions (lines 36-82)
+Some text elements in the canvas preview JSX are missing consistent `direction: 'rtl'` and `text-align: right` styling, causing them to render as LTR. The PNG export (`buildCleanLetterDiv`) is correct, but the live preview is inconsistent.
 
-Replace the current default positions with the new RTL-aligned values:
+## Elements That Need Updates
 
-```javascript
-basmala:       { x: 320, y: 245 },  // unchanged
-date:          { x: 549, y: 62 },   // updated
-recipientName: { x: 506, y: 326 },  // aligned to High X 705
-recipientInfo: { x: 577, y: 385 },  // aligned to High X 705
-subject:       { x: 331, y: 441 },  // aligned to High X 705
-greeting:      { x: 577, y: 502 },  // aligned to High X 705
-body:          { x: 129, y: 561 },  // aligned to High X 705
-closing1:      { x: 385, y: 766 },  // aligned to High X 705
-closing2:      { x: 101, y: 828 },  // unchanged
-signature:     { x: 56, y: 933 },   // unchanged
-stamp:         { x: 218, y: 933 },  // unchanged
-```
+| Element | Current | Change Needed |
+|---------|---------|---------------|
+| basmala (line 472) | `text-center`, has `direction: 'rtl'` | Change `text-center` to `text-right` |
+| date (line 481) | Already correct | None |
+| recipientName (line 492) | Already correct | None |
+| recipientInfo (line 501) | Already correct | None |
+| subject (line 513) | Already correct | None |
+| greeting (line 523) | Already correct | None |
+| body (line 532) | Already correct | None |
+| closing1 (line 541) | Already correct | None |
+| signature (line 550) | Already correct | None |
+| closing2 (line 563) | `text-center`, has `direction: 'rtl'` | Change `text-center` to `text-right` |
+| stamp (line 574) | No direction or textAlign | Add `style={{ direction: 'rtl', textAlign: 'right' }}` |
 
-### 2. Remove "Log Current Positions" button and function
+## File Changed
 
-- Delete the `logCurrentPositions` function (lines 176-215)
-- Delete the "Log Current Positions" button (lines 523-526)
-- Remove the `Terminal` import from lucide-react (line 10)
+`src/components/LetterBuilder.tsx` -- 3 small edits:
 
-### 3. Ensure text-align: right on the 6 aligned boxes in `buildCleanLetterDiv`
-
-The `buildCleanLetterDiv` function (used for PNG generation) already sets `text-align:right` on recipientName, recipientInfo, subject, greeting, body, and closing1. No changes needed there.
-
-The canvas preview elements (JSX) also already have `text-right` and `direction: 'rtl'` on all 6 boxes. No changes needed there either.
-
-## Summary
-
-| Area | Action |
-|------|--------|
-| Default positions | Update 6 boxes to right-edge align at X=705; update date to (549, 62) |
-| Log button/function | Remove entirely |
-| RTL text alignment | Already correct, no changes needed |
+1. **Line 472 (basmala)**: `text-center` to `text-right`
+2. **Line 563 (closing2)**: `text-center` to `text-right`
+3. **Line 574 (stamp)**: Add `style={{ direction: 'rtl' }}` and `text-right` class
 
