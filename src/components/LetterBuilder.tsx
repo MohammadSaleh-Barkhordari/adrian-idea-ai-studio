@@ -456,7 +456,8 @@ const LetterBuilder: React.FC<LetterBuilderProps> = ({
 
       {/* Letter Canvas */}
       <div className="flex justify-center overflow-auto">
-        <div id="letter-canvas" className="relative border-2 border-gray-300 bg-white shadow-xl overflow-hidden flex-shrink-0" style={{
+        <div id="letter-canvas" dir="rtl" className="relative border-2 border-gray-300 bg-white shadow-xl overflow-hidden flex-shrink-0" style={{
+        direction: 'rtl',
         width: '794px',
         height: '1123px',
         fontFeatureSettings: 'normal',
