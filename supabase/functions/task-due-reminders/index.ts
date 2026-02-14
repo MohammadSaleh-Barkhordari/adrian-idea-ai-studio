@@ -32,7 +32,7 @@ Deno.serve(async (req) => {
       .from('tasks')
       .select(`
         id,
-        title,
+        task_name,
         due_date,
         assigned_to,
         status,
@@ -107,11 +107,11 @@ Deno.serve(async (req) => {
         notificationBody = `${dueToday.length} task(s) due today, ${dueTomorrow.length} due tomorrow`;
       } else if (dueToday.length > 0) {
         notificationBody = dueToday.length === 1 
-          ? `"${dueToday[0].title}" is due today!`
-          : `${dueToday.length} tasks are due today!`;
+           ? `"${dueToday[0].task_name}" is due today!`
+           : `${dueToday.length} tasks are due today!`;
       } else {
         notificationBody = dueTomorrow.length === 1
-          ? `"${dueTomorrow[0].title}" is due tomorrow`
+          ? `"${dueTomorrow[0].task_name}" is due tomorrow`
           : `${dueTomorrow.length} tasks are due tomorrow`;
       }
 

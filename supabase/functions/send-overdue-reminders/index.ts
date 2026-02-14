@@ -29,7 +29,7 @@ Deno.serve(async (req) => {
       .from('tasks')
       .select(`
         id,
-        title,
+        task_name,
         due_date,
         assigned_to,
         status,
@@ -114,7 +114,7 @@ Deno.serve(async (req) => {
 
       const notificationPayload = JSON.stringify({
         title: '⚠️ Overdue Tasks',
-        body: `You have ${userTasks.length} overdue task(s). Oldest: "${oldestTask.title}" was due ${formattedDate}.`,
+        body: `You have ${userTasks.length} overdue task(s). Oldest: "${oldestTask.task_name}" was due ${formattedDate}.`,
         icon: '/lovable-uploads/38598e63-607e-4758-bb3d-7fb4e170eae0.png',
         url: '/dashboard',
         type: 'task',

@@ -154,12 +154,12 @@ export const NewTaskDialog: React.FC<NewTaskDialogProps> = ({
     try {
       const { data, error } = await supabase
         .from('tasks')
-        .select('id, title')
+        .select('id, task_name')
         .eq('project_id', projectId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setRelatedTasks((data || []).map(t => ({ id: t.id, title: t.title })));
+      setRelatedTasks((data || []).map(t => ({ id: t.id, title: t.task_name || '' })));
     } catch (error) {
       console.error('Error fetching related tasks:', error);
     }
@@ -314,7 +314,6 @@ export const NewTaskDialog: React.FC<NewTaskDialogProps> = ({
 
       // Create task first
       const taskData = {
-        title: formData.taskName.trim(),
         task_name: formData.taskName.trim(),
         description: formData.notes.trim() || null,
         assigned_to: formData.assignedTo === 'unassigned' ? null : formData.assignedTo || null,
