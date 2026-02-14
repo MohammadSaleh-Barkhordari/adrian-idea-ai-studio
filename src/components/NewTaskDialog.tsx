@@ -51,7 +51,7 @@ interface AuthUser {
 
 interface Letter {
   id: string;
-  subject: string | null;
+  generated_subject: string | null;
 }
 
 interface Document {
@@ -177,12 +177,12 @@ export const NewTaskDialog: React.FC<NewTaskDialogProps> = ({
     try {
       const { data, error } = await supabase
         .from('letters')
-        .select('id, subject')
+        .select('id, generated_subject')
         .eq('project_id', projectId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setRelatedLetters((data || []).map(l => ({ id: l.id, subject: l.subject })));
+      setRelatedLetters((data || []).map(l => ({ id: l.id, generated_subject: l.generated_subject })));
     } catch (error) {
       console.error('Error fetching related letters:', error);
     }
@@ -502,7 +502,7 @@ export const NewTaskDialog: React.FC<NewTaskDialogProps> = ({
                 <SelectContent>
                   {relatedLetters.filter(letter => !selectedLetters.includes(letter.id)).map((letter) => (
                     <SelectItem key={letter.id} value={letter.id}>
-                      {letter.subject || `Letter ${letter.id.slice(0, 8)}`}
+                      {letter.generated_subject || `Letter ${letter.id.slice(0, 8)}`}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -513,7 +513,7 @@ export const NewTaskDialog: React.FC<NewTaskDialogProps> = ({
                     const letter = relatedLetters.find(l => l.id === letterId);
                     return (
                       <div key={letterId} className="flex items-center gap-1 bg-primary/10 text-primary px-2 py-1 rounded-md text-sm">
-                        <span>{letter?.subject || `Letter ${letterId.slice(0, 8)}`}</span>
+                        <span>{letter?.generated_subject || `Letter ${letterId.slice(0, 8)}`}</span>
                         <X 
                           className="h-3 w-3 cursor-pointer hover:text-primary/70" 
                           onClick={() => setSelectedLetters(prev => prev.filter(id => id !== letterId))}

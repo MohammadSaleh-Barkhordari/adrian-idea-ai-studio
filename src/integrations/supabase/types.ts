@@ -1254,119 +1254,81 @@ export type Database = {
       }
       letters: {
         Row: {
-          body: string | null
           created_at: string
-          created_by: string | null
           customer_contact_id: string | null
           customer_id: string | null
           date: string | null
           document_id: string | null
-          file_url: string | null
-          final_generated_at: string | null
-          final_image_url: string | null
+          file_path: string | null
           generated_body: string | null
           generated_subject: string | null
           has_attachment: boolean | null
           id: string
           letter_number: string | null
-          letter_title: string | null
           mime_type: string | null
           needs_signature: boolean | null
           needs_stamp: boolean | null
-          preview_generated_at: string | null
-          preview_image_url: string | null
           project_id: string | null
           recipient_company: string | null
           recipient_name: string | null
           recipient_position: string | null
           status: string
-          subject: string | null
           updated_at: string
           user_id: string | null
           user_request: string | null
           writer_name: string | null
         }
         Insert: {
-          body?: string | null
           created_at?: string
-          created_by?: string | null
           customer_contact_id?: string | null
           customer_id?: string | null
           date?: string | null
           document_id?: string | null
-          file_url?: string | null
-          final_generated_at?: string | null
-          final_image_url?: string | null
+          file_path?: string | null
           generated_body?: string | null
           generated_subject?: string | null
           has_attachment?: boolean | null
           id?: string
           letter_number?: string | null
-          letter_title?: string | null
           mime_type?: string | null
           needs_signature?: boolean | null
           needs_stamp?: boolean | null
-          preview_generated_at?: string | null
-          preview_image_url?: string | null
           project_id?: string | null
           recipient_company?: string | null
           recipient_name?: string | null
           recipient_position?: string | null
           status?: string
-          subject?: string | null
           updated_at?: string
           user_id?: string | null
           user_request?: string | null
           writer_name?: string | null
         }
         Update: {
-          body?: string | null
           created_at?: string
-          created_by?: string | null
           customer_contact_id?: string | null
           customer_id?: string | null
           date?: string | null
           document_id?: string | null
-          file_url?: string | null
-          final_generated_at?: string | null
-          final_image_url?: string | null
+          file_path?: string | null
           generated_body?: string | null
           generated_subject?: string | null
           has_attachment?: boolean | null
           id?: string
           letter_number?: string | null
-          letter_title?: string | null
           mime_type?: string | null
           needs_signature?: boolean | null
           needs_stamp?: boolean | null
-          preview_generated_at?: string | null
-          preview_image_url?: string | null
           project_id?: string | null
           recipient_company?: string | null
           recipient_name?: string | null
           recipient_position?: string | null
           status?: string
-          subject?: string | null
           updated_at?: string
           user_id?: string | null
           user_request?: string | null
           writer_name?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "letters_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "employee_full"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "letters_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "letters_customer_contact_id_fkey"
             columns: ["customer_contact_id"]

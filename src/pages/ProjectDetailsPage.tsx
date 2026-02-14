@@ -64,7 +64,6 @@ interface Document {
 
 interface Letter {
   id: string;
-  letter_title?: string;
   letter_number?: string;
   recipient_name?: string;
   recipient_position?: string;
@@ -73,14 +72,12 @@ interface Letter {
   generated_body?: string;
   user_request?: string;
   writer_name?: string;
-  file_url?: string;
-  final_image_url?: string;
+  file_path?: string;
   mime_type?: string;
   status: string;
   has_attachment?: boolean;
   project_id?: string;
   document_id?: string;
-  created_by?: string;
   created_at: string;
   updated_at: string;
 }
@@ -688,7 +685,7 @@ const ProjectDetailsPage = () => {
                         <div>
                           <h4 className="font-medium flex items-center gap-2">
                             <FileText className="w-4 h-4" />
-                            {letter.letter_title || letter.generated_subject || `To: ${letter.recipient_name || 'Unknown'}`}
+                            {letter.generated_subject || `To: ${letter.recipient_name || 'Unknown'}`}
                           </h4>
                           {letter.letter_number && (
                             <span className="text-xs text-muted-foreground">#{letter.letter_number}</span>
@@ -701,13 +698,13 @@ const ProjectDetailsPage = () => {
                           <span className="text-xs text-muted-foreground">
                             {formatDate(letter.created_at)}
                           </span>
-                          {(letter.final_image_url || letter.file_url) && (
+                          {letter.file_path && (
                             <Button
                               size="sm"
                               variant="outline"
                               onClick={async () => {
                                 try {
-                                  const downloadPath = letter.final_image_url || letter.file_url!;
+                                  const downloadPath = letter.file_path!;
                                   const { data, error } = await supabase.storage
                                     .from('Letters')
                                     .download(downloadPath);
