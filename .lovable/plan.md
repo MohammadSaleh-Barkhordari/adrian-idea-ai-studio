@@ -1,24 +1,42 @@
 
 
-# Fix Bucket Case Mismatch in ProjectAttachPicker
+# Fix Documents Table: Save user_id, mime_type, and Remove content Column
 
 ## Problem
 
-The `ProjectAttachPicker.tsx` component uses `'Documents'` (capital D) as the bucket name when mapping document attachments. The actual bucket ID is `'documents'` (lowercase). This causes the `send-email` edge function to fail when downloading the attachment because `supabase.storage.from('Documents')` doesn't match the real bucket.
+When uploading a document, the insert in `NewDocumentDialog.tsx` (lines 306-317):
+1. Does NOT save `user_id` -- only `uploaded_by` is set
+2. Does NOT save `mime_type` -- only `file_type` is set (which stores the same MIME string)
+3. The `content` column exists in the table but is never used anywhere in the codebase
 
-## Audit Results
+## Changes
 
-| Current Value | Correct Bucket ID | Status |
-|---|---|---|
-| `'Documents'` | `'documents'` | WRONG |
-| `'Files'` | `'Files'` | OK |
-| `'Letters'` | `'Letters'` | OK |
+### 1. Database Migration
+Drop the `content` column from the `documents` table since it is unused.
 
-## Fix
+```sql
+ALTER TABLE public.documents DROP COLUMN IF EXISTS content;
+```
 
-### `src/components/email/ProjectAttachPicker.tsx`
+### 2. Code Change: `src/components/NewDocumentDialog.tsx`
+Update the `documentData` object (around line 306) to include `user_id` and `mime_type`:
 
-**Line 62**: Change `bucket: 'Documents'` to `bucket: 'documents'`
+```typescript
+const documentData = {
+  title: title.trim(),
+  project_id: projectId,
+  uploaded_by: user.id,
+  user_id: user.id,              // ADD THIS
+  id: uploadResult.documentId,
+  file_path: uploadResult.filePath,
+  file_url: uploadResult.filePath,
+  file_name: uploadResult.fileName,
+  file_size: uploadResult.fileSize,
+  file_type: uploadResult.mimeType,
+  mime_type: uploadResult.mimeType, // ADD THIS
+  summary: content.trim() || null,
+};
+```
 
-This is a one-character fix (lowercase 'd'). The other two bucket references (`'Files'` and `'Letters'`) are already correct.
+This is a minimal change: two fields added to the insert object, and one column dropped from the database.
 
