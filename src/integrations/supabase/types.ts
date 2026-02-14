@@ -1794,17 +1794,21 @@ export type Database = {
           assigned_by: string | null
           assigned_to: string | null
           completed_at: string | null
-          completion_date: string | null
-          completion_notes: string | null
+          completed_by: string | null
           created_at: string
           created_by: string | null
           description: string | null
+          description_audio_path: string | null
+          description_audio_transcription: string | null
           due_date: string | null
           follow_by: string | null
           id: string
           notes: string | null
           outcome: string | null
-          outcome_audio_url: string | null
+          outcome_audio_path: string | null
+          outcome_audio_transcription: string | null
+          outcome_has_files: boolean | null
+          outcome_notes: string | null
           priority: string
           project_id: string | null
           related_task_id: string | null
@@ -1812,7 +1816,6 @@ export type Database = {
           status: string
           task_name: string | null
           task_type: string | null
-          title: string
           updated_at: string
           user_id: string | null
         }
@@ -1820,17 +1823,21 @@ export type Database = {
           assigned_by?: string | null
           assigned_to?: string | null
           completed_at?: string | null
-          completion_date?: string | null
-          completion_notes?: string | null
+          completed_by?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
+          description_audio_path?: string | null
+          description_audio_transcription?: string | null
           due_date?: string | null
           follow_by?: string | null
           id?: string
           notes?: string | null
           outcome?: string | null
-          outcome_audio_url?: string | null
+          outcome_audio_path?: string | null
+          outcome_audio_transcription?: string | null
+          outcome_has_files?: boolean | null
+          outcome_notes?: string | null
           priority?: string
           project_id?: string | null
           related_task_id?: string | null
@@ -1838,7 +1845,6 @@ export type Database = {
           status?: string
           task_name?: string | null
           task_type?: string | null
-          title: string
           updated_at?: string
           user_id?: string | null
         }
@@ -1846,17 +1852,21 @@ export type Database = {
           assigned_by?: string | null
           assigned_to?: string | null
           completed_at?: string | null
-          completion_date?: string | null
-          completion_notes?: string | null
+          completed_by?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
+          description_audio_path?: string | null
+          description_audio_transcription?: string | null
           due_date?: string | null
           follow_by?: string | null
           id?: string
           notes?: string | null
           outcome?: string | null
-          outcome_audio_url?: string | null
+          outcome_audio_path?: string | null
+          outcome_audio_transcription?: string | null
+          outcome_has_files?: boolean | null
+          outcome_notes?: string | null
           priority?: string
           project_id?: string | null
           related_task_id?: string | null
@@ -1864,7 +1874,6 @@ export type Database = {
           status?: string
           task_name?: string | null
           task_type?: string | null
-          title?: string
           updated_at?: string
           user_id?: string | null
         }
@@ -1893,6 +1902,20 @@ export type Database = {
           {
             foreignKeyName: "tasks_assigned_to_fkey"
             columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_completed_by_fkey"
+            columns: ["completed_by"]
+            isOneToOne: false
+            referencedRelation: "employee_full"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "tasks_completed_by_fkey"
+            columns: ["completed_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]

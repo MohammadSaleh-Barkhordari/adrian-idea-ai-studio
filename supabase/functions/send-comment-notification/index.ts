@@ -34,7 +34,7 @@ Deno.serve(async (req) => {
     // Get task details
     const { data: task, error: taskError } = await supabase
       .from('tasks')
-      .select('id, title, assigned_to, project_id')
+      .select('id, task_name, assigned_to, project_id')
       .eq('id', task_id)
       .single();
 
@@ -132,7 +132,7 @@ Deno.serve(async (req) => {
 
       const notificationPayload = JSON.stringify({
         title: '💬 New Comment',
-        body: `${commenterName} commented on "${task.title}": "${truncatedComment}"`,
+        body: `${commenterName} commented on "${task.task_name}": "${truncatedComment}"`,
         icon: '/lovable-uploads/38598e63-607e-4758-bb3d-7fb4e170eae0.png',
         url: notificationUrl,
       });

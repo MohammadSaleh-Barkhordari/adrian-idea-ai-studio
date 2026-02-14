@@ -54,7 +54,6 @@ interface AuthUser {
 
 interface RelatedTask {
   id: string;
-  title: string;
   task_name: string | null;
 }
 
@@ -98,7 +97,7 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
   useEffect(() => {
     if (open && task) {
       setFormData({
-        taskName: task.task_name || task.title || '',
+        taskName: task.task_name || '',
         taskType: task.task_type || 'general',
         assignedBy: task.assigned_by || '',
         assignedTo: task.assigned_to || '',
@@ -109,18 +108,18 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
         description: task.description || '',
         notes: task.notes || '',
         relatedTaskId: task.related_task_id || '',
-        completionNotes: task.completion_notes || '',
+        completionNotes: task.outcome_notes || '',
       });
       setStartDate(task.start_time ? new Date(task.start_time) : undefined);
       setDueDate(task.due_date ? new Date(task.due_date) : undefined);
-      setCompletionDate(task.completion_date ? new Date(task.completion_date) : undefined);
+      setCompletionDate(task.completed_at ? new Date(task.completed_at) : undefined);
       setSelectedFiles([]);
-      setOutcomeAudioUrl(task.outcome_audio_url || null);
+      setOutcomeAudioUrl(task.outcome_audio_path || null);
       setAudioBlob(null);
 
       // Non-admin defaults
       setUserOutcome(task.outcome || '');
-      setUserCompletionNotes(task.completion_notes || '');
+      setUserCompletionNotes(task.outcome_notes || '');
       setUserStatus(task.status === 'completed' ? 'completed' : task.status === 'in_progress' ? 'in_progress' : 'in_progress');
 
       fetchAuthUsers();
@@ -159,7 +158,7 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
     try {
       const { data, error } = await supabase
         .from('tasks')
-        .select('id, title, task_name')
+        .select('id, task_name')
         .eq('project_id', projectId)
         .neq('id', task.id)
         .order('created_at', { ascending: false });
@@ -243,7 +242,6 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
       if (isAdmin) {
         updateData = {
           task_name: formData.taskName,
-          title: formData.taskName,
           task_type: formData.taskType,
           priority: formData.priority,
           status: formData.status,
@@ -253,19 +251,37 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
           description: formData.description,
           notes: formData.notes,
           outcome: formData.outcome,
-          completion_notes: formData.completionNotes,
+          outcome_notes: formData.completionNotes,
           related_task_id: formData.relatedTaskId === 'none' ? null : formData.relatedTaskId || null,
           due_date: dueDate ? format(dueDate, 'yyyy-MM-dd') : null,
           start_time: startDate ? startDate.toISOString() : null,
-          completion_date: completionDate ? format(completionDate, 'yyyy-MM-dd') : null,
         };
+
+        // Auto-set completed_at and completed_by
+        if (formData.status === 'completed' && task.status !== 'completed') {
+          const { data: { user } } = await supabase.auth.getUser();
+          updateData.completed_at = new Date().toISOString();
+          updateData.completed_by = user?.id || null;
+        } else if (formData.status !== 'completed' && task.status === 'completed') {
+          updateData.completed_at = null;
+          updateData.completed_by = null;
+        }
       } else {
         updateData = {
           outcome: userOutcome,
-          completion_notes: userCompletionNotes,
-          completion_date: completionDate ? format(completionDate, 'yyyy-MM-dd') : null,
+          outcome_notes: userCompletionNotes,
           status: userStatus,
         };
+
+        // Auto-set completed_at and completed_by for non-admin
+        if (userStatus === 'completed' && task.status !== 'completed') {
+          const { data: { user } } = await supabase.auth.getUser();
+          updateData.completed_at = new Date().toISOString();
+          updateData.completed_by = user?.id || null;
+        } else if (userStatus !== 'completed' && task.status === 'completed') {
+          updateData.completed_at = null;
+          updateData.completed_by = null;
+        }
       }
 
       // Upload audio blob if recorded
@@ -278,7 +294,7 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
           });
           if (audioUploadError) throw audioUploadError;
           const { data: { publicUrl } } = supabase.storage.from('Files').getPublicUrl(audioPath);
-          await supabase.from('tasks').update({ outcome_audio_url: publicUrl } as any).eq('id', task.id);
+          await supabase.from('tasks').update({ outcome_audio_path: publicUrl } as any).eq('id', task.id);
           setOutcomeAudioUrl(publicUrl);
         } catch (audioErr) {
           console.error('Error uploading audio:', audioErr);
@@ -365,15 +381,14 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
                     <SelectContent>
                       <SelectItem value="none">No related task</SelectItem>
                       {relatedTasks.map((t) => (
-                        <SelectItem key={t.id} value={t.id}>{t.task_name || t.title}</SelectItem>
+                        <SelectItem key={t.id} value={t.id}>{t.task_name || '—'}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 ) : (
                   <div className={readOnlyStyle}>
                     {formData.relatedTaskId
-                      ? (relatedTasks.find(t => t.id === formData.relatedTaskId)?.task_name ||
-                         relatedTasks.find(t => t.id === formData.relatedTaskId)?.title || '—')
+                      ? (relatedTasks.find(t => t.id === formData.relatedTaskId)?.task_name || '—')
                       : '—'}
                   </div>
                 )}

@@ -7,7 +7,7 @@ import { Calendar, Clock, ChevronLeft, ChevronRight, Home, AlertCircle } from 'l
 
 interface Task {
   id: string;
-  title: string;
+  task_name: string;
   description?: string;
   assigned_to?: string;
   created_by?: string;
@@ -63,7 +63,7 @@ const GanttChart: React.FC<GanttChartProps> = ({ tasks }) => {
 
       return {
         id: task.id,
-        task: task.title.length > 30 ? task.title.substring(0, 30) + '...' : task.title,
+        task: (task.task_name || '').length > 30 ? (task.task_name || '').substring(0, 30) + '...' : (task.task_name || ''),
         startDays,
         duration,
         status: task.status,
@@ -454,7 +454,7 @@ const GanttChart: React.FC<GanttChartProps> = ({ tasks }) => {
                   
                   {/* Enhanced tooltip */}
                   <title>
-                    {`${tasks.find(t => t.id === task.id)?.title}
+                    {`${tasks.find(t => t.id === task.id)?.task_name}
 📅 Start: ${task.start_date}
 📅 End: ${task.end_date}
 ⏱️ Duration: ${task.duration} days

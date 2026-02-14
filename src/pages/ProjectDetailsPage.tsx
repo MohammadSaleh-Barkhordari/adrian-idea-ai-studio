@@ -84,7 +84,7 @@ interface Letter {
 
 interface Task {
   id: string;
-  title: string;
+  task_name: string;
   description?: string;
   assigned_to?: string;
   created_by?: string;
@@ -578,7 +578,7 @@ const ProjectDetailsPage = () => {
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-2">
-                            <h4 className="font-medium">{task.title}</h4>
+                            <h4 className="font-medium">{task.task_name}</h4>
                             <Badge className={getTaskStatusColor(task.status)}>
                               {formatStatus(task.status)}
                             </Badge>
@@ -1017,7 +1017,7 @@ const ProjectDetailsPage = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Task</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete "{taskToDelete?.title}"? 
+              Are you sure you want to delete "{taskToDelete?.task_name}"? 
               This action cannot be undone and will permanently remove the task.
             </AlertDialogDescription>
           </AlertDialogHeader>

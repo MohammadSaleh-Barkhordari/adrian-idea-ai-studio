@@ -201,7 +201,7 @@ const DashboardPage = () => {
   const getFilteredAndSortedTasks = (taskList: any[]) => {
     let filtered = taskList.filter(task => {
       // Search filter - use 'title' (actual column) with fallback to task_name
-      const taskTitle = task.title || task.task_name || '';
+      const taskTitle = task.task_name || '';
       const searchMatch = searchTerm === '' || 
         taskTitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (task.project_name && task.project_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
@@ -611,7 +611,7 @@ const DashboardPage = () => {
                             
                             return (
                               <TableRow key={task.id} className={`hover:bg-muted/50 transition-colors ${isOverdue ? 'bg-destructive/5' : ''}`}>
-                                <TableCell className="font-medium">{task.title || task.task_name}</TableCell>
+                                <TableCell className="font-medium">{task.task_name}</TableCell>
                                 <TableCell>{task.project_name}</TableCell>
                                 <TableCell>{task.assigned_to || <span className="text-muted-foreground">Unassigned</span>}</TableCell>
                                 <TableCell>
@@ -674,7 +674,7 @@ const DashboardPage = () => {
                             
                             return (
                               <TableRow key={task.id} className={`hover:bg-muted/50 transition-colors ${isOverdue ? 'bg-destructive/5' : ''}`}>
-                                <TableCell className="font-medium">{task.title || task.task_name}</TableCell>
+                                <TableCell className="font-medium">{task.task_name}</TableCell>
                                 <TableCell>{task.project_name}</TableCell>
                                 <TableCell>{task.assigned_by || <span className="text-muted-foreground">-</span>}</TableCell>
                                 <TableCell>

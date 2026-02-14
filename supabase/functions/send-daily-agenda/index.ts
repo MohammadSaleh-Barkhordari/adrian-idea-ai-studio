@@ -77,7 +77,7 @@ Deno.serve(async (req) => {
       // Get today's tasks for user
       const { data: tasks } = await supabase
         .from('tasks')
-        .select('id, title, due_date, start_time')
+        .select('id, task_name, due_date, start_time')
         .eq('assigned_to', userId)
         .eq('due_date', todayStr)
         .not('status', 'eq', 'completed')
@@ -105,7 +105,7 @@ Deno.serve(async (req) => {
         const taskTime = firstTask.start_time ? new Date(firstTask.start_time) : null;
         
         if (taskTime && taskTime < eventTime) {
-          firstItemTitle = firstTask.title;
+          firstItemTitle = firstTask.task_name;
           firstItemTime = taskTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
         } else {
           firstItemTitle = firstEvent.title;
@@ -117,7 +117,7 @@ Deno.serve(async (req) => {
         firstItemTime = firstEvent.all_day ? 'All day' : new Date(firstEvent.start_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
       } else if (tasks && tasks.length > 0) {
         const firstTask = tasks[0];
-        firstItemTitle = firstTask.title;
+        firstItemTitle = firstTask.task_name;
         firstItemTime = firstTask.start_time 
           ? new Date(firstTask.start_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
           : 'Due today';
