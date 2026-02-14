@@ -1,48 +1,44 @@
 
 
-# Fix: Letters Table UPDATE RLS + Error Handling
+# Fix: Two Bugs Blocking Letter Generation
 
-## Problem
+## Bug 1: Storage Upload Fails -- Persian Characters in Filename
 
-The `letters` table has no UPDATE RLS policy for non-admin users. When a regular user clicks "Generate Final Letter":
+**Error:** `Invalid key: IWS/934ffaca-.../پیگیری_آخرین_وضعیت_پیشرفت_و_مراحل_اجرایی_پروژه.png`
 
-1. Line 244: `.update({ status: 'preview_generated' ... })` -- silently fails (0 rows matched)
-2. Line 311: Storage upload to `Letters` bucket -- this actually works (storage policies exist)
-3. Line 316: `.update({ file_path, mime_type, status: 'final_generated' ... })` -- silently fails (0 rows matched)
+Supabase Storage does NOT allow Unicode characters (like Persian/Arabic) in file paths. The current regex on line 313 explicitly *allows* Persian characters (`\u0600-\u06FF`), which is the problem.
 
-The storage upload succeeds but the database never gets updated, so `file_path`, `mime_type`, `letter_number`, etc. remain null.
+**Fix:** Remove the Unicode range from the regex so only ASCII-safe characters remain. If the title is entirely Persian (common case), fall back to `"letter"`.
 
-## Storage Bucket Status
+```typescript
+// Before (broken):
+.replace(/[^a-zA-Z0-9\u0600-\u06FF._-]/g, '_')
 
-The `Letters` bucket already has all 4 policies (INSERT, SELECT, UPDATE, DELETE) for authenticated users. No changes needed here.
-
-## Fix 1: Database Migration -- Add UPDATE RLS Policy
-
-```sql
-CREATE POLICY "Creators can update own letters"
-  ON public.letters
-  FOR UPDATE
-  USING (user_id = auth.uid())
-  WITH CHECK (user_id = auth.uid());
+// After (fixed):
+.replace(/[^a-zA-Z0-9._-]/g, '_').replace(/^_+|_+$/g, '') || 'letter'
 ```
 
-## Fix 2: Add Error Handling in LetterBuilder.tsx
+## Bug 2: Status Check Constraint Violation
 
-Both `.update()` calls (lines 244 and 316) silently discard errors. Changes:
+**Error:** `new row for relation "letters" violates check constraint "letters_status_check"`
 
-**Line 244-253 (preview_generated update):**
-- Capture `{ error }` and log it with `console.error`
+The constraint only allows: `pending`, `analyzing`, `letter_generated`, `completed`, `error`
 
-**Line 316-330 (final_generated update):**
-- Capture `{ error }` and log it
-- Show a toast error if the update fails so the user knows something went wrong
-- Also handle the upload error case (line 314) -- currently if upload fails, the code just skips silently
+But the code tries to set status to `preview_generated` (line 249) and `final_generated` (line 330) -- neither is in the allowed list.
 
-**Line 311-313 (storage upload):**
-- Add `console.error` for uploadError and show a toast
+**Fix:** Add `preview_generated`, `final_generated`, and `fields_extracted` to the check constraint via a database migration.
+
+```sql
+ALTER TABLE public.letters DROP CONSTRAINT letters_status_check;
+ALTER TABLE public.letters ADD CONSTRAINT letters_status_check 
+  CHECK (status = ANY (ARRAY[
+    'pending', 'analyzing', 'letter_generated', 'completed', 'error',
+    'fields_extracted', 'preview_generated', 'final_generated'
+  ]));
+```
 
 ## Files to Change
 
-- **Database migration** -- Add UPDATE RLS policy for `letters` table
-- **`src/components/LetterBuilder.tsx`** -- Add error handling and logging to both `.update()` calls and the storage upload
+- **Database migration** -- Update `letters_status_check` constraint to include new status values
+- **`src/components/LetterBuilder.tsx`** (line 313) -- Remove Persian/Unicode characters from storage file path
 
