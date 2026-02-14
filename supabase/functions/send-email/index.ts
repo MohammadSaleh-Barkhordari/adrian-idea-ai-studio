@@ -148,6 +148,7 @@ serve(async (req: Request) => {
         is_read: true,
         resend_id: resendData.id || null,
         in_reply_to: reply_to_id || null,
+        has_attachment: attachmentMeta.length > 0,
       })
       .select()
       .single();

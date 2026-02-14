@@ -782,6 +782,7 @@ export type Database = {
           direction: string
           from_email: string
           from_name: string | null
+          has_attachment: boolean
           id: string
           in_reply_to: string | null
           is_archived: boolean
@@ -803,6 +804,7 @@ export type Database = {
           direction: string
           from_email: string
           from_name?: string | null
+          has_attachment?: boolean
           id?: string
           in_reply_to?: string | null
           is_archived?: boolean
@@ -824,6 +826,7 @@ export type Database = {
           direction?: string
           from_email?: string
           from_name?: string | null
+          has_attachment?: boolean
           id?: string
           in_reply_to?: string | null
           is_archived?: boolean

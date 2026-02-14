@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Search, RefreshCw, Archive, Trash2, Mail, MailOpen, Star } from 'lucide-react';
+import { Search, RefreshCw, Archive, Trash2, Mail, MailOpen, Star, Paperclip } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import type { EmailFolder } from './EmailSidebar';
@@ -34,6 +34,7 @@ interface Email {
   is_starred: boolean;
   is_archived: boolean;
   is_deleted: boolean;
+  has_attachment: boolean;
   created_at: string;
 }
 
@@ -51,7 +52,7 @@ const EmailList = ({ folder, searchQuery, onSearchChange, selectedEmailId, onSel
     try {
       let query = supabase
         .from('emails')
-        .select('id, from_email, from_name, to_email, to_name, subject, body_text, direction, status, is_read, is_starred, is_archived, is_deleted, created_at')
+        .select('id, from_email, from_name, to_email, to_name, subject, body_text, direction, status, is_read, is_starred, is_archived, is_deleted, has_attachment, created_at')
         .eq('user_id', userId);
 
       // Folder filters
@@ -242,6 +243,9 @@ const EmailList = ({ folder, searchQuery, onSearchChange, selectedEmailId, onSel
                 <p className={cn('text-sm truncate', !email.is_read ? 'text-foreground' : 'text-muted-foreground')}>{email.subject || '(no subject)'}</p>
                 <p className="text-xs text-muted-foreground truncate">{preview}</p>
               </div>
+              {email.has_attachment && (
+                <Paperclip className="h-3.5 w-3.5 text-muted-foreground mt-1.5 shrink-0" />
+              )}
               <button onClick={(e) => toggleStar(e, email.id)} className="pt-1 shrink-0">
                 <Star className={cn('h-4 w-4', email.is_starred ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground/40')} />
               </button>
