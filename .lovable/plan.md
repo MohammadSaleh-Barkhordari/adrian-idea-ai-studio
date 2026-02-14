@@ -1,16 +1,24 @@
 
 
-# Fix Document Download Bucket Case
+# Fix Bucket Case Mismatch in ProjectAttachPicker
 
-## Change
+## Problem
 
-In `src/pages/ProjectDetailsPage.tsx`, line 828, change the storage bucket reference from `'Documents'` (wrong case) to `'documents'` (matching the actual bucket ID).
+The `ProjectAttachPicker.tsx` component uses `'Documents'` (capital D) as the bucket name when mapping document attachments. The actual bucket ID is `'documents'` (lowercase). This causes the `send-email` edge function to fail when downloading the attachment because `supabase.storage.from('Documents')` doesn't match the real bucket.
 
-## Technical Detail
+## Audit Results
 
-```
-Line 828: .from('Documents')  -->  .from('documents')
-```
+| Current Value | Correct Bucket ID | Status |
+|---|---|---|
+| `'Documents'` | `'documents'` | WRONG |
+| `'Files'` | `'Files'` | OK |
+| `'Letters'` | `'Letters'` | OK |
 
-This is a one-line fix. The bucket ID is `documents` (lowercase) but the download code uses `Documents` (capital D), causing download failures since bucket IDs are case-sensitive.
+## Fix
+
+### `src/components/email/ProjectAttachPicker.tsx`
+
+**Line 62**: Change `bucket: 'Documents'` to `bucket: 'documents'`
+
+This is a one-character fix (lowercase 'd'). The other two bucket references (`'Files'` and `'Letters'`) are already correct.
 
