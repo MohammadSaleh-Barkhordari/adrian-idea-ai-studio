@@ -310,8 +310,9 @@ const LetterBuilder: React.FC<LetterBuilderProps> = ({
         // Upload with structure: {project_name}/{id}/{safeTitle}.png
         const projectName = project?.project_name || letterData.project_id;
         const safeTitle = (letterData.generatedSubject || 'letter')
-          .replace(/[^a-zA-Z0-9\u0600-\u06FF._-]/g, '_')
-          .substring(0, 100);
+          .replace(/[^a-zA-Z0-9._-]/g, '_')
+          .replace(/^_+|_+$/g, '')
+          .substring(0, 100) || 'letter';
         const filePath = `${projectName}/${letterData.id}/${safeTitle}.png`;
         
         console.log('[LetterBuilder] Uploading PNG to storage:', filePath);
