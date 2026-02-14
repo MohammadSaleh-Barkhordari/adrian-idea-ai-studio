@@ -140,7 +140,7 @@ export const NewTaskDialog: React.FC<NewTaskDialogProps> = ({
         setCurrentUser(currentUserData);
         setFormData(prev => ({
           ...prev,
-          assignedBy: user.email
+          assignedBy: user.id
         }));
       }
     } catch (error) {
@@ -605,9 +605,9 @@ export const NewTaskDialog: React.FC<NewTaskDialogProps> = ({
                 <Label htmlFor="assignedBy">Assigned By</Label>
                 <Input
                   id="assignedBy"
-                  value={formData.assignedBy}
-                  onChange={(e) => handleInputChange('assignedBy', e.target.value)}
-                  placeholder="Who assigned this task"
+                  value={currentUser?.email || ''}
+                  disabled
+                  className="bg-[#f5f5f5]"
                 />
               </div>
               <div className="grid gap-2">
