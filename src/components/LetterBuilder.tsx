@@ -8,6 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Download, Eye, Edit, Mail } from 'lucide-react';
+import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 interface LetterBuilderProps {
   letterData: {
@@ -241,7 +242,8 @@ const LetterBuilder: React.FC<LetterBuilderProps> = ({
     setIsGenerating(true);
     try {
       // Update status to preview_generated with all options
-      await supabase
+      console.log('[LetterBuilder] Updating preview status for letter:', letterData.id);
+      const { error: previewError } = await supabase
         .from('letters')
         .update({ 
           status: 'preview_generated',
@@ -251,6 +253,10 @@ const LetterBuilder: React.FC<LetterBuilderProps> = ({
           letter_number: letterNumber || null
         })
         .eq('id', letterData.id);
+      
+      if (previewError) {
+        console.error('[LetterBuilder] Failed to update preview status:', previewError);
+      }
 
       // Build clean off-screen div for capture
       const cleanDiv = buildCleanLetterDiv();
@@ -308,12 +314,17 @@ const LetterBuilder: React.FC<LetterBuilderProps> = ({
           .substring(0, 100);
         const filePath = `${projectName}/${letterData.id}/${safeTitle}.png`;
         
+        console.log('[LetterBuilder] Uploading PNG to storage:', filePath);
         const { error: uploadError } = await supabase.storage
           .from('Letters')
           .upload(filePath, blob, { upsert: true });
 
-        if (!uploadError) {
-          await supabase
+        if (uploadError) {
+          console.error('[LetterBuilder] Storage upload failed:', uploadError);
+          toast.error('خطا در آپلود فایل نامه');
+        } else {
+          console.log('[LetterBuilder] Upload successful, updating letters table for:', letterData.id);
+          const { error: updateError } = await supabase
             .from('letters')
             .update({ 
               status: 'final_generated',
@@ -328,8 +339,15 @@ const LetterBuilder: React.FC<LetterBuilderProps> = ({
               writer_name: letterData.writerName
             })
             .eq('id', letterData.id);
-          setLetterGenerated(true);
-          setGeneratedFilePath(filePath);
+          
+          if (updateError) {
+            console.error('[LetterBuilder] Database update failed:', updateError);
+            toast.error('خطا در ذخیره اطلاعات نامه در دیتابیس');
+          } else {
+            console.log('[LetterBuilder] Database update successful');
+            setLetterGenerated(true);
+            setGeneratedFilePath(filePath);
+          }
         }
 
         // Download the image
