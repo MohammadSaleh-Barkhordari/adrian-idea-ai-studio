@@ -1810,11 +1810,15 @@ export type Database = {
           outcome_audio_transcription: string | null
           outcome_has_files: boolean | null
           outcome_notes: string | null
+          predecessor_request_id: string | null
+          predecessor_task_id: string | null
           priority: string
           project_id: string | null
           related_task_id: string | null
           start_time: string | null
           status: string
+          successor_request_id: string | null
+          successor_task_id: string | null
           task_name: string | null
           task_type: string | null
           updated_at: string
@@ -1840,11 +1844,15 @@ export type Database = {
           outcome_audio_transcription?: string | null
           outcome_has_files?: boolean | null
           outcome_notes?: string | null
+          predecessor_request_id?: string | null
+          predecessor_task_id?: string | null
           priority?: string
           project_id?: string | null
           related_task_id?: string | null
           start_time?: string | null
           status?: string
+          successor_request_id?: string | null
+          successor_task_id?: string | null
           task_name?: string | null
           task_type?: string | null
           updated_at?: string
@@ -1870,11 +1878,15 @@ export type Database = {
           outcome_audio_transcription?: string | null
           outcome_has_files?: boolean | null
           outcome_notes?: string | null
+          predecessor_request_id?: string | null
+          predecessor_task_id?: string | null
           priority?: string
           project_id?: string | null
           related_task_id?: string | null
           start_time?: string | null
           status?: string
+          successor_request_id?: string | null
+          successor_task_id?: string | null
           task_name?: string | null
           task_type?: string | null
           updated_at?: string

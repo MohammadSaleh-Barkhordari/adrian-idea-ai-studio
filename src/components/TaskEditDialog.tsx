@@ -58,6 +58,12 @@ interface RelatedTask {
   task_name: string | null;
 }
 
+interface RequestItem {
+  id: string;
+  description: string | null;
+  request_by: string;
+}
+
 export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdated }: TaskEditDialogProps) {
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -65,6 +71,7 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
   const [existingFiles, setExistingFiles] = useState<FileItem[]>([]);
   const [authUsers, setAuthUsers] = useState<AuthUser[]>([]);
   const [relatedTasks, setRelatedTasks] = useState<RelatedTask[]>([]);
+  const [relatedRequests, setRelatedRequests] = useState<RequestItem[]>([]);
   const [projectName, setProjectName] = useState('');
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [dueDate, setDueDate] = useState<Date | undefined>();
@@ -87,6 +94,10 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
     notes: '',
     relatedTaskId: '',
     outcomeNotes: '',
+    predecessorTaskId: '',
+    predecessorRequestId: '',
+    successorTaskId: '',
+    successorRequestId: '',
   });
 
   // Non-admin editable fields
@@ -111,6 +122,10 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
         notes: task.notes || '',
         relatedTaskId: task.related_task_id || '',
         outcomeNotes: task.outcome_notes || '',
+        predecessorTaskId: task.predecessor_task_id || '',
+        predecessorRequestId: task.predecessor_request_id || '',
+        successorTaskId: task.successor_task_id || '',
+        successorRequestId: task.successor_request_id || '',
       });
       setStartDate(task.start_time ? new Date(task.start_time) : undefined);
       setDueDate(task.due_date ? new Date(task.due_date) : undefined);
@@ -126,6 +141,7 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
       fetchAuthUsers();
       fetchExistingFiles();
       fetchProjectName();
+      fetchRelatedRequests();
       if (task.project_id) fetchRelatedTasks(task.project_id);
     }
   }, [open, task]);
@@ -167,6 +183,20 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
       setRelatedTasks(data || []);
     } catch (error) {
       console.error('Error fetching related tasks:', error);
+    }
+  };
+
+  const fetchRelatedRequests = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('requests')
+        .select('id, description, request_by')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setRelatedRequests(data || []);
+    } catch (error) {
+      console.error('Error fetching related requests:', error);
     }
   };
 
@@ -256,6 +286,10 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
           related_task_id: formData.relatedTaskId === 'none' ? null : formData.relatedTaskId || null,
           due_date: dueDate ? format(dueDate, 'yyyy-MM-dd') : null,
           start_time: startDate ? startDate.toISOString() : null,
+          predecessor_task_id: formData.predecessorTaskId === 'none' ? null : formData.predecessorTaskId || null,
+          predecessor_request_id: formData.predecessorRequestId === 'none' ? null : formData.predecessorRequestId || null,
+          successor_task_id: formData.successorTaskId === 'none' ? null : formData.successorTaskId || null,
+          successor_request_id: formData.successorRequestId === 'none' ? null : formData.successorRequestId || null,
         };
 
 
@@ -461,6 +495,102 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
                       : '—'}
                   </div>
                 )}
+              </div>
+
+              {/* Predecessor Task / Predecessor Request */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label>Predecessor Task</Label>
+                  {isAdmin ? (
+                    <Select value={formData.predecessorTaskId} onValueChange={(v) => handleInputChange('predecessorTaskId', v)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select predecessor task" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">None</SelectItem>
+                        {relatedTasks.map((t) => (
+                          <SelectItem key={t.id} value={t.id}>{t.task_name || '—'}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <div className={readOnlyStyle}>
+                      {formData.predecessorTaskId
+                        ? (relatedTasks.find(t => t.id === formData.predecessorTaskId)?.task_name || '—')
+                        : '—'}
+                    </div>
+                  )}
+                </div>
+                <div className="grid gap-2">
+                  <Label>Predecessor Request</Label>
+                  {isAdmin ? (
+                    <Select value={formData.predecessorRequestId} onValueChange={(v) => handleInputChange('predecessorRequestId', v)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select predecessor request" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">None</SelectItem>
+                        {relatedRequests.map((req) => (
+                          <SelectItem key={req.id} value={req.id}>{req.description || `Request by ${req.request_by}`}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <div className={readOnlyStyle}>
+                      {formData.predecessorRequestId
+                        ? (relatedRequests.find(r => r.id === formData.predecessorRequestId)?.description || '—')
+                        : '—'}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Successor Task / Successor Request */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label>Successor Task</Label>
+                  {isAdmin ? (
+                    <Select value={formData.successorTaskId} onValueChange={(v) => handleInputChange('successorTaskId', v)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select successor task" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">None</SelectItem>
+                        {relatedTasks.map((t) => (
+                          <SelectItem key={t.id} value={t.id}>{t.task_name || '—'}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <div className={readOnlyStyle}>
+                      {formData.successorTaskId
+                        ? (relatedTasks.find(t => t.id === formData.successorTaskId)?.task_name || '—')
+                        : '—'}
+                    </div>
+                  )}
+                </div>
+                <div className="grid gap-2">
+                  <Label>Successor Request</Label>
+                  {isAdmin ? (
+                    <Select value={formData.successorRequestId} onValueChange={(v) => handleInputChange('successorRequestId', v)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select successor request" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">None</SelectItem>
+                        {relatedRequests.map((req) => (
+                          <SelectItem key={req.id} value={req.id}>{req.description || `Request by ${req.request_by}`}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <div className={readOnlyStyle}>
+                      {formData.successorRequestId
+                        ? (relatedRequests.find(r => r.id === formData.successorRequestId)?.description || '—')
+                        : '—'}
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* 5. Assigned By / Assigned To */}

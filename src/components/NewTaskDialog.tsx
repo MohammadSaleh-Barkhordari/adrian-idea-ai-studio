@@ -68,6 +68,12 @@ interface FileItem {
   description: string;
 }
 
+interface RequestItem {
+  id: string;
+  description: string | null;
+  request_by: string;
+}
+
 export const NewTaskDialog: React.FC<NewTaskDialogProps> = ({
   open,
   onOpenChange,
@@ -91,6 +97,7 @@ export const NewTaskDialog: React.FC<NewTaskDialogProps> = ({
   const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
   const [relatedFileItems, setRelatedFileItems] = useState<FileItem[]>([]);
   const [selectedFileItems, setSelectedFileItems] = useState<string[]>([]);
+  const [relatedRequests, setRelatedRequests] = useState<RequestItem[]>([]);
 
   // Voice recorder state
   const [descriptionAudioBlob, setDescriptionAudioBlob] = useState<Blob | null>(null);
@@ -108,7 +115,11 @@ export const NewTaskDialog: React.FC<NewTaskDialogProps> = ({
     outcomeNotes: '',
     status: 'todo',
     relatedTaskId: '',
-    taskType: 'general'
+    taskType: 'general',
+    predecessorTaskId: '',
+    predecessorRequestId: '',
+    successorTaskId: '',
+    successorRequestId: '',
   });
   const { toast } = useToast();
 
@@ -122,6 +133,7 @@ export const NewTaskDialog: React.FC<NewTaskDialogProps> = ({
       fetchRelatedLetters();
       fetchRelatedDocuments();
       fetchRelatedFileItems();
+      fetchRelatedRequests();
     }
   }, [open, projectId]);
 
@@ -224,6 +236,20 @@ export const NewTaskDialog: React.FC<NewTaskDialogProps> = ({
       setRelatedFileItems(data || []);
     } catch (error) {
       console.error('Error fetching related files:', error);
+    }
+  };
+
+  const fetchRelatedRequests = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('requests')
+        .select('id, description, request_by')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setRelatedRequests(data || []);
+    } catch (error) {
+      console.error('Error fetching related requests:', error);
     }
   };
 
@@ -332,6 +358,10 @@ export const NewTaskDialog: React.FC<NewTaskDialogProps> = ({
         confirm_by: formData.confirmBy === 'unassigned' ? null : formData.confirmBy || null,
         related_task_id: formData.relatedTaskId === 'none' ? null : formData.relatedTaskId || null,
         task_type: formData.taskType || 'general',
+        predecessor_task_id: formData.predecessorTaskId === 'none' ? null : formData.predecessorTaskId || null,
+        predecessor_request_id: formData.predecessorRequestId === 'none' ? null : formData.predecessorRequestId || null,
+        successor_task_id: formData.successorTaskId === 'none' ? null : formData.successorTaskId || null,
+        successor_request_id: formData.successorRequestId === 'none' ? null : formData.successorRequestId || null,
       };
 
 
@@ -496,7 +526,11 @@ export const NewTaskDialog: React.FC<NewTaskDialogProps> = ({
       outcomeNotes: '',
       status: 'todo',
       relatedTaskId: '',
-      taskType: 'general'
+      taskType: 'general',
+      predecessorTaskId: '',
+      predecessorRequestId: '',
+      successorTaskId: '',
+      successorRequestId: '',
     });
     setSelectedFiles([]);
     setSelectedLetters([]);
@@ -568,6 +602,70 @@ export const NewTaskDialog: React.FC<NewTaskDialogProps> = ({
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            {/* Predecessor Task / Predecessor Request */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label>Predecessor Task</Label>
+                <Select value={formData.predecessorTaskId} onValueChange={(value) => handleInputChange('predecessorTaskId', value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select predecessor task" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    {relatedTasks.map((task) => (
+                      <SelectItem key={task.id} value={task.id}>{task.title}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label>Predecessor Request</Label>
+                <Select value={formData.predecessorRequestId} onValueChange={(value) => handleInputChange('predecessorRequestId', value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select predecessor request" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    {relatedRequests.map((req) => (
+                      <SelectItem key={req.id} value={req.id}>{req.description || `Request by ${req.request_by}`}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Successor Task / Successor Request */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label>Successor Task</Label>
+                <Select value={formData.successorTaskId} onValueChange={(value) => handleInputChange('successorTaskId', value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select successor task" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    {relatedTasks.map((task) => (
+                      <SelectItem key={task.id} value={task.id}>{task.title}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label>Successor Request</Label>
+                <Select value={formData.successorRequestId} onValueChange={(value) => handleInputChange('successorRequestId', value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select successor request" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    {relatedRequests.map((req) => (
+                      <SelectItem key={req.id} value={req.id}>{req.description || `Request by ${req.request_by}`}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             {/* Related Letters */}
