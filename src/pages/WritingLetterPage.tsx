@@ -260,6 +260,9 @@ const WritingLetterPage = () => {
           status: 'fields_extracted',
           customer_id: selectedCustomer || null,
           customer_contact_id: selectedContact || null,
+          has_attachment: false,
+          needs_signature: false,
+          needs_stamp: false,
         })
         .select()
         .single();
@@ -446,6 +449,9 @@ const WritingLetterPage = () => {
           user_id: user.id,
           customer_id: selectedCustomer || null,
           customer_contact_id: selectedContact || null,
+          has_attachment: false,
+          needs_signature: false,
+          needs_stamp: false,
         })
         .select()
         .single();
