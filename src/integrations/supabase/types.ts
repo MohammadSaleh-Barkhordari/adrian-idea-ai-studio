@@ -648,7 +648,6 @@ export type Database = {
       }
       documents: {
         Row: {
-          content: string | null
           created_at: string
           file_name: string | null
           file_path: string | null
@@ -665,7 +664,6 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
-          content?: string | null
           created_at?: string
           file_name?: string | null
           file_path?: string | null
@@ -682,7 +680,6 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
-          content?: string | null
           created_at?: string
           file_name?: string | null
           file_path?: string | null
