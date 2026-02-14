@@ -1805,7 +1805,6 @@ export type Database = {
           follow_by: string | null
           id: string
           notes: string | null
-          outcome: string | null
           outcome_audio_path: string | null
           outcome_audio_transcription: string | null
           outcome_has_files: boolean | null
@@ -1835,7 +1834,6 @@ export type Database = {
           follow_by?: string | null
           id?: string
           notes?: string | null
-          outcome?: string | null
           outcome_audio_path?: string | null
           outcome_audio_transcription?: string | null
           outcome_has_files?: boolean | null
@@ -1865,7 +1863,6 @@ export type Database = {
           follow_by?: string | null
           id?: string
           notes?: string | null
-          outcome?: string | null
           outcome_audio_path?: string | null
           outcome_audio_transcription?: string | null
           outcome_has_files?: boolean | null

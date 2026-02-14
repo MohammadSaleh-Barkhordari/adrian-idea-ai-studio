@@ -27,7 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { CalendarIcon, Upload, FileText, X, Paperclip } from 'lucide-react';
+import { CalendarIcon, Upload, FileText, X } from 'lucide-react';
 import TaskVoiceRecorderBox from '@/components/TaskVoiceRecorderBox';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -104,7 +104,6 @@ export const NewTaskDialog: React.FC<NewTaskDialogProps> = ({
     assignedTo: '',
     followBy: '',
     priority: 'medium',
-    outcome: '',
     notes: '',
     outcomeNotes: '',
     status: 'todo',
@@ -329,7 +328,6 @@ export const NewTaskDialog: React.FC<NewTaskDialogProps> = ({
         priority: formData.priority,
         status: formData.status,
         project_id: projectId,
-        outcome: formData.outcome || null,
         follow_by: formData.followBy === 'unassigned' ? null : formData.followBy || null,
         related_task_id: formData.relatedTaskId === 'none' ? null : formData.relatedTaskId || null,
         task_type: formData.taskType || 'general',
@@ -489,7 +487,6 @@ export const NewTaskDialog: React.FC<NewTaskDialogProps> = ({
       assignedTo: '',
       followBy: '',
       priority: 'medium',
-      outcome: '',
       notes: '',
       outcomeNotes: '',
       status: 'todo',
@@ -865,31 +862,14 @@ export const NewTaskDialog: React.FC<NewTaskDialogProps> = ({
               />
             </div>
 
-            {/* 11. Outcome */}
-            <div className="grid gap-2">
-              <div className="flex items-center gap-2">
-                <Label htmlFor="outcome">Outcome</Label>
-                <Paperclip 
-                  className="h-4 w-4 text-muted-foreground cursor-pointer hover:text-primary" 
-                  onClick={() => document.getElementById('outcome-file-upload')?.click()}
-                />
-              </div>
-              <Input
-                id="outcome"
-                value={formData.outcome}
-                onChange={(e) => handleInputChange('outcome', e.target.value)}
-                placeholder="Expected or achieved outcome"
-              />
-            </div>
-
-            {/* 12. Outcome Voice Recorder */}
+            {/* 11. Outcome Voice Recorder */}
             <TaskVoiceRecorderBox
               label="Record Outcome"
               onTranscribed={(text) => {
                 setOutcomeTranscription(prev => prev ? prev + '\n' + text : text);
                 setFormData(prev => ({
                   ...prev,
-                  outcome: prev.outcome ? prev.outcome + '\n' + text : text
+                  outcomeNotes: prev.outcomeNotes ? prev.outcomeNotes + '\n' + text : text
                 }));
               }}
               onAudioReady={(blob) => setOutcomeAudioBlob(blob)}
