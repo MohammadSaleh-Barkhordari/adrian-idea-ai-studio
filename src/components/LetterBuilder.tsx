@@ -25,7 +25,7 @@ interface LetterBuilderProps {
     project_id: string;
     document_id?: string;
     letter_number?: string;
-    file_url?: string;
+    file_path?: string;
   };
   onLetterGenerated?: () => void;
 }
@@ -317,11 +317,8 @@ const LetterBuilder: React.FC<LetterBuilderProps> = ({
             .from('letters')
             .update({ 
               status: 'final_generated',
-              final_generated_at: new Date().toISOString(),
-              final_image_url: filePath,
-              file_url: filePath,
+              file_path: filePath,
               mime_type: 'image/png',
-              letter_title: letterData.generatedSubject,
               generated_subject: letterData.generatedSubject,
               generated_body: letterData.generatedBody,
               letter_number: letterNumber || letterData.letter_number || null,
@@ -454,8 +451,8 @@ const LetterBuilder: React.FC<LetterBuilderProps> = ({
                     body_text: plainText,
                     attachments: [{
                       name: `Letter-${letterData.recipientName}.png`,
-                      url: generatedFilePath || letterData.file_url,
-                      storage_path: generatedFilePath || letterData.file_url,
+                      url: generatedFilePath || letterData.file_path,
+                      storage_path: generatedFilePath || letterData.file_path,
                       bucket: 'Letters'
                     }]
                   }
@@ -463,8 +460,8 @@ const LetterBuilder: React.FC<LetterBuilderProps> = ({
               });
             }}
             variant="outline"
-            disabled={!letterGenerated && !letterData.file_url}
-            title={!letterGenerated && !letterData.file_url ? 'ابتدا نامه را تولید کنید' : ''}
+            disabled={!letterGenerated && !letterData.file_path}
+            title={!letterGenerated && !letterData.file_path ? 'ابتدا نامه را تولید کنید' : ''}
             className="flex items-center gap-2"
           >
             <Mail className="w-5 h-5" />

@@ -231,11 +231,11 @@ serve(async (req) => {
         </div>
         
         <div class="subject-line">
-          موضوع: ${letter.generated_subject || letter.subject || 'موضوع نامه'}
+          موضوع: ${letter.generated_subject || 'موضوع نامه'}
         </div>
         
         <div class="letter-body">
-${letter.generated_body || letter.body || 'متن نامه'}
+${letter.generated_body || 'متن نامه'}
         </div>
         
         <div class="signature-section">
@@ -286,17 +286,15 @@ ${letter.generated_body || letter.body || 'متن نامه'}
 
     // Store the image URL in the database
     const updateData = isPreview ? {
-      preview_image_url: canvas,
       needs_signature: includeSignature,
       needs_stamp: includeStamp,
       status: 'preview_generated',
-      preview_generated_at: new Date().toISOString()
     } : {
-      final_image_url: canvas,
+      file_path: canvas,
       needs_signature: includeSignature,
       needs_stamp: includeStamp,
       status: 'final_generated',
-      final_generated_at: new Date().toISOString()
+      mime_type: 'image/png',
     };
 
     const { error: updateError } = await supabaseClient

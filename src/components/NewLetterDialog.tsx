@@ -240,16 +240,14 @@ export function NewLetterDialog({ open, onOpenChange, projectId, onLetterCreated
         .insert({
           project_id: projectId,
           user_id: user.id,
-          letter_title: formData.title.trim(),
+          generated_subject: formData.title.trim(),
           recipient_name: formData.recipientName.trim(),
           recipient_position: formData.recipientPosition.trim() || '',
           recipient_company: formData.recipientCompany.trim(),
           user_request: formData.userRequest.trim(),
           date: formData.date,
           writer_name: formData.writerName.trim() || null,
-          file_url: uploadResult.fileUrl,
-          file_name: uploadResult.fileName,
-          file_size: uploadResult.fileSize,
+          file_path: uploadResult.fileUrl,
           mime_type: uploadResult.mimeType,
         });
 

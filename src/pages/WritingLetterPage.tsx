@@ -250,7 +250,7 @@ const WritingLetterPage = () => {
       const { data: letterData, error } = await supabase
         .from('letters')
         .insert({
-          created_by: user.id,
+          user_id: user.id,
           project_id: selectedProject || null,
           document_id: selectedDocument || null,
           recipient_name: fields.recipientName,
@@ -268,8 +268,8 @@ const WritingLetterPage = () => {
         console.error('Error creating letter:', error);
       } else if (letterData) {
         setGeneratedLetter({
-          subject_line: letterData.subject || '',
-          body: letterData.body || '',
+          subject_line: letterData.generated_subject || '',
+          body: letterData.generated_body || '',
           date: letterData.created_at.split('T')[0],
           recipient_name: letterData.recipient_name || '',
           recipient_position: letterData.recipient_position || '',
@@ -444,7 +444,6 @@ const WritingLetterPage = () => {
           user_request: userRequest,
           writer_name: user?.user_metadata?.full_name || user?.email || 'Unknown',
           user_id: user.id,
-          created_by: user.id,
           customer_id: selectedCustomer || null,
           customer_contact_id: selectedContact || null,
         })
