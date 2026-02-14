@@ -307,12 +307,14 @@ export const NewDocumentDialog: React.FC<NewDocumentDialogProps> = ({
         title: title.trim(),
         project_id: projectId,
         uploaded_by: user.id,
+        user_id: user.id,
         id: uploadResult.documentId,
         file_path: uploadResult.filePath,
         file_url: uploadResult.filePath,
         file_name: uploadResult.fileName,
         file_size: uploadResult.fileSize,
         file_type: uploadResult.mimeType,
+        mime_type: uploadResult.mimeType,
         summary: content.trim() || null,
       };
 
