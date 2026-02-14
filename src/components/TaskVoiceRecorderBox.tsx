@@ -1,23 +1,20 @@
 import { useState, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
 import { Progress } from '@/components/ui/progress';
-import { Mic, MicOff, Loader2 } from 'lucide-react';
+import { Mic, MicOff, Check } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 
 interface TaskVoiceRecorderBoxProps {
   label: string;
-  onTranscribed: (text: string) => void;
   onAudioReady?: (blob: Blob) => void;
-  transcription?: string;
   disabled?: boolean;
 }
 
-const TaskVoiceRecorderBox = ({ label, onTranscribed, onAudioReady, transcription, disabled }: TaskVoiceRecorderBoxProps) => {
+const TaskVoiceRecorderBox = ({ label, onAudioReady, disabled }: TaskVoiceRecorderBoxProps) => {
   const [isRecording, setIsRecording] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
+  const [audioSaved, setAudioSaved] = useState(false);
+  const [audioSize, setAudioSize] = useState<number | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -47,16 +44,22 @@ const TaskVoiceRecorderBox = ({ label, onTranscribed, onAudioReady, transcriptio
         }
       };
 
-      mediaRecorder.onstop = async () => {
+      mediaRecorder.onstop = () => {
         const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' });
         stream.getTracks().forEach(track => track.stop());
+        setAudioSaved(true);
+        setAudioSize(audioBlob.size);
         onAudioReady?.(audioBlob);
-        await processAudio(audioBlob);
+        toast({
+          title: "Recording saved",
+          description: "Audio will be transcribed when you save the task.",
+        });
       };
 
       mediaRecorder.start();
       setIsRecording(true);
       setRecordingTime(0);
+      setAudioSaved(false);
 
       timerRef.current = setInterval(() => {
         setRecordingTime(prev => prev + 1);
@@ -75,7 +78,6 @@ const TaskVoiceRecorderBox = ({ label, onTranscribed, onAudioReady, transcriptio
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
-      setIsProcessing(true);
 
       if (timerRef.current) {
         clearInterval(timerRef.current);
@@ -84,57 +86,16 @@ const TaskVoiceRecorderBox = ({ label, onTranscribed, onAudioReady, transcriptio
     }
   }, [isRecording]);
 
-  const processAudio = async (audioBlob: Blob) => {
-    try {
-      const arrayBuffer = await audioBlob.arrayBuffer();
-      const uint8Array = new Uint8Array(arrayBuffer);
-      let binary = '';
-      const chunkSize = 0x8000;
-
-      for (let i = 0; i < uint8Array.length; i += chunkSize) {
-        const chunk = uint8Array.subarray(i, Math.min(i + chunkSize, uint8Array.length));
-        binary += String.fromCharCode.apply(null, Array.from(chunk));
-      }
-
-      const base64Audio = btoa(binary);
-
-      const transcriptResponse = await supabase.functions.invoke('voice-to-text', {
-        body: { audio: base64Audio }
-      });
-
-      if (transcriptResponse.error) {
-        throw new Error('Failed to transcribe audio');
-      }
-
-      const { text } = transcriptResponse.data;
-
-      if (!text || text.trim().length === 0) {
-        throw new Error('No speech detected in the recording');
-      }
-
-      onTranscribed(text);
-
-      toast({
-        title: "Voice transcribed",
-        description: "Your voice has been transcribed successfully.",
-      });
-    } catch (error) {
-      console.error('Error processing audio:', error);
-      toast({
-        title: "Processing Error",
-        description: error instanceof Error ? error.message : "Failed to process voice recording",
-        variant: "destructive",
-      });
-    } finally {
-      setIsProcessing(false);
-      setRecordingTime(0);
-    }
-  };
-
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const formatSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
   };
 
   return (
@@ -146,19 +107,17 @@ const TaskVoiceRecorderBox = ({ label, onTranscribed, onAudioReady, transcriptio
         <Button
           type="button"
           onClick={isRecording ? stopRecording : startRecording}
-          disabled={disabled || isProcessing}
+          disabled={disabled}
           variant={isRecording ? "destructive" : "outline"}
           size="sm"
           className="flex items-center gap-1.5"
         >
-          {isProcessing ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : isRecording ? (
+          {isRecording ? (
             <MicOff className="h-4 w-4" />
           ) : (
             <Mic className="h-4 w-4" />
           )}
-          {isProcessing ? 'Processing...' : isRecording ? 'Stop Recording' : 'Start Recording'}
+          {isRecording ? 'Stop Recording' : 'Start Recording'}
         </Button>
 
         {isRecording && (
@@ -168,18 +127,11 @@ const TaskVoiceRecorderBox = ({ label, onTranscribed, onAudioReady, transcriptio
           </div>
         )}
 
-        {isProcessing && (
-          <Progress value={66} className="w-full h-2" />
-        )}
-
-        {transcription && (
-          <Textarea
-            value={transcription}
-            readOnly
-            rows={3}
-            className="w-full text-sm bg-muted/50"
-            placeholder="Transcription will appear here..."
-          />
+        {audioSaved && audioSize !== null && (
+          <div className="flex items-center gap-2 text-sm text-green-600">
+            <Check className="h-4 w-4" />
+            <span>Audio recorded ({formatSize(audioSize)})</span>
+          </div>
         )}
       </div>
     </div>

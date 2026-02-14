@@ -30,6 +30,7 @@ import { CalendarIcon, Upload, X, FileText, Download, Paperclip, Play } from 'lu
 import { useToast } from '@/hooks/use-toast';
 import { sendNotification } from '@/lib/notifications';
 import TaskVoiceRecorderBox from '@/components/TaskVoiceRecorderBox';
+import { transcribeAudioBlob } from '@/lib/transcribeAudio';
 
 interface TaskEditDialogProps {
   open: boolean;
@@ -69,9 +70,7 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
   const [dueDate, setDueDate] = useState<Date | undefined>();
 
   // Voice recorder state
-  const [descriptionTranscription, setDescriptionTranscription] = useState('');
   const [descriptionAudioBlob, setDescriptionAudioBlob] = useState<Blob | null>(null);
-  const [outcomeTranscription, setOutcomeTranscription] = useState('');
   const [outcomeAudioBlob, setOutcomeAudioBlob] = useState<Blob | null>(null);
   const [outcomeAudioUrl, setOutcomeAudioUrl] = useState<string | null>(null);
 
@@ -117,8 +116,6 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
       setOutcomeAudioUrl(task.outcome_audio_path || null);
       setDescriptionAudioBlob(null);
       setOutcomeAudioBlob(null);
-      setDescriptionTranscription(task.description_audio_transcription || '');
-      setOutcomeTranscription(task.outcome_audio_transcription || '');
 
       // Non-admin defaults
       setUserOutcomeNotes(task.outcome_notes || '');
@@ -258,13 +255,6 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
           start_time: startDate ? startDate.toISOString() : null,
         };
 
-        // Store transcriptions
-        if (descriptionTranscription) {
-          updateData.description_audio_transcription = descriptionTranscription;
-        }
-        if (outcomeTranscription) {
-          updateData.outcome_audio_transcription = outcomeTranscription;
-        }
 
         // Auto-set completed_at and completed_by
         if (formData.status === 'completed' && task.status !== 'completed') {
@@ -291,10 +281,6 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
           status: userStatus,
         };
 
-        if (outcomeTranscription) {
-          updateData.outcome_audio_transcription = outcomeTranscription;
-        }
-
         // Auto-set completed_at and completed_by for non-admin
         if (userStatus === 'completed' && task.status !== 'completed') {
           const { data: { user } } = await supabase.auth.getUser();
@@ -316,7 +302,7 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
         }
       }
 
-      // Upload description audio blob if recorded
+      // Upload description audio blob if recorded and transcribe
       if (descriptionAudioBlob) {
         try {
           const timestamp = Date.now();
@@ -327,12 +313,16 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
           if (!audioUploadError) {
             updateData.description_audio_path = audioPath;
           }
+          const transcription = await transcribeAudioBlob(descriptionAudioBlob);
+          if (transcription) {
+            updateData.description_audio_transcription = transcription;
+          }
         } catch (audioErr) {
-          console.error('Error uploading description audio:', audioErr);
+          console.error('Error uploading/transcribing description audio:', audioErr);
         }
       }
 
-      // Upload outcome audio blob if recorded
+      // Upload outcome audio blob if recorded and transcribe
       if (outcomeAudioBlob) {
         try {
           const timestamp = Date.now();
@@ -344,8 +334,12 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
             updateData.outcome_audio_path = audioPath;
             setOutcomeAudioUrl(audioPath);
           }
+          const transcription = await transcribeAudioBlob(outcomeAudioBlob);
+          if (transcription) {
+            updateData.outcome_audio_transcription = transcription;
+          }
         } catch (audioErr) {
-          console.error('Error uploading outcome audio:', audioErr);
+          console.error('Error uploading/transcribing outcome audio:', audioErr);
         }
       }
 
@@ -437,15 +431,7 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
               {isAdmin && (
                 <TaskVoiceRecorderBox
                   label="Record Description"
-                  onTranscribed={(text) => {
-                    setDescriptionTranscription(prev => prev ? prev + '\n' + text : text);
-                    setFormData(prev => ({
-                      ...prev,
-                      description: prev.description ? prev.description + '\n' + text : text
-                    }));
-                  }}
                   onAudioReady={(blob) => setDescriptionAudioBlob(blob)}
-                  transcription={descriptionTranscription}
                   disabled={loading}
                 />
               )}
@@ -643,15 +629,7 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
                 <div className="grid gap-2">
                   <TaskVoiceRecorderBox
                     label="Record Outcome"
-                    onTranscribed={(text) => {
-                      setOutcomeTranscription(prev => prev ? prev + '\n' + text : text);
-                      setFormData(prev => ({
-                        ...prev,
-                        outcomeNotes: prev.outcomeNotes ? prev.outcomeNotes + '\n' + text : text,
-                      }));
-                    }}
                     onAudioReady={(blob) => setOutcomeAudioBlob(blob)}
-                    transcription={outcomeTranscription}
                     disabled={loading}
                   />
                   {outcomeAudioUrl && (

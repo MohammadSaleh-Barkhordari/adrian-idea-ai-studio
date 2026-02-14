@@ -29,6 +29,7 @@ import {
 } from '@/components/ui/select';
 import { CalendarIcon, Upload, FileText, X } from 'lucide-react';
 import TaskVoiceRecorderBox from '@/components/TaskVoiceRecorderBox';
+import { transcribeAudioBlob } from '@/lib/transcribeAudio';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { sendNotification, getUserIdByEmail } from '@/lib/notifications';
@@ -92,9 +93,7 @@ export const NewTaskDialog: React.FC<NewTaskDialogProps> = ({
   const [selectedFileItems, setSelectedFileItems] = useState<string[]>([]);
 
   // Voice recorder state
-  const [descriptionTranscription, setDescriptionTranscription] = useState('');
   const [descriptionAudioBlob, setDescriptionAudioBlob] = useState<Blob | null>(null);
-  const [outcomeTranscription, setOutcomeTranscription] = useState('');
   const [outcomeAudioBlob, setOutcomeAudioBlob] = useState<Blob | null>(null);
   
   const [formData, setFormData] = useState({
@@ -333,13 +332,6 @@ export const NewTaskDialog: React.FC<NewTaskDialogProps> = ({
         task_type: formData.taskType || 'general',
       };
 
-      // Store transcriptions if available
-      if (descriptionTranscription) {
-        taskData.description_audio_transcription = descriptionTranscription;
-      }
-      if (outcomeTranscription) {
-        taskData.outcome_audio_transcription = outcomeTranscription;
-      }
 
       // Auto-set completion tracking
       if (formData.status === 'completed') {
@@ -369,7 +361,7 @@ export const NewTaskDialog: React.FC<NewTaskDialogProps> = ({
         return;
       }
 
-      // Upload description audio if recorded
+      // Upload description audio if recorded and transcribe
       if (descriptionAudioBlob) {
         try {
           const timestamp = Date.now();
@@ -380,12 +372,17 @@ export const NewTaskDialog: React.FC<NewTaskDialogProps> = ({
           if (!audioUploadError) {
             await supabase.from('tasks').update({ description_audio_path: audioPath } as any).eq('id', taskResult.id);
           }
+          // Transcribe after upload
+          const transcription = await transcribeAudioBlob(descriptionAudioBlob);
+          if (transcription) {
+            await supabase.from('tasks').update({ description_audio_transcription: transcription } as any).eq('id', taskResult.id);
+          }
         } catch (audioErr) {
-          console.error('Error uploading description audio:', audioErr);
+          console.error('Error uploading/transcribing description audio:', audioErr);
         }
       }
 
-      // Upload outcome audio if recorded
+      // Upload outcome audio if recorded and transcribe
       if (outcomeAudioBlob) {
         try {
           const timestamp = Date.now();
@@ -396,8 +393,13 @@ export const NewTaskDialog: React.FC<NewTaskDialogProps> = ({
           if (!audioUploadError) {
             await supabase.from('tasks').update({ outcome_audio_path: audioPath } as any).eq('id', taskResult.id);
           }
+          // Transcribe after upload
+          const transcription = await transcribeAudioBlob(outcomeAudioBlob);
+          if (transcription) {
+            await supabase.from('tasks').update({ outcome_audio_transcription: transcription } as any).eq('id', taskResult.id);
+          }
         } catch (audioErr) {
-          console.error('Error uploading outcome audio:', audioErr);
+          console.error('Error uploading/transcribing outcome audio:', audioErr);
         }
       }
 
@@ -499,9 +501,7 @@ export const NewTaskDialog: React.FC<NewTaskDialogProps> = ({
     setSelectedFileItems([]);
     setStartDate(undefined);
     setDueDate(undefined);
-    setDescriptionTranscription('');
     setDescriptionAudioBlob(null);
-    setOutcomeTranscription('');
     setOutcomeAudioBlob(null);
     onOpenChange(false);
   };
@@ -545,15 +545,7 @@ export const NewTaskDialog: React.FC<NewTaskDialogProps> = ({
             {/* 3. Description Voice Recorder */}
             <TaskVoiceRecorderBox
               label="Record Description"
-              onTranscribed={(text) => {
-                setDescriptionTranscription(prev => prev ? prev + '\n' + text : text);
-                setFormData(prev => ({
-                  ...prev,
-                  description: prev.description ? prev.description + '\n' + text : text
-                }));
-              }}
               onAudioReady={(blob) => setDescriptionAudioBlob(blob)}
-              transcription={descriptionTranscription}
               disabled={loading}
             />
 
@@ -865,15 +857,7 @@ export const NewTaskDialog: React.FC<NewTaskDialogProps> = ({
             {/* 11. Outcome Voice Recorder */}
             <TaskVoiceRecorderBox
               label="Record Outcome"
-              onTranscribed={(text) => {
-                setOutcomeTranscription(prev => prev ? prev + '\n' + text : text);
-                setFormData(prev => ({
-                  ...prev,
-                  outcomeNotes: prev.outcomeNotes ? prev.outcomeNotes + '\n' + text : text
-                }));
-              }}
               onAudioReady={(blob) => setOutcomeAudioBlob(blob)}
-              transcription={outcomeTranscription}
               disabled={loading}
             />
 
