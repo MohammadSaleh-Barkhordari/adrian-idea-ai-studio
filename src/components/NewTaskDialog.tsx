@@ -102,6 +102,7 @@ export const NewTaskDialog: React.FC<NewTaskDialogProps> = ({
     assignedBy: '',
     assignedTo: '',
     followBy: '',
+    confirmBy: '',
     priority: 'medium',
     notes: '',
     outcomeNotes: '',
@@ -328,6 +329,7 @@ export const NewTaskDialog: React.FC<NewTaskDialogProps> = ({
         status: formData.status,
         project_id: projectId,
         follow_by: formData.followBy === 'unassigned' ? null : formData.followBy || null,
+        confirm_by: formData.confirmBy === 'unassigned' ? null : formData.confirmBy || null,
         related_task_id: formData.relatedTaskId === 'none' ? null : formData.relatedTaskId || null,
         task_type: formData.taskType || 'general',
       };
@@ -488,6 +490,7 @@ export const NewTaskDialog: React.FC<NewTaskDialogProps> = ({
       assignedBy: '',
       assignedTo: '',
       followBy: '',
+      confirmBy: '',
       priority: 'medium',
       notes: '',
       outcomeNotes: '',
@@ -707,22 +710,40 @@ export const NewTaskDialog: React.FC<NewTaskDialogProps> = ({
               </div>
             </div>
 
-            {/* Follow By Field */}
-            <div className="grid gap-2">
-              <Label htmlFor="followBy">Follow Up By</Label>
-              <Select value={formData.followBy} onValueChange={(value) => handleInputChange('followBy', value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select who will follow up" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="unassigned">Unassigned</SelectItem>
-                  {authUsers.map((user) => (
-                    <SelectItem key={user.id} value={user.id}>
-                      {user.email}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            {/* Follow By / Confirm By */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="followBy">Follow Up By</Label>
+                <Select value={formData.followBy} onValueChange={(value) => handleInputChange('followBy', value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select who will follow up" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="unassigned">Unassigned</SelectItem>
+                    {authUsers.map((user) => (
+                      <SelectItem key={user.id} value={user.id}>
+                        {user.email}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="confirmBy">Confirm By</Label>
+                <Select value={formData.confirmBy} onValueChange={(value) => handleInputChange('confirmBy', value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select who will confirm" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="unassigned">Unassigned</SelectItem>
+                    {authUsers.map((user) => (
+                      <SelectItem key={user.id} value={user.id}>
+                        {user.email}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             {/* 6. Start Date and Due Date */}

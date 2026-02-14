@@ -80,6 +80,7 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
     assignedBy: '',
     assignedTo: '',
     followBy: '',
+    confirmBy: '',
     priority: 'medium',
     status: 'todo',
     description: '',
@@ -103,6 +104,7 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
         assignedBy: task.assigned_by || '',
         assignedTo: task.assigned_to || '',
         followBy: task.follow_by || '',
+        confirmBy: task.confirm_by || '',
         priority: task.priority || 'medium',
         status: task.status || 'todo',
         description: task.description || '',
@@ -247,6 +249,7 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
           assigned_to: formData.assignedTo === 'unassigned' ? null : formData.assignedTo || null,
           assigned_by: formData.assignedBy || null,
           follow_by: formData.followBy === 'unassigned' ? null : formData.followBy || null,
+          confirm_by: formData.confirmBy === 'unassigned' ? null : formData.confirmBy || null,
           description: formData.description,
           notes: formData.notes,
           outcome_notes: formData.outcomeNotes,
@@ -494,24 +497,44 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
                 </div>
               </div>
 
-              {/* 6. Follow Up By */}
-              <div className="grid gap-2">
-                <Label>Follow Up By</Label>
-                {isAdmin ? (
-                  <Select value={formData.followBy} onValueChange={(v) => handleInputChange('followBy', v)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select who will follow up" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="unassigned">Unassigned</SelectItem>
-                      {authUsers.map((u) => (
-                        <SelectItem key={u.id} value={u.id}>{u.email}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                ) : (
-                  <div className={readOnlyStyle}>{getUserEmail(formData.followBy)}</div>
-                )}
+              {/* 6. Follow Up By / Confirm By */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label>Follow Up By</Label>
+                  {isAdmin ? (
+                    <Select value={formData.followBy} onValueChange={(v) => handleInputChange('followBy', v)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select who will follow up" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="unassigned">Unassigned</SelectItem>
+                        {authUsers.map((u) => (
+                          <SelectItem key={u.id} value={u.id}>{u.email}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <div className={readOnlyStyle}>{getUserEmail(formData.followBy)}</div>
+                  )}
+                </div>
+                <div className="grid gap-2">
+                  <Label>Confirm By</Label>
+                  {isAdmin ? (
+                    <Select value={formData.confirmBy} onValueChange={(v) => handleInputChange('confirmBy', v)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select who will confirm" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="unassigned">Unassigned</SelectItem>
+                        {authUsers.map((u) => (
+                          <SelectItem key={u.id} value={u.id}>{u.email}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <div className={readOnlyStyle}>{getUserEmail(formData.confirmBy)}</div>
+                  )}
+                </div>
               </div>
 
               {/* 7. Start Date / Due Date */}
