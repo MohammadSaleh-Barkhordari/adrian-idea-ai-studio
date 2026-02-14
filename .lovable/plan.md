@@ -1,46 +1,52 @@
 
 
-# Fix: Task Creation Fails — Email Used Instead of UUID for `assigned_by`
-
-## Root Cause
-
-In `NewTaskDialog.tsx` line 143, when the form initializes, it sets:
-```typescript
-assignedBy: user.email  // "m.barkhordari@adrianidea.ir"
-```
-
-This email string is then passed directly to the database insert at line 319:
-```typescript
-assigned_by: formData.assignedBy || null
-```
-
-But `assigned_by` is a UUID column with a foreign key to `profiles`. Postgres rejects the email with error `22P02: invalid input syntax for type uuid`.
-
-## Fix
-
-In `src/components/NewTaskDialog.tsx`, change line 143 from `user.email` to `user.id`:
-
-```typescript
-// Before (broken):
-assignedBy: user.email
-
-// After (fixed):
-assignedBy: user.id
-```
-
-The "Assigned By" field in the form (line 605-611) is a free-text Input that displays the value. It currently shows the email which is user-friendly but breaks the DB insert. Two options:
-
-1. **Set the value to `user.id`** and change the Input to a disabled field showing the user's email for display, while storing the UUID internally.
-2. **Make the field read-only** with email displayed, but store `user.id` separately for the insert.
-
-The simplest approach: store `user.id` in `formData.assignedBy` and show the email as a disabled display-only input (not bound to `formData.assignedBy`).
+# Clean Up NewTaskDialog: Remove Fields, Reorder UI, Add Voice Recording
 
 ## Changes to `src/components/NewTaskDialog.tsx`
 
-1. **Line 143**: Change `assignedBy: user.email` to `assignedBy: user.id`
-2. **Lines 605-611**: Change the "Assigned By" Input to show the user's email as display text while keeping the UUID as the stored value. Make it a disabled field showing the email from the auth user.
+### 1. Remove `created_by` from the insert
+- Line 320: Remove `created_by: user.id` from the `taskData` object
+- The `user_id` field already tracks ownership
 
-## Files to Change
+### 2. Add `task_type` selector to the form
+- Add a new Select field for Task Type with options: `general`, `meeting`, `follow_up`, `review`, `delivery` (or similar)
+- Add `taskType` to `formData` state with default `'general'`
+- Include `task_type: formData.taskType` in the insert object
 
-- `src/components/NewTaskDialog.tsx` -- Fix assignedBy to use UUID instead of email
+### 3. Move Notes above Outcome section
+Current order: Outcome -> Outcome File Upload -> Notes
+New order: **Notes -> Outcome -> Outcome File Upload**
+
+- Move the Notes block (lines 814-824) to appear before the Outcome block (line 737)
+
+### 4. Add TaskVoiceRecorder to the Outcome section
+- Import `TaskVoiceRecorder` from `@/components/TaskVoiceRecorder`
+- Place it below the Outcome text input, before the file upload area
+- Wire `onTranscribed` to append transcribed text to `formData.outcome`
+
+### 5. Remove completion columns concern
+- `completed_at`, `completion_date`, and `completion_notes` are not in the creation form (correct behavior -- they belong in the edit/update dialog). No changes needed here.
+
+## Technical Details
+
+### Form field order (after changes):
+1. Task Name
+2. Related Task
+3. Related Letters / Documents / Files
+4. Assignment fields (Assigned By, Assigned To)
+5. Follow Up By
+6. Start Date / Due Date
+7. Priority / Status
+8. Task Type (new)
+9. **Notes** (moved up)
+10. Outcome + Voice Recorder (added)
+11. Outcome File Upload
+
+### Files to change:
+- `src/components/NewTaskDialog.tsx`
+  - Remove `created_by` from insert
+  - Add `taskType` to form state and insert
+  - Add Task Type Select UI
+  - Move Notes above Outcome
+  - Import and add TaskVoiceRecorder component
 
