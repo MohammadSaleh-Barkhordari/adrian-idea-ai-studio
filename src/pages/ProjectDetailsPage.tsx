@@ -87,7 +87,7 @@ interface Task {
   task_name: string;
   description?: string;
   assigned_to?: string;
-  created_by?: string;
+  
   due_date?: string;
   start_time?: string;
   priority: string;

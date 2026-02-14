@@ -266,6 +266,16 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
           updateData.completed_at = null;
           updateData.completed_by = null;
         }
+
+        // Auto-set canceled_at and canceled_by
+        if (formData.status === 'cancelled' && task.status !== 'cancelled') {
+          const { data: { user: cancelUser } } = await supabase.auth.getUser();
+          updateData.canceled_at = new Date().toISOString();
+          updateData.canceled_by = cancelUser?.id || null;
+        } else if (formData.status !== 'cancelled' && task.status === 'cancelled') {
+          updateData.canceled_at = null;
+          updateData.canceled_by = null;
+        }
       } else {
         updateData = {
           outcome: userOutcome,
@@ -281,6 +291,16 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
         } else if (userStatus !== 'completed' && task.status === 'completed') {
           updateData.completed_at = null;
           updateData.completed_by = null;
+        }
+
+        // Auto-set canceled_at and canceled_by for non-admin
+        if (userStatus === 'cancelled' && task.status !== 'cancelled') {
+          const { data: { user: cancelUser } } = await supabase.auth.getUser();
+          updateData.canceled_at = new Date().toISOString();
+          updateData.canceled_by = cancelUser?.id || null;
+        } else if (userStatus !== 'cancelled' && task.status === 'cancelled') {
+          updateData.canceled_at = null;
+          updateData.canceled_by = null;
         }
       }
 
