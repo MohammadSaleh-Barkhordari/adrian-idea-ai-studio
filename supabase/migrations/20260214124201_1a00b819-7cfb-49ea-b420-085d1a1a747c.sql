@@ -1,0 +1,1 @@
+ALTER TABLE public.emails ADD COLUMN has_attachment boolean NOT NULL DEFAULT false;

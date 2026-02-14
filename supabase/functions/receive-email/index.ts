@@ -18,7 +18,7 @@ serve(async (req: Request) => {
       throw new Error("WEBHOOK_SECRET is not configured");
     }
 
-    const { from_email, from_name, to_email, subject, body_text, body_html, secret } = await req.json();
+    const { from_email, from_name, to_email, subject, body_text, body_html, secret, has_attachment } = await req.json();
 
     // Verify webhook secret
     if (secret !== webhookSecret) {
@@ -58,6 +58,7 @@ serve(async (req: Request) => {
       direction: "inbound",
       status: "received",
       is_read: false,
+      has_attachment: has_attachment || false,
     });
 
     if (insertError) {
