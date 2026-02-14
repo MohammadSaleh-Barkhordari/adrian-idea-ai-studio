@@ -403,7 +403,7 @@ export function TaskDetailOutcomeDialog({ open, onOpenChange, task, onTaskUpdate
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="in_progress">In Progress</SelectItem>
-                      <SelectItem value="completed">Done</SelectItem>
+                      <SelectItem value="completed">Completed</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
