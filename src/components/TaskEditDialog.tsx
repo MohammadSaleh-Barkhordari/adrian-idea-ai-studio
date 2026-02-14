@@ -105,18 +105,18 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
       setFormData({
         taskName: task.task_name || '',
         taskType: task.task_type || 'general',
-        assignedBy: task.assigned_by || '',
-        assignedTo: task.assigned_to || '',
-        followBy: task.follow_by || '',
-        confirmBy: task.confirm_by || '',
+        assignedBy: task.assigned_by || 'unassigned',
+        assignedTo: task.assigned_to || 'unassigned',
+        followBy: task.follow_by || 'unassigned',
+        confirmBy: task.confirm_by || 'unassigned',
         priority: task.priority || 'medium',
         status: task.status || 'todo',
         description: task.description || '',
         notes: task.notes || '',
-        relatedTaskId: task.related_task_id || '',
+        relatedTaskId: task.related_task_id || 'none',
         outcomeNotes: task.outcome_notes || '',
-        predecessorTaskId: task.predecessor_task_id || '',
-        successorTaskId: task.successor_task_id || '',
+        predecessorTaskId: task.predecessor_task_id || 'none',
+        successorTaskId: task.successor_task_id || 'none',
       });
       setStartDate(task.start_time ? new Date(task.start_time) : undefined);
       setDueDate(task.due_date ? new Date(task.due_date) : undefined);
@@ -255,7 +255,7 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
           priority: formData.priority,
           status: formData.status,
           assigned_to: formData.assignedTo === 'unassigned' ? null : formData.assignedTo || null,
-          assigned_by: formData.assignedBy || null,
+          assigned_by: formData.assignedBy === 'unassigned' ? null : formData.assignedBy || null,
           follow_by: formData.followBy === 'unassigned' ? null : formData.followBy || null,
           confirm_by: formData.confirmBy === 'unassigned' ? null : formData.confirmBy || null,
           description: formData.description,
@@ -466,7 +466,7 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
                   </Select>
                 ) : (
                   <div className={readOnlyStyle}>
-                    {formData.relatedTaskId
+                    {formData.relatedTaskId && formData.relatedTaskId !== 'none'
                       ? (relatedTasks.find(t => t.id === formData.relatedTaskId)?.task_name || '—')
                       : '—'}
                   </div>
@@ -490,7 +490,7 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
                   </Select>
                 ) : (
                   <div className={readOnlyStyle}>
-                    {formData.predecessorTaskId
+                    {formData.predecessorTaskId && formData.predecessorTaskId !== 'none'
                       ? (relatedTasks.find(t => t.id === formData.predecessorTaskId)?.task_name || '—')
                       : '—'}
                   </div>
@@ -514,7 +514,7 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
                   </Select>
                 ) : (
                   <div className={readOnlyStyle}>
-                    {formData.successorTaskId
+                    {formData.successorTaskId && formData.successorTaskId !== 'none'
                       ? (relatedTasks.find(t => t.id === formData.successorTaskId)?.task_name || '—')
                       : '—'}
                   </div>
@@ -526,13 +526,19 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
                 <div className="grid gap-2">
                   <Label>Assigned By</Label>
                   {isAdmin ? (
-                    <Input
-                      value={formData.assignedBy}
-                      onChange={(e) => handleInputChange('assignedBy', e.target.value)}
-                      placeholder="Who assigned this task"
-                    />
+                    <Select value={formData.assignedBy} onValueChange={(v) => handleInputChange('assignedBy', v)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select who assigned this task" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="unassigned">Unassigned</SelectItem>
+                        {authUsers.map((u) => (
+                          <SelectItem key={u.id} value={u.id}>{u.email}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   ) : (
-                    <div className={readOnlyStyle}>{formData.assignedBy || '—'}</div>
+                    <div className={readOnlyStyle}>{getUserEmail(formData.assignedBy)}</div>
                   )}
                 </div>
                 <div className="grid gap-2">
