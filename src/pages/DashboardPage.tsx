@@ -120,7 +120,7 @@ const DashboardPage = () => {
       const { data: tasksData, error: tasksError } = await supabase
         .from('tasks')
         .select('*')
-        .or(`assigned_to.eq.${user.id},created_by.eq.${user.id},assigned_by.eq.${user.id}`)
+        .or(`assigned_to.eq.${user.id},assigned_by.eq.${user.id}`)
         .in('status', ['todo', 'in_progress'])
         .order('due_date', { ascending: true, nullsFirst: false })
         .order('created_at', { ascending: false });
@@ -191,7 +191,7 @@ const DashboardPage = () => {
 
   // Categorize tasks by user role
   const tasksByRole = useMemo(() => {
-    const assignedByMe = tasks.filter(task => task.assigned_by === user?.id || task.created_by === user?.id);
+    const assignedByMe = tasks.filter(task => task.assigned_by === user?.id);
     const assignedToMe = tasks.filter(task => task.assigned_to === user?.id);
     
     return { assignedByMe, assignedToMe };

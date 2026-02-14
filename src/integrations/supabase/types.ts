@@ -1793,10 +1793,11 @@ export type Database = {
         Row: {
           assigned_by: string | null
           assigned_to: string | null
+          canceled_at: string | null
+          canceled_by: string | null
           completed_at: string | null
           completed_by: string | null
           created_at: string
-          created_by: string | null
           description: string | null
           description_audio_path: string | null
           description_audio_transcription: string | null
@@ -1822,10 +1823,11 @@ export type Database = {
         Insert: {
           assigned_by?: string | null
           assigned_to?: string | null
+          canceled_at?: string | null
+          canceled_by?: string | null
           completed_at?: string | null
           completed_by?: string | null
           created_at?: string
-          created_by?: string | null
           description?: string | null
           description_audio_path?: string | null
           description_audio_transcription?: string | null
@@ -1851,10 +1853,11 @@ export type Database = {
         Update: {
           assigned_by?: string | null
           assigned_to?: string | null
+          canceled_at?: string | null
+          canceled_by?: string | null
           completed_at?: string | null
           completed_by?: string | null
           created_at?: string
-          created_by?: string | null
           description?: string | null
           description_audio_path?: string | null
           description_audio_transcription?: string | null
@@ -1907,29 +1910,29 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "tasks_completed_by_fkey"
-            columns: ["completed_by"]
+            foreignKeyName: "tasks_canceled_by_fkey"
+            columns: ["canceled_by"]
             isOneToOne: false
             referencedRelation: "employee_full"
             referencedColumns: ["user_id"]
           },
           {
-            foreignKeyName: "tasks_completed_by_fkey"
-            columns: ["completed_by"]
+            foreignKeyName: "tasks_canceled_by_fkey"
+            columns: ["canceled_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "tasks_created_by_fkey"
-            columns: ["created_by"]
+            foreignKeyName: "tasks_completed_by_fkey"
+            columns: ["completed_by"]
             isOneToOne: false
             referencedRelation: "employee_full"
             referencedColumns: ["user_id"]
           },
           {
-            foreignKeyName: "tasks_created_by_fkey"
-            columns: ["created_by"]
+            foreignKeyName: "tasks_completed_by_fkey"
+            columns: ["completed_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]

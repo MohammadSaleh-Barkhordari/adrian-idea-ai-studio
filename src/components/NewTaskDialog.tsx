@@ -313,7 +313,7 @@ export const NewTaskDialog: React.FC<NewTaskDialogProps> = ({
       }
 
       // Create task first
-      const taskData = {
+      const taskData: any = {
         task_name: formData.taskName.trim(),
         description: formData.notes.trim() || null,
         assigned_to: formData.assignedTo === 'unassigned' ? null : formData.assignedTo || null,
@@ -329,6 +329,18 @@ export const NewTaskDialog: React.FC<NewTaskDialogProps> = ({
         related_task_id: formData.relatedTaskId === 'none' ? null : formData.relatedTaskId || null,
         task_type: formData.taskType || 'general',
       };
+
+      // Auto-set completion tracking
+      if (formData.status === 'completed') {
+        taskData.completed_at = new Date().toISOString();
+        taskData.completed_by = user.id;
+      }
+
+      // Auto-set cancellation tracking
+      if (formData.status === 'cancelled') {
+        taskData.canceled_at = new Date().toISOString();
+        taskData.canceled_by = user.id;
+      }
 
       const { data: taskResult, error } = await supabase
         .from('tasks')
