@@ -116,11 +116,11 @@ const DashboardPage = () => {
   const fetchMyTasks = async () => {
     setTasksLoading(true);
     try {
-      // Fetch all tasks where user is involved (assigned_to or created_by)
+      // Fetch all tasks where user is involved (assigned_to, assigned_by, or confirm_by)
       const { data: tasksData, error: tasksError } = await supabase
         .from('tasks')
         .select('*')
-        .or(`assigned_to.eq.${user.id},assigned_by.eq.${user.id}`)
+        .or(`assigned_to.eq.${user.id},assigned_by.eq.${user.id},confirm_by.eq.${user.id}`)
         .in('status', ['todo', 'in_progress'])
         .order('due_date', { ascending: true, nullsFirst: false })
         .order('created_at', { ascending: false });
@@ -171,7 +171,7 @@ const DashboardPage = () => {
       const { data: requestsData, error: requestsError } = await supabase
         .from('requests')
         .select('*')
-        .or(`user_id.eq.${user.id},request_to.eq.${user.id}`)
+        .or(`user_id.eq.${user.id},request_to.eq.${user.id},confirm_by.eq.${user.id}`)
         .order('created_at', { ascending: false });
 
       if (requestsError) throw requestsError;
@@ -191,10 +191,10 @@ const DashboardPage = () => {
 
   // Categorize tasks by user role
   const tasksByRole = useMemo(() => {
-    const assignedByMe = tasks.filter(task => task.assigned_by === user?.id);
     const assignedToMe = tasks.filter(task => task.assigned_to === user?.id);
+    const tasksToConfirm = tasks.filter(task => task.confirm_by === user?.id && task.assigned_to !== user?.id);
     
-    return { assignedByMe, assignedToMe };
+    return { assignedToMe, tasksToConfirm };
   }, [tasks, user?.id]);
 
   // Filtering and sorting logic for tasks
@@ -244,16 +244,17 @@ const DashboardPage = () => {
   };
 
   const filteredAndSortedTasksByRole = useMemo(() => ({
-    assignedByMe: getFilteredAndSortedTasks(tasksByRole.assignedByMe),
-    assignedToMe: getFilteredAndSortedTasks(tasksByRole.assignedToMe)
+    assignedToMe: getFilteredAndSortedTasks(tasksByRole.assignedToMe),
+    tasksToConfirm: getFilteredAndSortedTasks(tasksByRole.tasksToConfirm)
   }), [tasksByRole, searchTerm, priorityFilter, statusFilter, showOverdueOnly, sortColumn, sortDirection]);
 
   // Categorize requests by user role
   const requestsByRole = useMemo(() => {
     const requestsByMe = requests.filter(request => request.user_id === user?.id);
     const requestsToMe = requests.filter(request => request.request_to === user?.id);
+    const requestsToConfirm = requests.filter(request => request.confirm_by === user?.id && request.user_id !== user?.id && request.request_to !== user?.id);
     
-    return { requestsByMe, requestsToMe };
+    return { requestsByMe, requestsToMe, requestsToConfirm };
   }, [requests, user?.id]);
 
   // Filtering and sorting logic for requests
@@ -297,7 +298,8 @@ const DashboardPage = () => {
 
   const filteredAndSortedRequestsByRole = useMemo(() => ({
     requestsByMe: getFilteredAndSortedRequests(requestsByRole.requestsByMe),
-    requestsToMe: getFilteredAndSortedRequests(requestsByRole.requestsToMe)
+    requestsToMe: getFilteredAndSortedRequests(requestsByRole.requestsToMe),
+    requestsToConfirm: getFilteredAndSortedRequests(requestsByRole.requestsToConfirm)
   }), [requestsByRole, requestSearchTerm, requestPriorityFilter, requestStatusFilter, requestSortColumn, requestSortDirection]);
 
   const handleSort = (column: string) => {
@@ -548,7 +550,7 @@ const DashboardPage = () => {
                   </div>
 
                   <div className="text-sm text-muted-foreground">
-                    {filteredAndSortedTasksByRole.assignedByMe.length + filteredAndSortedTasksByRole.assignedToMe.length} of {tasks.length} tasks
+                    {filteredAndSortedTasksByRole.assignedToMe.length + filteredAndSortedTasksByRole.tasksToConfirm.length} of {tasks.length} tasks
                   </div>
                 </div>
               </CardContent>
@@ -583,69 +585,6 @@ const DashboardPage = () => {
               </Card>
             ) : (
               <div className="space-y-4 sm:space-y-6">
-                {/* Tasks Assigned By Me */}
-                {filteredAndSortedTasksByRole.assignedByMe.length > 0 && (
-                  <Card className="glass">
-                    <CardHeader>
-                      <CardTitle className="text-base sm:text-lg">Tasks Created By Me ({filteredAndSortedTasksByRole.assignedByMe.length})</CardTitle>
-                      <CardDescription className="text-sm">Tasks you have assigned to others</CardDescription>
-                    </CardHeader>
-                    <div className="overflow-x-auto -mx-4 sm:mx-0">
-                      <div className="min-w-[700px] sm:min-w-0 px-4 sm:px-0">
-                        <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Task Name</TableHead>
-                            <TableHead>Project</TableHead>
-                            <TableHead>Assigned To</TableHead>
-                            <TableHead>Priority</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Due Date</TableHead>
-                            <TableHead>Actions</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {filteredAndSortedTasksByRole.assignedByMe.map(task => {
-                            const isOverdue = task.due_date && new Date(task.due_date) < new Date();
-                            const priorityColors = { high: 'destructive', medium: 'secondary', low: 'outline' };
-                            
-                            return (
-                              <TableRow key={task.id} className={`hover:bg-muted/50 transition-colors ${isOverdue ? 'bg-destructive/5' : ''}`}>
-                                <TableCell className="font-medium">{task.task_name}</TableCell>
-                                <TableCell>{task.project_name}</TableCell>
-                                <TableCell>{task.assigned_to || <span className="text-muted-foreground">Unassigned</span>}</TableCell>
-                                <TableCell>
-                                  <Badge variant={priorityColors[task.priority]} className="text-xs">{task.priority}</Badge>
-                                </TableCell>
-                                <TableCell>
-                                  <Badge variant={task.status === 'in_progress' ? 'default' : 'secondary'} className="text-xs">
-                                    {task.status.replace('_', ' ')}
-                                  </Badge>
-                                </TableCell>
-                                <TableCell>
-                                  {task.due_date ? (
-                                    <div className={`flex items-center gap-2 ${isOverdue ? 'text-destructive font-medium' : ''}`}>
-                                      {isOverdue ? <AlertCircle className="h-4 w-4" /> : <Clock className="h-4 w-4" />}
-                                      {new Date(task.due_date).toLocaleDateString()}
-                                      {isOverdue && <span className="text-xs">(Overdue)</span>}
-                                    </div>
-                                  ) : <span className="text-muted-foreground">No due date</span>}
-                                </TableCell>
-                                <TableCell>
-                                  <Button variant="ghost" size="sm" onClick={() => { setSelectedTask(task); setEditDialogOpen(true); }} className="h-8 w-8 p-0">
-                                    <Edit className="h-4 w-4" />
-                                  </Button>
-                                </TableCell>
-                              </TableRow>
-                            );
-                          })}
-                        </TableBody>
-                      </Table>
-                      </div>
-                    </div>
-                  </Card>
-                )}
-
                 {/* Tasks Assigned To Me */}
                 {filteredAndSortedTasksByRole.assignedToMe.length > 0 && (
                   <Card className="glass">
@@ -709,9 +648,72 @@ const DashboardPage = () => {
                   </Card>
                 )}
 
+                {/* Tasks to Confirm */}
+                {filteredAndSortedTasksByRole.tasksToConfirm.length > 0 && (
+                  <Card className="glass">
+                    <CardHeader>
+                      <CardTitle className="text-base sm:text-lg">Tasks to Confirm ({filteredAndSortedTasksByRole.tasksToConfirm.length})</CardTitle>
+                      <CardDescription className="text-sm">Tasks awaiting your confirmation</CardDescription>
+                    </CardHeader>
+                    <div className="overflow-x-auto -mx-4 sm:mx-0">
+                      <div className="min-w-[700px] sm:min-w-0 px-4 sm:px-0">
+                        <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Task Name</TableHead>
+                            <TableHead>Project</TableHead>
+                            <TableHead>Assigned To</TableHead>
+                            <TableHead>Priority</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead>Due Date</TableHead>
+                            <TableHead>Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {filteredAndSortedTasksByRole.tasksToConfirm.map(task => {
+                            const isOverdue = task.due_date && new Date(task.due_date) < new Date();
+                            const priorityColors = { high: 'destructive', medium: 'secondary', low: 'outline' };
+                            
+                            return (
+                              <TableRow key={task.id} className={`hover:bg-muted/50 transition-colors ${isOverdue ? 'bg-destructive/5' : ''}`}>
+                                <TableCell className="font-medium">{task.task_name}</TableCell>
+                                <TableCell>{task.project_name}</TableCell>
+                                <TableCell>{task.assigned_to || <span className="text-muted-foreground">Unassigned</span>}</TableCell>
+                                <TableCell>
+                                  <Badge variant={priorityColors[task.priority]} className="text-xs">{task.priority}</Badge>
+                                </TableCell>
+                                <TableCell>
+                                  <Badge variant={task.status === 'in_progress' ? 'default' : 'secondary'} className="text-xs">
+                                    {task.status.replace('_', ' ')}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell>
+                                  {task.due_date ? (
+                                    <div className={`flex items-center gap-2 ${isOverdue ? 'text-destructive font-medium' : ''}`}>
+                                      {isOverdue ? <AlertCircle className="h-4 w-4" /> : <Clock className="h-4 w-4" />}
+                                      {new Date(task.due_date).toLocaleDateString()}
+                                      {isOverdue && <span className="text-xs">(Overdue)</span>}
+                                    </div>
+                                  ) : <span className="text-muted-foreground">No due date</span>}
+                                </TableCell>
+                                <TableCell>
+                                  <Button variant="ghost" size="sm" onClick={() => { setSelectedTask(task); setEditDialogOpen(true); }} className="h-8 w-8 p-0">
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                      </div>
+                    </div>
+                  </Card>
+                )}
+
                 {/* No tasks found message */}
-                {(filteredAndSortedTasksByRole.assignedByMe.length === 0 && 
-                  filteredAndSortedTasksByRole.assignedToMe.length === 0) && (
+                {(filteredAndSortedTasksByRole.assignedToMe.length === 0 && 
+                  filteredAndSortedTasksByRole.tasksToConfirm.length === 0) && (
                   <Card className="glass">
                     <CardContent className="text-center py-8 sm:py-12">
                       <Search className="h-10 w-10 sm:h-12 sm:w-12 text-muted-foreground mx-auto mb-4" />
@@ -791,7 +793,7 @@ const DashboardPage = () => {
                     </Button>
 
                     <div className="text-sm text-muted-foreground">
-                      {filteredAndSortedRequestsByRole.requestsByMe.length + filteredAndSortedRequestsByRole.requestsToMe.length} of {requests.length} requests
+                      {filteredAndSortedRequestsByRole.requestsByMe.length + filteredAndSortedRequestsByRole.requestsToMe.length + filteredAndSortedRequestsByRole.requestsToConfirm.length} of {requests.length} requests
                     </div>
                   </div>
                 </CardContent>
@@ -946,9 +948,70 @@ const DashboardPage = () => {
                     </Card>
                   )}
 
+                  {/* Requests to Confirm */}
+                  {filteredAndSortedRequestsByRole.requestsToConfirm.length > 0 && (
+                    <Card className="glass">
+                      <CardHeader>
+                        <CardTitle className="text-lg">Requests to Confirm ({filteredAndSortedRequestsByRole.requestsToConfirm.length})</CardTitle>
+                        <CardDescription>Requests awaiting your confirmation</CardDescription>
+                      </CardHeader>
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Request By</TableHead>
+                              <TableHead>Description</TableHead>
+                              <TableHead>Priority</TableHead>
+                              <TableHead>Status</TableHead>
+                              <TableHead>Due Date</TableHead>
+                              <TableHead>Created At</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {filteredAndSortedRequestsByRole.requestsToConfirm.map(request => {
+                              const isOverdue = request.due_date && new Date(request.due_date) < new Date();
+                              const priorityColors = { high: 'destructive', medium: 'secondary', low: 'outline' };
+                              const statusColors = { pending: 'secondary', in_progress: 'default', completed: 'outline', rejected: 'destructive' };
+                              
+                              return (
+                                <TableRow key={request.id} className={`hover:bg-muted/50 transition-colors ${isOverdue ? 'bg-destructive/5' : ''}`}>
+                                  <TableCell className="font-medium">{request.request_by}</TableCell>
+                                  <TableCell className="max-w-xs">
+                                    {request.description ? (
+                                      <span className="text-sm line-clamp-2" title={request.description}>{request.description}</span>
+                                    ) : <span className="text-muted-foreground">-</span>}
+                                  </TableCell>
+                                  <TableCell>
+                                    <Badge variant={priorityColors[request.priority]} className="text-xs">{request.priority}</Badge>
+                                  </TableCell>
+                                  <TableCell>
+                                    <Badge variant={statusColors[request.status]} className="text-xs">{request.status.replace('_', ' ')}</Badge>
+                                  </TableCell>
+                                  <TableCell>
+                                    {request.due_date ? (
+                                      <div className={`flex items-center gap-2 ${isOverdue ? 'text-destructive font-medium' : ''}`}>
+                                        {isOverdue ? <AlertCircle className="h-4 w-4" /> : <Clock className="h-4 w-4" />}
+                                        {new Date(request.due_date).toLocaleDateString()}
+                                        {isOverdue && <span className="text-xs">(Overdue)</span>}
+                                      </div>
+                                    ) : <span className="text-muted-foreground">No due date</span>}
+                                  </TableCell>
+                                  <TableCell className="text-muted-foreground">
+                                    {new Date(request.created_at).toLocaleDateString()}
+                                  </TableCell>
+                                </TableRow>
+                              );
+                            })}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </Card>
+                  )}
+
                   {/* No requests found message */}
                   {(filteredAndSortedRequestsByRole.requestsByMe.length === 0 && 
-                    filteredAndSortedRequestsByRole.requestsToMe.length === 0) && (
+                    filteredAndSortedRequestsByRole.requestsToMe.length === 0 &&
+                    filteredAndSortedRequestsByRole.requestsToConfirm.length === 0) && (
                     <Card className="glass">
                       <CardContent className="text-center py-12">
                         <Search className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
