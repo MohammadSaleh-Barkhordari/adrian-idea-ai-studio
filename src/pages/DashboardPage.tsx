@@ -14,7 +14,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { BarChart, FileText, Calculator, FolderOpen, Users, User, LogOut, CheckSquare, Clock, AlertCircle, Search, ArrowUpDown, ArrowUp, ArrowDown, Filter, X, MessageSquare, Edit, BookOpen, Mail, Building2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { TaskEditDialog } from '@/components/TaskEditDialog';
+import { TaskDetailOutcomeDialog } from '@/components/TaskDetailOutcomeDialog';
 import { useLanguage } from '@/contexts/LanguageContext';
 const DashboardPage = () => {
   const { language } = useLanguage();
@@ -966,13 +966,12 @@ const DashboardPage = () => {
         </div>
       </main>
       
-      {/* Task Edit Dialog */}
+      {/* Task Detail Outcome Dialog */}
       {selectedTask && (
-        <TaskEditDialog
+        <TaskDetailOutcomeDialog
           open={editDialogOpen}
           onOpenChange={setEditDialogOpen}
           task={selectedTask}
-          userRole={userRole || 'general_user'}
           onTaskUpdated={() => {
             fetchMyTasks();
             setSelectedTask(null);
