@@ -29,7 +29,7 @@ import { format } from 'date-fns';
 import { CalendarIcon, Upload, X, FileText, Download, Paperclip, Play } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { sendNotification } from '@/lib/notifications';
-import TaskVoiceRecorder from '@/components/TaskVoiceRecorder';
+import TaskVoiceRecorderBox from '@/components/TaskVoiceRecorderBox';
 
 interface TaskEditDialogProps {
   open: boolean;
@@ -67,7 +67,13 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
   const [projectName, setProjectName] = useState('');
   const [startDate, setStartDate] = useState<Date | undefined>();
   const [dueDate, setDueDate] = useState<Date | undefined>();
-  const [completionDate, setCompletionDate] = useState<Date | undefined>();
+
+  // Voice recorder state
+  const [descriptionTranscription, setDescriptionTranscription] = useState('');
+  const [descriptionAudioBlob, setDescriptionAudioBlob] = useState<Blob | null>(null);
+  const [outcomeTranscription, setOutcomeTranscription] = useState('');
+  const [outcomeAudioBlob, setOutcomeAudioBlob] = useState<Blob | null>(null);
+  const [outcomeAudioUrl, setOutcomeAudioUrl] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     taskName: '',
@@ -81,15 +87,13 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
     description: '',
     notes: '',
     relatedTaskId: '',
-    completionNotes: '',
+    outcomeNotes: '',
   });
 
   // Non-admin editable fields
   const [userOutcome, setUserOutcome] = useState('');
-  const [userCompletionNotes, setUserCompletionNotes] = useState('');
+  const [userOutcomeNotes, setUserOutcomeNotes] = useState('');
   const [userStatus, setUserStatus] = useState('in_progress');
-  const [outcomeAudioUrl, setOutcomeAudioUrl] = useState<string | null>(null);
-  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
 
   const { toast } = useToast();
   const isAdmin = userRole === 'admin';
@@ -108,18 +112,20 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
         description: task.description || '',
         notes: task.notes || '',
         relatedTaskId: task.related_task_id || '',
-        completionNotes: task.outcome_notes || '',
+        outcomeNotes: task.outcome_notes || '',
       });
       setStartDate(task.start_time ? new Date(task.start_time) : undefined);
       setDueDate(task.due_date ? new Date(task.due_date) : undefined);
-      setCompletionDate(task.completed_at ? new Date(task.completed_at) : undefined);
       setSelectedFiles([]);
       setOutcomeAudioUrl(task.outcome_audio_path || null);
-      setAudioBlob(null);
+      setDescriptionAudioBlob(null);
+      setOutcomeAudioBlob(null);
+      setDescriptionTranscription(task.description_audio_transcription || '');
+      setOutcomeTranscription(task.outcome_audio_transcription || '');
 
       // Non-admin defaults
       setUserOutcome(task.outcome || '');
-      setUserCompletionNotes(task.outcome_notes || '');
+      setUserOutcomeNotes(task.outcome_notes || '');
       setUserStatus(task.status === 'completed' ? 'completed' : task.status === 'in_progress' ? 'in_progress' : 'in_progress');
 
       fetchAuthUsers();
@@ -251,11 +257,19 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
           description: formData.description,
           notes: formData.notes,
           outcome: formData.outcome,
-          outcome_notes: formData.completionNotes,
+          outcome_notes: formData.outcomeNotes,
           related_task_id: formData.relatedTaskId === 'none' ? null : formData.relatedTaskId || null,
           due_date: dueDate ? format(dueDate, 'yyyy-MM-dd') : null,
           start_time: startDate ? startDate.toISOString() : null,
         };
+
+        // Store transcriptions
+        if (descriptionTranscription) {
+          updateData.description_audio_transcription = descriptionTranscription;
+        }
+        if (outcomeTranscription) {
+          updateData.outcome_audio_transcription = outcomeTranscription;
+        }
 
         // Auto-set completed_at and completed_by
         if (formData.status === 'completed' && task.status !== 'completed') {
@@ -279,9 +293,13 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
       } else {
         updateData = {
           outcome: userOutcome,
-          outcome_notes: userCompletionNotes,
+          outcome_notes: userOutcomeNotes,
           status: userStatus,
         };
+
+        if (outcomeTranscription) {
+          updateData.outcome_audio_transcription = outcomeTranscription;
+        }
 
         // Auto-set completed_at and completed_by for non-admin
         if (userStatus === 'completed' && task.status !== 'completed') {
@@ -304,20 +322,36 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
         }
       }
 
-      // Upload audio blob if recorded
-      if (audioBlob) {
+      // Upload description audio blob if recorded
+      if (descriptionAudioBlob) {
+        try {
+          const timestamp = Date.now();
+          const audioPath = `task-audio/${task.id}/desc-${timestamp}.webm`;
+          const { error: audioUploadError } = await supabase.storage.from('Files').upload(audioPath, descriptionAudioBlob, {
+            contentType: 'audio/webm',
+          });
+          if (!audioUploadError) {
+            updateData.description_audio_path = audioPath;
+          }
+        } catch (audioErr) {
+          console.error('Error uploading description audio:', audioErr);
+        }
+      }
+
+      // Upload outcome audio blob if recorded
+      if (outcomeAudioBlob) {
         try {
           const timestamp = Date.now();
           const audioPath = `task-audio/${task.id}/${timestamp}.webm`;
-          const { error: audioUploadError } = await supabase.storage.from('Files').upload(audioPath, audioBlob, {
+          const { error: audioUploadError } = await supabase.storage.from('Files').upload(audioPath, outcomeAudioBlob, {
             contentType: 'audio/webm',
           });
-          if (audioUploadError) throw audioUploadError;
-          const { data: { publicUrl } } = supabase.storage.from('Files').getPublicUrl(audioPath);
-          await supabase.from('tasks').update({ outcome_audio_path: publicUrl } as any).eq('id', task.id);
-          setOutcomeAudioUrl(publicUrl);
+          if (!audioUploadError) {
+            updateData.outcome_audio_path = audioPath;
+            setOutcomeAudioUrl(audioPath);
+          }
         } catch (audioErr) {
-          console.error('Error uploading audio:', audioErr);
+          console.error('Error uploading outcome audio:', audioErr);
         }
       }
 
@@ -375,7 +409,7 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
           <ScrollArea className="h-[60vh] pr-6">
             <div className="grid gap-4 py-4">
 
-              {/* Task Name */}
+              {/* 1. Task Name */}
               <div className="grid gap-2">
                 <Label>Task Name *</Label>
                 {isAdmin ? (
@@ -390,7 +424,39 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
                 )}
               </div>
 
-              {/* Related Task */}
+              {/* 2. Description */}
+              <div className="grid gap-2">
+                <Label>Description</Label>
+                {isAdmin ? (
+                  <Textarea
+                    value={formData.description}
+                    onChange={(e) => handleInputChange('description', e.target.value)}
+                    placeholder="Describe the task in detail..."
+                    rows={5}
+                  />
+                ) : (
+                  <div className={cn(readOnlyStyle, "min-h-[60px] whitespace-pre-wrap")}>{formData.description || '—'}</div>
+                )}
+              </div>
+
+              {/* 3. Description Voice Recorder (admin only) */}
+              {isAdmin && (
+                <TaskVoiceRecorderBox
+                  label="Record Description"
+                  onTranscribed={(text) => {
+                    setDescriptionTranscription(prev => prev ? prev + '\n' + text : text);
+                    setFormData(prev => ({
+                      ...prev,
+                      description: prev.description ? prev.description + '\n' + text : text
+                    }));
+                  }}
+                  onAudioReady={(blob) => setDescriptionAudioBlob(blob)}
+                  transcription={descriptionTranscription}
+                  disabled={loading}
+                />
+              )}
+
+              {/* 4. Related Task */}
               <div className="grid gap-2">
                 <Label>Related Task</Label>
                 {isAdmin ? (
@@ -414,7 +480,7 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
                 )}
               </div>
 
-              {/* Assigned By / Assigned To */}
+              {/* 5. Assigned By / Assigned To */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label>Assigned By</Label>
@@ -448,7 +514,7 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
                 </div>
               </div>
 
-              {/* Follow Up By */}
+              {/* 6. Follow Up By */}
               <div className="grid gap-2">
                 <Label>Follow Up By</Label>
                 {isAdmin ? (
@@ -468,7 +534,7 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
                 )}
               </div>
 
-              {/* Start Date / Due Date */}
+              {/* 7. Start Date / Due Date */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label>Start Date</Label>
@@ -508,7 +574,7 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
                 </div>
               </div>
 
-              {/* Priority / Status */}
+              {/* 8. Priority / Status */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label>Priority</Label>
@@ -548,7 +614,37 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
                 </div>
               </div>
 
-              {/* Outcome (admin) */}
+              {/* 9. Notes */}
+              <div className="grid gap-2">
+                <Label>Notes</Label>
+                {isAdmin ? (
+                  <Textarea
+                    value={formData.notes}
+                    onChange={(e) => handleInputChange('notes', e.target.value)}
+                    placeholder="Additional notes about this task"
+                    rows={5}
+                  />
+                ) : (
+                  <div className={cn(readOnlyStyle, "min-h-[60px] whitespace-pre-wrap")}>{formData.notes || '—'}</div>
+                )}
+              </div>
+
+              {/* 10. Outcome Notes */}
+              <div className="grid gap-2">
+                <Label>Outcome Notes</Label>
+                {isAdmin ? (
+                  <Textarea
+                    value={formData.outcomeNotes}
+                    onChange={(e) => handleInputChange('outcomeNotes', e.target.value)}
+                    placeholder="Notes about the expected or achieved outcome"
+                    rows={5}
+                  />
+                ) : (
+                  <div className={cn(readOnlyStyle, "min-h-[60px] whitespace-pre-wrap")}>{formData.outcomeNotes || '—'}</div>
+                )}
+              </div>
+
+              {/* 11. Outcome (admin) */}
               {isAdmin && (
                 <div className="grid gap-2">
                   <div className="flex items-center gap-2">
@@ -564,14 +660,17 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
                     placeholder="Expected or achieved outcome"
                     rows={3}
                   />
-                  <TaskVoiceRecorder
+                  <TaskVoiceRecorderBox
+                    label="Record Outcome"
                     onTranscribed={(text) => {
+                      setOutcomeTranscription(prev => prev ? prev + '\n' + text : text);
                       setFormData(prev => ({
                         ...prev,
                         outcome: prev.outcome ? prev.outcome + '\n' + text : text,
                       }));
                     }}
-                    onAudioReady={(blob) => setAudioBlob(blob)}
+                    onAudioReady={(blob) => setOutcomeAudioBlob(blob)}
+                    transcription={outcomeTranscription}
                     disabled={loading}
                   />
                   {outcomeAudioUrl && (
@@ -590,36 +689,6 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
                   <div className={readOnlyStyle}>{formData.outcome || '—'}</div>
                 </div>
               )}
-
-              {/* Description */}
-              <div className="grid gap-2">
-                <Label>Description</Label>
-                {isAdmin ? (
-                  <Textarea
-                    value={formData.description}
-                    onChange={(e) => handleInputChange('description', e.target.value)}
-                    placeholder="Describe the task in detail..."
-                    rows={3}
-                  />
-                ) : (
-                  <div className={cn(readOnlyStyle, "min-h-[60px] whitespace-pre-wrap")}>{formData.description || '—'}</div>
-                )}
-              </div>
-
-              {/* Notes */}
-              <div className="grid gap-2">
-                <Label>Notes</Label>
-                {isAdmin ? (
-                  <Textarea
-                    value={formData.notes}
-                    onChange={(e) => handleInputChange('notes', e.target.value)}
-                    placeholder="Additional notes about this task"
-                    rows={3}
-                  />
-                ) : (
-                  <div className={cn(readOnlyStyle, "min-h-[60px] whitespace-pre-wrap")}>{formData.notes || '—'}</div>
-                )}
-              </div>
 
               {/* ============ NON-ADMIN: Your Task Update Section ============ */}
               {!isAdmin && (
@@ -649,11 +718,14 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
                       placeholder="Describe what you did..."
                       rows={3}
                     />
-                    <TaskVoiceRecorder
+                    <TaskVoiceRecorderBox
+                      label="Record Outcome"
                       onTranscribed={(text) => {
+                        setOutcomeTranscription(prev => prev ? prev + '\n' + text : text);
                         setUserOutcome(prev => prev ? prev + '\n' + text : text);
                       }}
-                      onAudioReady={(blob) => setAudioBlob(blob)}
+                      onAudioReady={(blob) => setOutcomeAudioBlob(blob)}
+                      transcription={outcomeTranscription}
                       disabled={loading}
                     />
                     {outcomeAudioUrl && (
@@ -664,31 +736,15 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
                     )}
                   </div>
 
-                  {/* Completion Notes */}
+                  {/* Outcome Notes */}
                   <div className="grid gap-2">
-                    <Label>Completion Notes</Label>
+                    <Label>Outcome Notes</Label>
                     <Textarea
-                      value={userCompletionNotes}
-                      onChange={(e) => setUserCompletionNotes(e.target.value)}
+                      value={userOutcomeNotes}
+                      onChange={(e) => setUserOutcomeNotes(e.target.value)}
                       placeholder="Any additional notes..."
-                      rows={3}
+                      rows={5}
                     />
-                  </div>
-
-                  {/* Completion Date */}
-                  <div className="grid gap-2">
-                    <Label>Completion Date</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !completionDate && "text-muted-foreground")}>
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {completionDate ? format(completionDate, "PPP") : "Pick a date"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar mode="single" selected={completionDate} onSelect={setCompletionDate} className="p-3 pointer-events-auto" initialFocus />
-                      </PopoverContent>
-                    </Popover>
                   </div>
                 </div>
               )}
