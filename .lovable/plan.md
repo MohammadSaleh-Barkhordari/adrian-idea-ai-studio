@@ -1,42 +1,26 @@
 
 
-# Fix Documents Table: Save user_id, mime_type, and Remove content Column
+# Add has_attachment Column to Emails Table
 
-## Problem
+## Change
 
-When uploading a document, the insert in `NewDocumentDialog.tsx` (lines 306-317):
-1. Does NOT save `user_id` -- only `uploaded_by` is set
-2. Does NOT save `mime_type` -- only `file_type` is set (which stores the same MIME string)
-3. The `content` column exists in the table but is never used anywhere in the codebase
+Add a `has_attachment` boolean column to the `emails` table, defaulting to `false`.
 
-## Changes
-
-### 1. Database Migration
-Drop the `content` column from the `documents` table since it is unused.
+## Database Migration
 
 ```sql
-ALTER TABLE public.documents DROP COLUMN IF EXISTS content;
+ALTER TABLE public.emails ADD COLUMN has_attachment boolean NOT NULL DEFAULT false;
 ```
 
-### 2. Code Change: `src/components/NewDocumentDialog.tsx`
-Update the `documentData` object (around line 306) to include `user_id` and `mime_type`:
+## Code Updates
 
-```typescript
-const documentData = {
-  title: title.trim(),
-  project_id: projectId,
-  uploaded_by: user.id,
-  user_id: user.id,              // ADD THIS
-  id: uploadResult.documentId,
-  file_path: uploadResult.filePath,
-  file_url: uploadResult.filePath,
-  file_name: uploadResult.fileName,
-  file_size: uploadResult.fileSize,
-  file_type: uploadResult.mimeType,
-  mime_type: uploadResult.mimeType, // ADD THIS
-  summary: content.trim() || null,
-};
-```
+1. **`src/components/email/EmailCompose.tsx`** -- When sending an email with attachments, set `has_attachment: true` in the insert.
 
-This is a minimal change: two fields added to the insert object, and one column dropped from the database.
+2. **`src/components/email/EmailQuickAdd.tsx`** -- No change needed (quick-add doesn't support attachments, so the default `false` is correct).
+
+3. **`src/components/email/EmailList.tsx`** -- Add `has_attachment` to the select query and show a paperclip icon next to emails that have attachments.
+
+4. **`supabase/functions/receive-email/index.ts`** -- When inserting inbound emails, set `has_attachment: true` if the email has attachments.
+
+The types file will auto-update after the migration.
 
