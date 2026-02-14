@@ -1606,42 +1606,98 @@ export type Database = {
       }
       requests: {
         Row: {
+          confirm_by: string | null
           created_at: string
           description: string | null
+          description_audio_path: string | null
+          description_audio_transcription: string | null
           due_date: string | null
           id: string
           priority: string
           request_by: string
           request_to: string
+          responded_at: string | null
+          response: string | null
+          response_audio_path: string | null
+          response_audio_transcription: string | null
+          response_by: string | null
+          response_files_path: string[] | null
           status: string
           updated_at: string
           user_id: string
         }
         Insert: {
+          confirm_by?: string | null
           created_at?: string
           description?: string | null
+          description_audio_path?: string | null
+          description_audio_transcription?: string | null
           due_date?: string | null
           id?: string
           priority?: string
           request_by: string
           request_to: string
+          responded_at?: string | null
+          response?: string | null
+          response_audio_path?: string | null
+          response_audio_transcription?: string | null
+          response_by?: string | null
+          response_files_path?: string[] | null
           status?: string
           updated_at?: string
           user_id: string
         }
         Update: {
+          confirm_by?: string | null
           created_at?: string
           description?: string | null
+          description_audio_path?: string | null
+          description_audio_transcription?: string | null
           due_date?: string | null
           id?: string
           priority?: string
           request_by?: string
           request_to?: string
+          responded_at?: string | null
+          response?: string | null
+          response_audio_path?: string | null
+          response_audio_transcription?: string | null
+          response_by?: string | null
+          response_files_path?: string[] | null
           status?: string
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "requests_confirm_by_fkey"
+            columns: ["confirm_by"]
+            isOneToOne: false
+            referencedRelation: "employee_full"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "requests_confirm_by_fkey"
+            columns: ["confirm_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "requests_response_by_fkey"
+            columns: ["response_by"]
+            isOneToOne: false
+            referencedRelation: "employee_full"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "requests_response_by_fkey"
+            columns: ["response_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       task_comments: {
         Row: {
