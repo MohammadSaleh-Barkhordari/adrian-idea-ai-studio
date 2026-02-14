@@ -64,7 +64,7 @@ const ProjectAttachPicker = ({ onAttach }: ProjectAttachPickerProps) => {
           id: d.id,
           name: d.file_name || 'Untitled',
           storage_path: d.file_path!,
-          bucket: 'Documents',
+          bucket: 'documents',
         })));
       } else if (cat === 'file') {
         const { data } = await supabase
