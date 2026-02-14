@@ -1,44 +1,46 @@
 
 
-# Fix: Two Bugs Blocking Letter Generation
+# Fix: Task Creation Fails — Email Used Instead of UUID for `assigned_by`
 
-## Bug 1: Storage Upload Fails -- Persian Characters in Filename
+## Root Cause
 
-**Error:** `Invalid key: IWS/934ffaca-.../پیگیری_آخرین_وضعیت_پیشرفت_و_مراحل_اجرایی_پروژه.png`
+In `NewTaskDialog.tsx` line 143, when the form initializes, it sets:
+```typescript
+assignedBy: user.email  // "m.barkhordari@adrianidea.ir"
+```
 
-Supabase Storage does NOT allow Unicode characters (like Persian/Arabic) in file paths. The current regex on line 313 explicitly *allows* Persian characters (`\u0600-\u06FF`), which is the problem.
+This email string is then passed directly to the database insert at line 319:
+```typescript
+assigned_by: formData.assignedBy || null
+```
 
-**Fix:** Remove the Unicode range from the regex so only ASCII-safe characters remain. If the title is entirely Persian (common case), fall back to `"letter"`.
+But `assigned_by` is a UUID column with a foreign key to `profiles`. Postgres rejects the email with error `22P02: invalid input syntax for type uuid`.
+
+## Fix
+
+In `src/components/NewTaskDialog.tsx`, change line 143 from `user.email` to `user.id`:
 
 ```typescript
 // Before (broken):
-.replace(/[^a-zA-Z0-9\u0600-\u06FF._-]/g, '_')
+assignedBy: user.email
 
 // After (fixed):
-.replace(/[^a-zA-Z0-9._-]/g, '_').replace(/^_+|_+$/g, '') || 'letter'
+assignedBy: user.id
 ```
 
-## Bug 2: Status Check Constraint Violation
+The "Assigned By" field in the form (line 605-611) is a free-text Input that displays the value. It currently shows the email which is user-friendly but breaks the DB insert. Two options:
 
-**Error:** `new row for relation "letters" violates check constraint "letters_status_check"`
+1. **Set the value to `user.id`** and change the Input to a disabled field showing the user's email for display, while storing the UUID internally.
+2. **Make the field read-only** with email displayed, but store `user.id` separately for the insert.
 
-The constraint only allows: `pending`, `analyzing`, `letter_generated`, `completed`, `error`
+The simplest approach: store `user.id` in `formData.assignedBy` and show the email as a disabled display-only input (not bound to `formData.assignedBy`).
 
-But the code tries to set status to `preview_generated` (line 249) and `final_generated` (line 330) -- neither is in the allowed list.
+## Changes to `src/components/NewTaskDialog.tsx`
 
-**Fix:** Add `preview_generated`, `final_generated`, and `fields_extracted` to the check constraint via a database migration.
-
-```sql
-ALTER TABLE public.letters DROP CONSTRAINT letters_status_check;
-ALTER TABLE public.letters ADD CONSTRAINT letters_status_check 
-  CHECK (status = ANY (ARRAY[
-    'pending', 'analyzing', 'letter_generated', 'completed', 'error',
-    'fields_extracted', 'preview_generated', 'final_generated'
-  ]));
-```
+1. **Line 143**: Change `assignedBy: user.email` to `assignedBy: user.id`
+2. **Lines 605-611**: Change the "Assigned By" Input to show the user's email as display text while keeping the UUID as the stored value. Make it a disabled field showing the email from the auth user.
 
 ## Files to Change
 
-- **Database migration** -- Update `letters_status_check` constraint to include new status values
-- **`src/components/LetterBuilder.tsx`** (line 313) -- Remove Persian/Unicode characters from storage file path
+- `src/components/NewTaskDialog.tsx` -- Fix assignedBy to use UUID instead of email
 
