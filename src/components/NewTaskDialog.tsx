@@ -28,7 +28,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { CalendarIcon, Upload, FileText, X, Paperclip } from 'lucide-react';
-import TaskVoiceRecorder from '@/components/TaskVoiceRecorder';
+import TaskVoiceRecorderBox from '@/components/TaskVoiceRecorderBox';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { sendNotification, getUserIdByEmail } from '@/lib/notifications';
@@ -90,15 +90,23 @@ export const NewTaskDialog: React.FC<NewTaskDialogProps> = ({
   const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
   const [relatedFileItems, setRelatedFileItems] = useState<FileItem[]>([]);
   const [selectedFileItems, setSelectedFileItems] = useState<string[]>([]);
+
+  // Voice recorder state
+  const [descriptionTranscription, setDescriptionTranscription] = useState('');
+  const [descriptionAudioBlob, setDescriptionAudioBlob] = useState<Blob | null>(null);
+  const [outcomeTranscription, setOutcomeTranscription] = useState('');
+  const [outcomeAudioBlob, setOutcomeAudioBlob] = useState<Blob | null>(null);
   
   const [formData, setFormData] = useState({
     taskName: '',
+    description: '',
     assignedBy: '',
     assignedTo: '',
     followBy: '',
     priority: 'medium',
     outcome: '',
     notes: '',
+    outcomeNotes: '',
     status: 'todo',
     relatedTaskId: '',
     taskType: 'general'
@@ -130,7 +138,7 @@ export const NewTaskDialog: React.FC<NewTaskDialogProps> = ({
       setProjectName(data.project_name || projectId);
     } catch (error) {
       console.error('Error fetching project name:', error);
-      setProjectName(projectId); // Fallback to project ID
+      setProjectName(projectId);
     }
   };
 
@@ -227,19 +235,16 @@ export const NewTaskDialog: React.FC<NewTaskDialogProps> = ({
       for (const file of files) {
         const filePath = `${projectName}/${taskId}/${file.name}`;
 
-        // Upload file to storage
         const { error: uploadError } = await supabase.storage
           .from('Files')
           .upload(filePath, file);
 
         if (uploadError) throw uploadError;
 
-        // Get public URL
         const { data: { publicUrl } } = supabase.storage
           .from('Files')
           .getPublicUrl(filePath);
 
-        // Insert file record into files table
         const { data: fileData, error: insertError } = await supabase
           .from('files')
           .insert({
@@ -257,7 +262,6 @@ export const NewTaskDialog: React.FC<NewTaskDialogProps> = ({
 
         if (insertError) throw insertError;
 
-        // Create task-file relationship in junction table
         const { error: relationError } = await supabase
           .from('task_files')
           .insert({
@@ -312,10 +316,11 @@ export const NewTaskDialog: React.FC<NewTaskDialogProps> = ({
         return;
       }
 
-      // Create task first
       const taskData: any = {
         task_name: formData.taskName.trim(),
-        description: formData.notes.trim() || null,
+        description: formData.description.trim() || null,
+        notes: formData.notes.trim() || null,
+        outcome_notes: formData.outcomeNotes.trim() || null,
         assigned_to: formData.assignedTo === 'unassigned' ? null : formData.assignedTo || null,
         assigned_by: formData.assignedBy || null,
         user_id: user.id,
@@ -329,6 +334,14 @@ export const NewTaskDialog: React.FC<NewTaskDialogProps> = ({
         related_task_id: formData.relatedTaskId === 'none' ? null : formData.relatedTaskId || null,
         task_type: formData.taskType || 'general',
       };
+
+      // Store transcriptions if available
+      if (descriptionTranscription) {
+        taskData.description_audio_transcription = descriptionTranscription;
+      }
+      if (outcomeTranscription) {
+        taskData.outcome_audio_transcription = outcomeTranscription;
+      }
 
       // Auto-set completion tracking
       if (formData.status === 'completed') {
@@ -356,6 +369,38 @@ export const NewTaskDialog: React.FC<NewTaskDialogProps> = ({
           variant: "destructive",
         });
         return;
+      }
+
+      // Upload description audio if recorded
+      if (descriptionAudioBlob) {
+        try {
+          const timestamp = Date.now();
+          const audioPath = `task-audio/${taskResult.id}/desc-${timestamp}.webm`;
+          const { error: audioUploadError } = await supabase.storage.from('Files').upload(audioPath, descriptionAudioBlob, {
+            contentType: 'audio/webm',
+          });
+          if (!audioUploadError) {
+            await supabase.from('tasks').update({ description_audio_path: audioPath } as any).eq('id', taskResult.id);
+          }
+        } catch (audioErr) {
+          console.error('Error uploading description audio:', audioErr);
+        }
+      }
+
+      // Upload outcome audio if recorded
+      if (outcomeAudioBlob) {
+        try {
+          const timestamp = Date.now();
+          const audioPath = `task-audio/${taskResult.id}/${timestamp}.webm`;
+          const { error: audioUploadError } = await supabase.storage.from('Files').upload(audioPath, outcomeAudioBlob, {
+            contentType: 'audio/webm',
+          });
+          if (!audioUploadError) {
+            await supabase.from('tasks').update({ outcome_audio_path: audioPath } as any).eq('id', taskResult.id);
+          }
+        } catch (audioErr) {
+          console.error('Error uploading outcome audio:', audioErr);
+        }
       }
 
       // Upload files if present
@@ -407,7 +452,6 @@ export const NewTaskDialog: React.FC<NewTaskDialogProps> = ({
 
       // Send notification to assigned user if different from creator
       if (formData.assignedTo && formData.assignedTo !== 'unassigned' && formData.assignedTo !== user.id) {
-        // assignedTo is already a user ID (UUID)
         await sendNotification(
           '📋 New Task Assigned',
           `You have been assigned: "${formData.taskName}" in project ${projectName}`,
@@ -422,7 +466,6 @@ export const NewTaskDialog: React.FC<NewTaskDialogProps> = ({
         description: "Task created successfully",
       });
 
-      // Reset form and close dialog
       handleClose();
       onTaskCreated();
 
@@ -441,12 +484,14 @@ export const NewTaskDialog: React.FC<NewTaskDialogProps> = ({
   const handleClose = () => {
     setFormData({
       taskName: '',
+      description: '',
       assignedBy: '',
       assignedTo: '',
       followBy: '',
       priority: 'medium',
       outcome: '',
       notes: '',
+      outcomeNotes: '',
       status: 'todo',
       relatedTaskId: '',
       taskType: 'general'
@@ -457,6 +502,10 @@ export const NewTaskDialog: React.FC<NewTaskDialogProps> = ({
     setSelectedFileItems([]);
     setStartDate(undefined);
     setDueDate(undefined);
+    setDescriptionTranscription('');
+    setDescriptionAudioBlob(null);
+    setOutcomeTranscription('');
+    setOutcomeAudioBlob(null);
     onOpenChange(false);
   };
 
@@ -472,7 +521,7 @@ export const NewTaskDialog: React.FC<NewTaskDialogProps> = ({
         <form onSubmit={handleSubmit}>
           <ScrollArea className="h-[60vh] pr-6">
             <div className="grid gap-4 py-4">
-            {/* Task Name */}
+            {/* 1. Task Name */}
             <div className="grid gap-2">
               <Label htmlFor="taskName">Task Name *</Label>
               <Input
@@ -484,7 +533,34 @@ export const NewTaskDialog: React.FC<NewTaskDialogProps> = ({
               />
             </div>
 
-            {/* Related Task */}
+            {/* 2. Description */}
+            <div className="grid gap-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                value={formData.description}
+                onChange={(e) => handleInputChange('description', e.target.value)}
+                placeholder="Describe the task in detail..."
+                rows={5}
+              />
+            </div>
+
+            {/* 3. Description Voice Recorder */}
+            <TaskVoiceRecorderBox
+              label="Record Description"
+              onTranscribed={(text) => {
+                setDescriptionTranscription(prev => prev ? prev + '\n' + text : text);
+                setFormData(prev => ({
+                  ...prev,
+                  description: prev.description ? prev.description + '\n' + text : text
+                }));
+              }}
+              onAudioReady={(blob) => setDescriptionAudioBlob(blob)}
+              transcription={descriptionTranscription}
+              disabled={loading}
+            />
+
+            {/* 4. Related Task */}
             <div className="grid gap-2">
               <Label htmlFor="relatedTask">Related Task</Label>
               <Select value={formData.relatedTaskId} onValueChange={(value) => handleInputChange('relatedTaskId', value)}>
@@ -613,7 +689,7 @@ export const NewTaskDialog: React.FC<NewTaskDialogProps> = ({
               )}
             </div>
 
-            {/* Assignment Fields */}
+            {/* 5. Assignment Fields */}
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="assignedBy">Assigned By</Label>
@@ -660,7 +736,7 @@ export const NewTaskDialog: React.FC<NewTaskDialogProps> = ({
               </Select>
             </div>
 
-            {/* Start Date and Due Date */}
+            {/* 6. Start Date and Due Date */}
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label>Start Date</Label>
@@ -716,7 +792,7 @@ export const NewTaskDialog: React.FC<NewTaskDialogProps> = ({
               </div>
             </div>
 
-            {/* Priority and Status */}
+            {/* 7. Priority and Status */}
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="priority">Priority</Label>
@@ -748,7 +824,7 @@ export const NewTaskDialog: React.FC<NewTaskDialogProps> = ({
               </div>
             </div>
 
-            {/* Task Type */}
+            {/* 8. Task Type */}
             <div className="grid gap-2">
               <Label htmlFor="taskType">Task Type</Label>
               <Select value={formData.taskType} onValueChange={(value) => handleInputChange('taskType', value)}>
@@ -765,7 +841,7 @@ export const NewTaskDialog: React.FC<NewTaskDialogProps> = ({
               </Select>
             </div>
 
-            {/* Notes */}
+            {/* 9. Notes */}
             <div className="grid gap-2">
               <Label htmlFor="notes">Notes</Label>
               <Textarea
@@ -773,11 +849,23 @@ export const NewTaskDialog: React.FC<NewTaskDialogProps> = ({
                 value={formData.notes}
                 onChange={(e) => handleInputChange('notes', e.target.value)}
                 placeholder="Additional notes about this task"
-                rows={3}
+                rows={5}
               />
             </div>
 
-            {/* Outcome */}
+            {/* 10. Outcome Notes */}
+            <div className="grid gap-2">
+              <Label htmlFor="outcomeNotes">Outcome Notes</Label>
+              <Textarea
+                id="outcomeNotes"
+                value={formData.outcomeNotes}
+                onChange={(e) => handleInputChange('outcomeNotes', e.target.value)}
+                placeholder="Notes about the expected or achieved outcome"
+                rows={5}
+              />
+            </div>
+
+            {/* 11. Outcome */}
             <div className="grid gap-2">
               <div className="flex items-center gap-2">
                 <Label htmlFor="outcome">Outcome</Label>
@@ -792,17 +880,24 @@ export const NewTaskDialog: React.FC<NewTaskDialogProps> = ({
                 onChange={(e) => handleInputChange('outcome', e.target.value)}
                 placeholder="Expected or achieved outcome"
               />
-              <TaskVoiceRecorder
-                onTranscribed={(text) => {
-                  setFormData(prev => ({
-                    ...prev,
-                    outcome: prev.outcome ? `${prev.outcome}\n${text}` : text
-                  }));
-                }}
-              />
             </div>
 
-            {/* File Upload for Outcome - Updated to support multiple files */}
+            {/* 12. Outcome Voice Recorder */}
+            <TaskVoiceRecorderBox
+              label="Record Outcome"
+              onTranscribed={(text) => {
+                setOutcomeTranscription(prev => prev ? prev + '\n' + text : text);
+                setFormData(prev => ({
+                  ...prev,
+                  outcome: prev.outcome ? prev.outcome + '\n' + text : text
+                }));
+              }}
+              onAudioReady={(blob) => setOutcomeAudioBlob(blob)}
+              transcription={outcomeTranscription}
+              disabled={loading}
+            />
+
+            {/* 13. File Upload for Outcome */}
             <div className="grid gap-2">
               <Label>Outcome File</Label>
               <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4">
