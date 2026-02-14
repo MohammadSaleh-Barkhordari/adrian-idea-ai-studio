@@ -12,6 +12,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { MessageSquare, Upload, X, ArrowLeft } from "lucide-react";
 import { useDropzone } from 'react-dropzone';
+import TaskVoiceRecorderBox from '@/components/TaskVoiceRecorderBox';
+import { transcribeAudioBlob } from '@/lib/transcribeAudio';
 
 interface User {
   id: string;
@@ -24,9 +26,11 @@ const CreateRequestPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [files, setFiles] = useState<File[]>([]);
+  const [descriptionAudioBlob, setDescriptionAudioBlob] = useState<Blob | null>(null);
   
   const [formData, setFormData] = useState({
     requestTo: '',
+    confirmBy: '',
     dueDate: '',
     priority: 'medium',
     description: ''
@@ -146,8 +150,9 @@ const CreateRequestPage = () => {
           due_date: formData.dueDate || null,
           priority: formData.priority,
           description: formData.description,
-          status: 'pending'
-        })
+          status: 'pending',
+          confirm_by: formData.confirmBy || null,
+        } as any)
         .select()
         .single();
       
@@ -156,6 +161,31 @@ const CreateRequestPage = () => {
       // Upload files if any
       if (files.length > 0) {
         await uploadFiles(request.id);
+      }
+
+      // Upload description audio if recorded
+      if (descriptionAudioBlob) {
+        const audioPath = `Requests/${request.id}/description_audio.webm`;
+        const { error: audioUploadError } = await supabase.storage
+          .from('Files')
+          .upload(audioPath, descriptionAudioBlob, { contentType: 'audio/webm' });
+
+        if (!audioUploadError) {
+          await supabase
+            .from('requests')
+            .update({ description_audio_path: audioPath } as any)
+            .eq('id', request.id);
+
+          // Deferred transcription
+          transcribeAudioBlob(descriptionAudioBlob).then(async (text) => {
+            if (text) {
+              await supabase
+                .from('requests')
+                .update({ description_audio_transcription: text } as any)
+                .eq('id', request.id);
+            }
+          });
+        }
       }
       
       toast({
@@ -250,6 +280,23 @@ const CreateRequestPage = () => {
                 </div>
 
                 <div className="space-y-2">
+                  <Label htmlFor="confirmBy">Confirm By (Optional)</Label>
+                  <Select value={formData.confirmBy} onValueChange={(value) => 
+                    setFormData(prev => ({ ...prev, confirmBy: value }))
+                  }>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a person to confirm" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {allUsers.map((u) => (
+                        <SelectItem key={u.id} value={u.id}>
+                          {u.email}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
                   <Label htmlFor="dueDate">Due Date (Optional)</Label>
                   <Input
                     id="dueDate"
@@ -284,6 +331,14 @@ const CreateRequestPage = () => {
                     onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                     placeholder="Describe your request in detail..."
                     className="min-h-[100px]"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Description Audio (Optional)</Label>
+                  <TaskVoiceRecorderBox
+                    label="Record Description"
+                    onAudioReady={(blob) => setDescriptionAudioBlob(blob)}
                   />
                 </div>
 
