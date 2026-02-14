@@ -28,6 +28,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { CalendarIcon, Upload, FileText, X, Paperclip } from 'lucide-react';
+import TaskVoiceRecorder from '@/components/TaskVoiceRecorder';
 import { cn } from '@/lib/utils';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { sendNotification, getUserIdByEmail } from '@/lib/notifications';
@@ -99,7 +100,8 @@ export const NewTaskDialog: React.FC<NewTaskDialogProps> = ({
     outcome: '',
     notes: '',
     status: 'todo',
-    relatedTaskId: ''
+    relatedTaskId: '',
+    taskType: 'general'
   });
   const { toast } = useToast();
 
@@ -317,7 +319,6 @@ export const NewTaskDialog: React.FC<NewTaskDialogProps> = ({
         description: formData.notes.trim() || null,
         assigned_to: formData.assignedTo === 'unassigned' ? null : formData.assignedTo || null,
         assigned_by: formData.assignedBy || null,
-        created_by: user.id,
         user_id: user.id,
         due_date: dueDate ? format(dueDate, 'yyyy-MM-dd') : null,
         start_time: startDate ? startDate.toISOString() : null,
@@ -327,6 +328,7 @@ export const NewTaskDialog: React.FC<NewTaskDialogProps> = ({
         outcome: formData.outcome || null,
         follow_by: formData.followBy === 'unassigned' ? null : formData.followBy || null,
         related_task_id: formData.relatedTaskId === 'none' ? null : formData.relatedTaskId || null,
+        task_type: formData.taskType || 'general',
       };
 
       const { data: taskResult, error } = await supabase
@@ -435,7 +437,8 @@ export const NewTaskDialog: React.FC<NewTaskDialogProps> = ({
       outcome: '',
       notes: '',
       status: 'todo',
-      relatedTaskId: ''
+      relatedTaskId: '',
+      taskType: 'general'
     });
     setSelectedFiles([]);
     setSelectedLetters([]);
@@ -734,6 +737,35 @@ export const NewTaskDialog: React.FC<NewTaskDialogProps> = ({
               </div>
             </div>
 
+            {/* Task Type */}
+            <div className="grid gap-2">
+              <Label htmlFor="taskType">Task Type</Label>
+              <Select value={formData.taskType} onValueChange={(value) => handleInputChange('taskType', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select task type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="general">General</SelectItem>
+                  <SelectItem value="meeting">Meeting</SelectItem>
+                  <SelectItem value="follow_up">Follow Up</SelectItem>
+                  <SelectItem value="review">Review</SelectItem>
+                  <SelectItem value="delivery">Delivery</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Notes */}
+            <div className="grid gap-2">
+              <Label htmlFor="notes">Notes</Label>
+              <Textarea
+                id="notes"
+                value={formData.notes}
+                onChange={(e) => handleInputChange('notes', e.target.value)}
+                placeholder="Additional notes about this task"
+                rows={3}
+              />
+            </div>
+
             {/* Outcome */}
             <div className="grid gap-2">
               <div className="flex items-center gap-2">
@@ -748,6 +780,14 @@ export const NewTaskDialog: React.FC<NewTaskDialogProps> = ({
                 value={formData.outcome}
                 onChange={(e) => handleInputChange('outcome', e.target.value)}
                 placeholder="Expected or achieved outcome"
+              />
+              <TaskVoiceRecorder
+                onTranscribed={(text) => {
+                  setFormData(prev => ({
+                    ...prev,
+                    outcome: prev.outcome ? `${prev.outcome}\n${text}` : text
+                  }));
+                }}
               />
             </div>
 
@@ -810,18 +850,6 @@ export const NewTaskDialog: React.FC<NewTaskDialogProps> = ({
                   </div>
                 )}
               </div>
-
-            {/* Notes */}
-            <div className="grid gap-2">
-              <Label htmlFor="notes">Notes</Label>
-              <Textarea
-                id="notes"
-                value={formData.notes}
-                onChange={(e) => handleInputChange('notes', e.target.value)}
-                placeholder="Additional notes about this task"
-                rows={3}
-               />
-             </div>
            </div>
           </ScrollArea>
           <DialogFooter>
