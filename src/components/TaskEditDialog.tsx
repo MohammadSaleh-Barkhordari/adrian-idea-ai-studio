@@ -83,7 +83,6 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
     followBy: '',
     priority: 'medium',
     status: 'todo',
-    outcome: '',
     description: '',
     notes: '',
     relatedTaskId: '',
@@ -91,7 +90,6 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
   });
 
   // Non-admin editable fields
-  const [userOutcome, setUserOutcome] = useState('');
   const [userOutcomeNotes, setUserOutcomeNotes] = useState('');
   const [userStatus, setUserStatus] = useState('in_progress');
 
@@ -108,7 +106,6 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
         followBy: task.follow_by || '',
         priority: task.priority || 'medium',
         status: task.status || 'todo',
-        outcome: task.outcome || '',
         description: task.description || '',
         notes: task.notes || '',
         relatedTaskId: task.related_task_id || '',
@@ -124,7 +121,6 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
       setOutcomeTranscription(task.outcome_audio_transcription || '');
 
       // Non-admin defaults
-      setUserOutcome(task.outcome || '');
       setUserOutcomeNotes(task.outcome_notes || '');
       setUserStatus(task.status === 'completed' ? 'completed' : task.status === 'in_progress' ? 'in_progress' : 'in_progress');
 
@@ -256,7 +252,6 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
           follow_by: formData.followBy === 'unassigned' ? null : formData.followBy || null,
           description: formData.description,
           notes: formData.notes,
-          outcome: formData.outcome,
           outcome_notes: formData.outcomeNotes,
           related_task_id: formData.relatedTaskId === 'none' ? null : formData.relatedTaskId || null,
           due_date: dueDate ? format(dueDate, 'yyyy-MM-dd') : null,
@@ -292,7 +287,6 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
         }
       } else {
         updateData = {
-          outcome: userOutcome,
           outcome_notes: userOutcomeNotes,
           status: userStatus,
         };
@@ -644,29 +638,16 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
                 )}
               </div>
 
-              {/* 11. Outcome (admin) */}
+              {/* 11. Outcome Voice Recorder (admin) */}
               {isAdmin && (
                 <div className="grid gap-2">
-                  <div className="flex items-center gap-2">
-                    <Label>Outcome</Label>
-                    <Paperclip
-                      className="h-4 w-4 text-muted-foreground cursor-pointer hover:text-primary"
-                      onClick={() => document.getElementById('edit-outcome-file-upload')?.click()}
-                    />
-                  </div>
-                  <Textarea
-                    value={formData.outcome}
-                    onChange={(e) => handleInputChange('outcome', e.target.value)}
-                    placeholder="Expected or achieved outcome"
-                    rows={3}
-                  />
                   <TaskVoiceRecorderBox
                     label="Record Outcome"
                     onTranscribed={(text) => {
                       setOutcomeTranscription(prev => prev ? prev + '\n' + text : text);
                       setFormData(prev => ({
                         ...prev,
-                        outcome: prev.outcome ? prev.outcome + '\n' + text : text,
+                        outcomeNotes: prev.outcomeNotes ? prev.outcomeNotes + '\n' + text : text,
                       }));
                     }}
                     onAudioReady={(blob) => setOutcomeAudioBlob(blob)}
@@ -679,14 +660,6 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
                       <audio controls src={outcomeAudioUrl} className="h-8 w-full" />
                     </div>
                   )}
-                </div>
-              )}
-
-              {/* Read-only outcome for non-admin */}
-              {!isAdmin && (
-                <div className="grid gap-2">
-                  <Label>Outcome</Label>
-                  <div className={readOnlyStyle}>{formData.outcome || '—'}</div>
                 </div>
               )}
 
@@ -707,33 +680,6 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
                         <SelectItem value="completed">Done</SelectItem>
                       </SelectContent>
                     </Select>
-                  </div>
-
-                  {/* Outcome */}
-                  <div className="grid gap-2">
-                    <Label>Outcome</Label>
-                    <Textarea
-                      value={userOutcome}
-                      onChange={(e) => setUserOutcome(e.target.value)}
-                      placeholder="Describe what you did..."
-                      rows={3}
-                    />
-                    <TaskVoiceRecorderBox
-                      label="Record Outcome"
-                      onTranscribed={(text) => {
-                        setOutcomeTranscription(prev => prev ? prev + '\n' + text : text);
-                        setUserOutcome(prev => prev ? prev + '\n' + text : text);
-                      }}
-                      onAudioReady={(blob) => setOutcomeAudioBlob(blob)}
-                      transcription={outcomeTranscription}
-                      disabled={loading}
-                    />
-                    {outcomeAudioUrl && (
-                      <div className="flex items-center gap-2">
-                        <Play className="h-4 w-4 text-muted-foreground" />
-                        <audio controls src={outcomeAudioUrl} className="h-8 w-full" />
-                      </div>
-                    )}
                   </div>
 
                   {/* Outcome Notes */}
