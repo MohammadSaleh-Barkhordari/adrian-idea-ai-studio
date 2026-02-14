@@ -1,74 +1,48 @@
 
 
-# Batch 1: Database Migration + Code Reference Fixes
+# Drop `created_by` from Tasks + Add Cancellation Tracking
 
 ## Step 1: Database Migration
 
-Single SQL migration to restructure the tasks table:
-
 ```sql
--- Drop duplicate columns
-ALTER TABLE tasks DROP COLUMN IF EXISTS title;
-ALTER TABLE tasks DROP COLUMN IF EXISTS completion_date;
+-- Remove created_by from tasks (user_id and assigned_by cover ownership)
+ALTER TABLE tasks DROP COLUMN IF EXISTS created_by;
 
--- Rename columns
-ALTER TABLE tasks RENAME COLUMN completion_notes TO outcome_notes;
-ALTER TABLE tasks RENAME COLUMN outcome_audio_url TO outcome_audio_path;
-
--- Add new columns
-ALTER TABLE tasks ADD COLUMN IF NOT EXISTS completed_by uuid REFERENCES profiles(id);
-ALTER TABLE tasks ADD COLUMN IF NOT EXISTS outcome_has_files boolean DEFAULT false;
-ALTER TABLE tasks ADD COLUMN IF NOT EXISTS outcome_audio_transcription text;
-ALTER TABLE tasks ADD COLUMN IF NOT EXISTS description_audio_path text;
-ALTER TABLE tasks ADD COLUMN IF NOT EXISTS description_audio_transcription text;
+-- Add cancellation tracking columns
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS canceled_by uuid REFERENCES profiles(id);
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS canceled_at timestamp with time zone;
 ```
 
-**Note:** `task_name` already exists and has data. After dropping `title`, all code must use `task_name`.
+## Step 2: Fix Code References to `created_by` on Tasks (3 files)
 
----
+| File | Change |
+|------|--------|
+| **`src/pages/DashboardPage.tsx`** | Line 123: Remove `created_by.eq.${user.id}` from the `.or()` filter -- keep `assigned_to` and `assigned_by`. Line 194: Remove `task.created_by === user?.id` from the `assignedByMe` filter -- `assigned_by` already covers this. |
+| **`src/components/GanttChart.tsx`** | Line 13: Remove `created_by?: string` from the Task interface. |
+| **`src/pages/ProjectDetailsPage.tsx`** | Line 90: Remove `created_by?: string` from the Task interface. |
 
-## Step 2: Fix All Code References (10 files)
+Note: Other files referencing `created_by` (CustomerForm, EmployeeForm, NewProjectDialog, etc.) are for **other tables** and remain untouched.
 
-### Frontend Files
+## Step 3: Add Cancellation Auto-Set Logic
 
-| File | Changes |
-|------|---------|
-| **`src/components/NewTaskDialog.tsx`** | Line 317: remove `title: formData.taskName.trim()` from insert. Line 157: change `.select('id, title')` to `.select('id, task_name')`. Line 162: update mapping from `t.title` to `t.task_name`. |
-| **`src/components/TaskEditDialog.tsx`** | Line 162: change `.select('id, title, task_name')` to `.select('id, task_name')`. Line 246: remove `title: formData.taskName`. Lines 112/116/118/123/256/260/265-266/281: rename `completion_notes` to `outcome_notes`, `completion_date` to use `completed_at` (auto-set), `outcome_audio_url` to `outcome_audio_path`. |
-| **`src/components/GanttChart.tsx`** | Line 10: change interface `title` to `task_name`. Line 66: `task.title` to `task.task_name`. Line 457: `task.title` to `task.task_name`. |
-| **`src/pages/ProjectDetailsPage.tsx`** | Line 581: `task.title` to `task.task_name`. Line 1020: `taskToDelete?.title` to `taskToDelete?.task_name`. |
-| **`src/pages/DashboardPage.tsx`** | Lines 204/614/677: all `task.title` references to `task.task_name`. Remove `|| task.task_name` fallbacks since `task_name` is now the only column. |
+Same pattern as the existing `completed_at`/`completed_by` logic:
 
-### Edge Functions (4 files)
+**In `TaskEditDialog.tsx` (handleSubmit):**
+- When status changes to `cancelled`: set `canceled_at = new Date().toISOString()` and `canceled_by = currentUser.id`
+- When status changes FROM `cancelled` to something else: set `canceled_at = null` and `canceled_by = null`
+- Apply in both admin and non-admin update paths
 
-| File | Changes |
-|------|---------|
-| **`supabase/functions/task-due-reminders/index.ts`** | Line 35: `title` to `task_name` in select. Lines 110/114: `.title` to `.task_name`. |
-| **`supabase/functions/send-overdue-reminders/index.ts`** | Line 32: `title` to `task_name` in select. Line 117: `.title` to `.task_name`. |
-| **`supabase/functions/send-daily-agenda/index.ts`** | Line 80: `title` to `task_name` in select. Lines 108/120: `.title` to `.task_name`. |
-| **`supabase/functions/send-comment-notification/index.ts`** | Line 37: `title` to `task_name` in select. Line 135: `task.title` to `task.task_name`. |
+**In `NewTaskDialog.tsx`:**
+- If task is created with status `cancelled` (edge case): set `canceled_at` and `canceled_by`
 
----
+## Summary of Files to Change
 
-## Step 3: Add `completed_by` Auto-Set Logic
-
-In **`TaskEditDialog.tsx`** (handleSubmit):
-- When status changes to `completed`: add `completed_at: new Date().toISOString()` and `completed_by: currentUser.id` to `updateData`
-- When status changes FROM `completed` to something else: set `completed_at: null` and `completed_by: null`
-- Remove manual `completion_date` picker references (the date is now auto-set via `completed_at`)
-- Apply same logic in the non-admin update path
-
-In **`NewTaskDialog.tsx`**:
-- If task is created with status `completed` (unlikely but possible): set `completed_at` and `completed_by` in the insert
-
----
-
-## What This Does NOT Touch (saved for Batch 2)
-
-- No UI layout changes
-- No new textareas or voice recorder boxes
-- No description field additions to the form
-- No visual changes at all
-
-After this batch, we verify the app works (task creation, editing, gantt chart, dashboard, edge function notifications) before proceeding with Batch 2 UI changes.
+| File | Type |
+|------|------|
+| Database migration | Schema: drop `created_by`, add `canceled_by` + `canceled_at` |
+| `src/pages/DashboardPage.tsx` | Remove `created_by` from query filter and categorization |
+| `src/components/GanttChart.tsx` | Remove `created_by` from interface |
+| `src/pages/ProjectDetailsPage.tsx` | Remove `created_by` from interface |
+| `src/components/TaskEditDialog.tsx` | Add cancellation auto-set logic |
+| `src/components/NewTaskDialog.tsx` | Add cancellation auto-set logic (edge case) |
 
