@@ -1,90 +1,48 @@
 
 
-# Fix: Ensure All Letter Fields Are Saved Correctly
+# Fix: Letters Table UPDATE RLS + Error Handling
 
 ## Problem
 
-The letter creation flow has a gap: when a letter is generated via AI, the fields `mime_type`, `letter_number`, `has_attachment`, `needs_signature`, `needs_stamp`, and `file_path` remain null until the user completes the final LetterBuilder step. If the user leaves before clicking "Generate Final Letter", those fields are never saved.
+The `letters` table has no UPDATE RLS policy for non-admin users. When a regular user clicks "Generate Final Letter":
 
-Additionally, looking at the database, all existing letters show these fields as null -- confirming the issue.
+1. Line 244: `.update({ status: 'preview_generated' ... })` -- silently fails (0 rows matched)
+2. Line 311: Storage upload to `Letters` bucket -- this actually works (storage policies exist)
+3. Line 316: `.update({ file_path, mime_type, status: 'final_generated' ... })` -- silently fails (0 rows matched)
 
-## Root Cause
+The storage upload succeeds but the database never gets updated, so `file_path`, `mime_type`, `letter_number`, etc. remain null.
 
-The flow has 3 steps, and critical fields are only saved at step 3:
+## Storage Bucket Status
 
-1. **WritingLetterPage insert** -- saves recipient info, user_request, user_id, but NOT letter_number, has_attachment, needs_signature, needs_stamp, mime_type, file_path
-2. **generate-letter edge function** -- saves only generated_subject, generated_body, status
-3. **LetterBuilder final generation** -- saves ALL fields (file_path, mime_type, letter_number, etc.) but only when user clicks the button
+The `Letters` bucket already has all 4 policies (INSERT, SELECT, UPDATE, DELETE) for authenticated users. No changes needed here.
 
-## Solution
+## Fix 1: Database Migration -- Add UPDATE RLS Policy
 
-The LetterBuilder already saves all fields correctly when the user clicks "Generate Final Letter" (lines 316-330). The real fix needed is:
-
-### 1. NewLetterDialog (manual upload) -- Already correct
-The insert at line 238-252 already saves `file_path` and `mime_type`. No changes needed.
-
-### 2. LetterBuilder -- Already correct  
-The final update at lines 316-330 already saves all fields. No changes needed here either.
-
-### 3. WritingLetterPage initial insert (line 435-451) -- Needs fix
-Add default values for `has_attachment`, `needs_signature`, and `needs_stamp` during the initial letter insert so they are never null:
-
-```typescript
-const { data: letterData, error: insertError } = await supabase
-  .from('letters')
-  .insert({
-    recipient_name: recipientName,
-    recipient_position: recipientPosition || null,
-    recipient_company: recipientCompany || null,
-    date: date,
-    project_id: selectedProject || null,
-    document_id: selectedDocument || null,
-    user_request: userRequest,
-    writer_name: user?.user_metadata?.full_name || user?.email || 'Unknown',
-    user_id: user.id,
-    customer_id: selectedCustomer || null,
-    customer_contact_id: selectedContact || null,
-    has_attachment: false,
-    needs_signature: false,
-    needs_stamp: false,
-  })
-  .select()
-  .single();
+```sql
+CREATE POLICY "Creators can update own letters"
+  ON public.letters
+  FOR UPDATE
+  USING (user_id = auth.uid())
+  WITH CHECK (user_id = auth.uid());
 ```
 
-### 4. Voice-extracted insert (line 250-264) -- Needs same fix
-The `handleFieldsExtracted` function also inserts letters without these defaults:
+## Fix 2: Add Error Handling in LetterBuilder.tsx
 
-```typescript
-const { data: letterData, error } = await supabase
-  .from('letters')
-  .insert({
-    user_id: user.id,
-    project_id: selectedProject || null,
-    document_id: selectedDocument || null,
-    recipient_name: fields.recipientName,
-    recipient_position: fields.recipientPosition,
-    recipient_company: fields.recipientCompany,
-    user_request: fields.userRequest,
-    status: 'fields_extracted',
-    customer_id: selectedCustomer || null,
-    customer_contact_id: selectedContact || null,
-    has_attachment: false,
-    needs_signature: false,
-    needs_stamp: false,
-  })
-  .select()
-  .single();
-```
+Both `.update()` calls (lines 244 and 316) silently discard errors. Changes:
 
-### 5. LetterBuilder preview_generated step (line 243-253) -- Already correct
-This intermediate update already saves `has_attachment`, `needs_signature`, `needs_stamp`, and `letter_number`.
+**Line 244-253 (preview_generated update):**
+- Capture `{ error }` and log it with `console.error`
 
-## Summary
+**Line 316-330 (final_generated update):**
+- Capture `{ error }` and log it
+- Show a toast error if the update fails so the user knows something went wrong
+- Also handle the upload error case (line 314) -- currently if upload fails, the code just skips silently
 
-The fields `mime_type`, `file_path`, and `letter_number` are intentionally null at creation time (they get values only when the final PNG is generated in LetterBuilder). The boolean fields (`has_attachment`, `needs_signature`, `needs_stamp`) have database defaults of `false`, but explicitly setting them in the insert ensures consistency. The two inserts in `WritingLetterPage.tsx` will be updated to include explicit boolean defaults.
+**Line 311-313 (storage upload):**
+- Add `console.error` for uploadError and show a toast
 
 ## Files to Change
 
-- `src/pages/WritingLetterPage.tsx` -- Add `has_attachment: false`, `needs_signature: false`, `needs_stamp: false` to both letter insert operations (lines ~437 and ~252)
+- **Database migration** -- Add UPDATE RLS policy for `letters` table
+- **`src/components/LetterBuilder.tsx`** -- Add error handling and logging to both `.update()` calls and the storage upload
 
