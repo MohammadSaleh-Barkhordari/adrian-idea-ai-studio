@@ -1,104 +1,80 @@
 
 
-# App Subscriptions Tracker
+# Add Related Letters, Documents, and Files to Task Edit Dialog
 
-## Overview
-A new page at `/subscriptions` where all employees can see company app/service subscriptions -- costs, billing cycles, access instructions, and usage details. Admins can add/edit; employees have read-only access.
+## Problem
+The `NewTaskDialog` has fields for Related Letters, Related Documents, and Related Files (allowing multi-select with badge chips and remove buttons), but the `TaskEditDialog` is completely missing these fields. When editing a task, users cannot see or modify the linked letters, documents, or files.
 
-## Database Migration
+## Changes
 
-Create the `subscriptions` table with all specified columns, RLS policies, indexes, and an `updated_at` trigger. Uses validation triggers instead of CHECK constraints (per project guidelines). References `employees(id)` for account_owner and `profiles(id)` for created_by.
+### File: `src/components/TaskEditDialog.tsx`
 
-Key RLS:
-- Admins: full CRUD
-- Active employees: SELECT only
+**1. Add new state variables (after existing state declarations around line 68):**
+- `relatedLetters` -- available letters from the project (fetched from `letters` table)
+- `selectedLetters` -- currently linked letter IDs (fetched from `task_letters` join table)
+- `relatedDocuments` -- available documents from the project
+- `selectedDocuments` -- currently linked document IDs (fetched from `task_documents`)
+- `relatedFileItems` -- available files from the project
+- `selectedFileItems` -- currently linked file IDs (fetched from `task_files`, separate from outcome files)
+- Add interfaces for `Letter`, `Document`, `FileItemOption` matching the NewTaskDialog pattern
 
-## New Files
+**2. Add fetch functions:**
+- `fetchRelatedLetters`: Query `letters` table filtered by `task.project_id`, get `id, generated_subject`
+- `fetchRelatedDocuments`: Query `documents` table filtered by `task.project_id`, get `id, title, file_name`
+- `fetchRelatedFileItems`: Query `files` table filtered by `task.project_id`, get `id, file_name, description`
+- `fetchExistingRelationships`: Query all three join tables (`task_letters`, `task_documents`, `task_files`) to populate the selected arrays with currently linked item IDs
 
-### 1. `src/pages/SubscriptionsPage.tsx`
-Main page following the same pattern as `CustomerManagementPage.tsx`:
+**3. Call fetches in `initializeForm` (the existing useEffect):**
+- Call all four new fetch functions alongside the existing data loading
 
-- **Auth check** and role detection (admin vs employee)
-- **Stats cards** (4 across): Total Monthly Cost, Active Subscriptions, Upcoming Payments (next 7 days), Seats Usage
-- **Filter bar**: Search by app name, category dropdown, status dropdown, billing cycle dropdown
-- **Subscription cards** (not a table): Visual card grid showing logo/icon, app name, purpose, plan, cost, usage, teams, login info, status badge
-- Cards have a colored left border based on category
-- "Add Subscription" button visible only to admins
-- "View Details" opens a detail dialog; "Edit" (admin only) opens the form dialog
+**4. Add UI sections between Successor Task and Assigned By (after line 541, before line 543):**
+- Copy the exact same UI pattern from `NewTaskDialog` (lines 615-724):
+  - Related Letters: Select dropdown to add + badge chips with X to remove
+  - Related Documents: Select dropdown to add + badge chips with X to remove
+  - Related Files: Select dropdown to add + badge chips with X to remove
+- Admin users: full add/remove capability
+- Non-admin users: read-only display showing linked item names as badges (no X button)
 
-Responsive: `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3` for cards, `grid-cols-2 sm:grid-cols-4` for stats, filters stack on mobile.
+**5. Update `handleSubmit` to sync join tables (inside the admin save block):**
+- After the main task update succeeds, sync each join table:
+  - Fetch current `task_letters` for the task
+  - Compare with `selectedLetters` to determine additions and removals
+  - Delete removed relationships, insert new ones
+  - Repeat for `task_documents` and `task_files` (being careful not to touch outcome files already managed by the existing file upload section)
 
-### 2. `src/components/SubscriptionForm.tsx`
-Add/Edit dialog with 5 sections matching the spec:
-- App Information, Billing, Access and Usage, Dates, Notes
-- Uses `ScrollArea` inside `DialogContent` with `w-[95vw] sm:max-w-2xl`
-- Fields use `grid-cols-1 sm:grid-cols-2` for responsive stacking
-- Persian fields marked RTL with `dir="rtl"`
-- Used By Teams as multi-select checkboxes
-- Employee dropdown for Account Owner (fetched from `employees` table)
-
-### 3. `src/components/SubscriptionCard.tsx`
-Individual card component showing:
-- Logo/placeholder icon, app name, status badge
-- Purpose, plan, cost/cycle, renewal info
-- Usage limit, seats progress bar
-- Website link, login info, teams badges
-- Action buttons: View Details, Edit (admin), Visit Site
-
-### 4. `src/components/SubscriptionDetailDialog.tsx`
-Read-only detail view dialog showing all subscription information:
-- Full app info with clickable website
-- Billing summary with "Payment in X days" countdown
-- Seats usage progress bar
-- Access instructions prominently displayed
-- Notes section
-
-## Route and Navigation Changes
-
-### `src/App.tsx`
-- Import and add route: `<Route path="/subscriptions" element={<SubscriptionsPage />} />`
-
-### `src/pages/DashboardPage.tsx`
-- Add a "Subscriptions" card to the `dashboardItems` array with `CreditCard` icon, path `/subscriptions`, visible to all authenticated users (no `requiresAdmin`)
+**6. Reset state in `handleClose`:**
+- Clear `selectedLetters`, `selectedDocuments`, `selectedFileItems` arrays
 
 ## Technical Details
 
-### Category color mapping:
+### Relationship sync pattern:
 ```text
-ai_tools: purple
-design: pink
-development: blue
-communication: green
-project_management: orange
-marketing: red
-analytics: teal
-cloud_hosting: indigo
-video_production: amber
-storage: slate
-3d_modeling: cyan
-other: gray
+For each join table (task_letters, task_documents, task_files):
+  1. Fetch current IDs from DB for this task
+  2. Compare with selectedXxx state array
+  3. toRemove = current IDs not in selected
+  4. toAdd = selected IDs not in current
+  5. DELETE rows in toRemove
+  6. INSERT rows in toAdd
 ```
 
-### Monthly cost calculation:
-- monthly: cost_per_cycle
-- yearly: cost_per_cycle / 12
-- weekly: cost_per_cycle * 4.33
-- lifetime/free/pay_as_you_go: 0
+### Distinguishing outcome files vs related files:
+The existing `task_files` join table is used for BOTH outcome file uploads AND related file selections. The `existingFiles` state already handles outcome files with remove/download. The new `selectedFileItems` will handle the "Related Files" picker. To avoid conflicts:
+- `fetchExistingRelationships` will populate `selectedFileItems` from `task_files`
+- The sync logic will handle all `task_files` entries together
+- The outcome file section continues to work as before (upload new files, remove existing)
 
-### Data fetching:
-- Fetch subscriptions with employee join for account_owner name
-- Stats computed client-side from fetched data
-- Employees fetched separately for account owner dropdown in form
+### No database changes needed -- all join tables already exist.
 
-### File summary:
+## Summary
 
-| File | Action |
-|------|--------|
-| Database migration (SQL) | Create `subscriptions` table, RLS, indexes, trigger |
-| `src/pages/SubscriptionsPage.tsx` | New page with stats, filters, card grid |
-| `src/components/SubscriptionForm.tsx` | New add/edit dialog component |
-| `src/components/SubscriptionCard.tsx` | New card display component |
-| `src/components/SubscriptionDetailDialog.tsx` | New detail view dialog |
-| `src/App.tsx` | Add `/subscriptions` route |
-| `src/pages/DashboardPage.tsx` | Add Subscriptions nav card |
+| Section | Change |
+|---------|--------|
+| State & interfaces | Add 6 new state variables + 3 interfaces |
+| Fetch functions | 4 new functions for available items + existing relationships |
+| useEffect | Call new fetches during initialization |
+| UI (admin) | 3 new multi-select sections with badge chips between Successor Task and Assigned By |
+| UI (non-admin) | Read-only badge display of linked items |
+| Submit handler | Sync join tables by diffing current vs selected |
+| Cleanup | Reset new state arrays on close |
 
