@@ -1,37 +1,34 @@
 
 
-# Save user_id When Uploading Files
+# Add "Follow Up By Me" Section to Dashboard My Tasks
 
-## Problem
-When uploading a file in the project details page (via `NewFileDialog`), the `user_id` field in the `files` table is not being set. Only `uploaded_by` is populated.
+## Current State
+The My Tasks section shows two groups:
+1. Tasks Assigned To Me
+2. Tasks to Confirm
 
-## Fix
+## Desired Order
+1. Tasks Assigned To Me
+2. Tasks to Follow Up (where `follow_by` matches current user)
+3. Tasks to Confirm
 
-### File: `src/components/NewFileDialog.tsx`
+## Changes Required
 
-Add `user_id: user.id` to the insert object (alongside `uploaded_by`):
+### File: `src/pages/DashboardPage.tsx`
 
-```tsx
-const { error: insertError } = await supabase
-  .from('files')
-  .insert({
-    uploaded_by: user.id,
-    user_id: user.id,        // <-- add this line
-    project_id: projectId,
-    file_name: selectedFile.name,
-    file_path: uploadData.path,
-    file_url: uploadData.path,
-    file_size: selectedFile.size,
-    file_type: selectedFile.type,
-    description: description.trim() || null,
-  });
+**1. Update the fetch query (line 123)** to also include `follow_by` in the OR filter:
+```
+.or(`assigned_to.eq.${user.id},assigned_by.eq.${user.id},follow_by.eq.${user.id},confirm_by.eq.${user.id}`)
 ```
 
-This is a one-line addition. Both `uploaded_by` and `user_id` will now store the authenticated user's ID, consistent with how `NewDocumentDialog` handles document uploads.
+**2. Update `tasksByRole` categorization (lines 193-198)** to add a `followUpByMe` group:
+- `assignedToMe`: tasks where `assigned_to === user.id`
+- `followUpByMe`: tasks where `follow_by === user.id` and not already in assignedToMe
+- `tasksToConfirm`: tasks where `confirm_by === user.id` and not in the other two groups
 
-## Files Changed
+**3. Update `filteredAndSortedTasksByRole` (lines 246-249)** to include the new `followUpByMe` group in filtering/sorting.
 
-| File | Change |
-|------|--------|
-| `src/components/NewFileDialog.tsx` | Add `user_id: user.id` to the files insert |
+**4. Update the task count display (line 553)** to include `followUpByMe` count.
+
+**5. Add a new "Tasks to Follow Up" table section** between "Tasks Assigned To Me" and "Tasks to Confirm" (after line 649), with columns: Task Name, Project, Assigned To, Priority, Status, Due Date, Actions.
 
