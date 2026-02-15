@@ -69,14 +69,16 @@ export function TaskDetailOutcomeDialog({ open, onOpenChange, task, onTaskUpdate
       setOutcomeAudioUrl(task.outcome_audio_path ? null : null);
       setDescriptionAudioUrl(null);
 
-      // Build audio URLs from storage paths
+      // Build signed URLs for audio playback (private bucket)
       if (task.outcome_audio_path) {
-        const { data } = supabase.storage.from('Files').getPublicUrl(task.outcome_audio_path);
-        setOutcomeAudioUrl(data?.publicUrl || null);
+        supabase.storage.from('Files').createSignedUrl(task.outcome_audio_path, 3600).then(({ data }) => {
+          setOutcomeAudioUrl(data?.signedUrl || null);
+        });
       }
       if (task.description_audio_path) {
-        const { data } = supabase.storage.from('Files').getPublicUrl(task.description_audio_path);
-        setDescriptionAudioUrl(data?.publicUrl || null);
+        supabase.storage.from('Files').createSignedUrl(task.description_audio_path, 3600).then(({ data }) => {
+          setDescriptionAudioUrl(data?.signedUrl || null);
+        });
       }
 
       fetchAuthUsers();
