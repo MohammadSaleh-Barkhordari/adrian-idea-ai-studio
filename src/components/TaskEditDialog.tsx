@@ -101,7 +101,7 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
   const isAdmin = userRole === 'admin';
 
   useEffect(() => {
-    if (open && task) {
+    if (open && task?.id) {
       setFormData({
         taskName: task.task_name || '',
         taskType: task.task_type || 'general',
@@ -135,7 +135,7 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
       
       if (task.project_id) fetchRelatedTasks(task.project_id);
     }
-  }, [open, task]);
+  }, [open, task?.id]);
 
   const fetchProjectName = async () => {
     if (!task?.project_id) { setProjectName(''); return; }
@@ -393,12 +393,10 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
     onOpenChange(false);
   };
 
-  if (!task || !task.id) return null;
-
   const readOnlyStyle = "bg-[#f5f5f5] rounded-md px-3 py-2 text-sm text-muted-foreground cursor-not-allowed";
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
+    <Dialog open={open && !!task?.id} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[500px] max-h-[90vh]">
         <DialogHeader>
           <DialogTitle>{isAdmin ? 'Edit Task' : 'Update Task Outcome'}</DialogTitle>
