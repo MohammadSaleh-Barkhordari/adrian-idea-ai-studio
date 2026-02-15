@@ -997,20 +997,20 @@ const ProjectDetailsPage = () => {
         onProjectUpdated={handleProjectUpdated}
       />
       
-      {selectedTask && (
-        <TaskEditDialog
-          open={taskEditDialogOpen}
-          onOpenChange={setTaskEditDialogOpen}
-          task={selectedTask}
-          userRole={userRole || 'general_user'}
-          onTaskUpdated={() => {
-            if (projectId && user) {
-              loadProjectData(projectId, user.id);
-            }
-            setSelectedTask(null);
-          }}
-        />
-      )}
+      <TaskEditDialog
+        open={taskEditDialogOpen}
+        onOpenChange={(open) => {
+          setTaskEditDialogOpen(open);
+          if (!open) setSelectedTask(null);
+        }}
+        task={selectedTask || {}}
+        userRole={userRole || 'general_user'}
+        onTaskUpdated={() => {
+          if (projectId && user) {
+            loadProjectData(projectId, user.id);
+          }
+        }}
+      />
       
       <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
         <AlertDialogContent>

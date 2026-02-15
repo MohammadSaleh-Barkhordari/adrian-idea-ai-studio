@@ -393,7 +393,7 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
     onOpenChange(false);
   };
 
-  if (!task) return null;
+  if (!task || !task.id) return null;
 
   const readOnlyStyle = "bg-[#f5f5f5] rounded-md px-3 py-2 text-sm text-muted-foreground cursor-not-allowed";
 
