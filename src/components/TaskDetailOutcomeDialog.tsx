@@ -33,6 +33,28 @@ interface FileItem {
   created_at: string;
 }
 
+interface TaskDocument {
+  id: string;
+  file_name: string | null;
+  file_url: string | null;
+  file_size: number | null;
+  mime_type: string | null;
+}
+
+interface TaskLetter {
+  id: string;
+  generated_subject: string | null;
+  file_path: string | null;
+  letter_number: string | null;
+}
+
+interface TaskFileItem {
+  id: string;
+  file_name: string;
+  file_url: string | null;
+  file_size: number | null;
+}
+
 interface AuthUser {
   id: string;
   email: string;
@@ -48,6 +70,9 @@ export function TaskDetailOutcomeDialog({ open, onOpenChange, task, onTaskUpdate
   const [uploading, setUploading] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [existingFiles, setExistingFiles] = useState<FileItem[]>([]);
+  const [taskDocuments, setTaskDocuments] = useState<TaskDocument[]>([]);
+  const [taskLetters, setTaskLetters] = useState<TaskLetter[]>([]);
+  const [taskLinkedFiles, setTaskLinkedFiles] = useState<TaskFileItem[]>([]);
   const [authUsers, setAuthUsers] = useState<AuthUser[]>([]);
   const [projectName, setProjectName] = useState('');
   const [relatedTasks, setRelatedTasks] = useState<RelatedTask[]>([]);
@@ -84,6 +109,9 @@ export function TaskDetailOutcomeDialog({ open, onOpenChange, task, onTaskUpdate
       fetchAuthUsers();
       fetchExistingFiles();
       fetchProjectName();
+      fetchTaskDocuments();
+      fetchTaskLetters();
+      fetchTaskLinkedFiles();
       if (task.predecessor_task_id || task.successor_task_id) {
         fetchRelatedTaskNames();
       }
@@ -142,6 +170,69 @@ export function TaskDetailOutcomeDialog({ open, onOpenChange, task, onTaskUpdate
       setExistingFiles(files);
     } catch (error) {
       console.error('Error fetching existing files:', error);
+    }
+  };
+
+  const fetchTaskDocuments = async () => {
+    if (!task?.id) return;
+    try {
+      const { data, error } = await supabase
+        .from('task_documents')
+        .select('document_id, documents (id, file_name, file_url, file_size, mime_type)')
+        .eq('task_id', task.id);
+      if (error) throw error;
+      const docs = (data || []).map((td: any) => td.documents).filter(Boolean);
+      setTaskDocuments(docs);
+    } catch (error) {
+      console.error('Error fetching task documents:', error);
+    }
+  };
+
+  const fetchTaskLetters = async () => {
+    if (!task?.id) return;
+    try {
+      const { data, error } = await supabase
+        .from('task_letters')
+        .select('letter_id, letters (id, generated_subject, file_path, letter_number)')
+        .eq('task_id', task.id);
+      if (error) throw error;
+      const letters = (data || []).map((tl: any) => tl.letters).filter(Boolean);
+      setTaskLetters(letters);
+    } catch (error) {
+      console.error('Error fetching task letters:', error);
+    }
+  };
+
+  const fetchTaskLinkedFiles = async () => {
+    if (!task?.id) return;
+    try {
+      const { data, error } = await supabase
+        .from('task_files')
+        .select('file_id, files (id, file_name, file_url, file_size)')
+        .eq('task_id', task.id);
+      if (error) throw error;
+      const files = (data || []).map((tf: any) => tf.files).filter(Boolean);
+      setTaskLinkedFiles(files);
+    } catch (error) {
+      console.error('Error fetching task linked files:', error);
+    }
+  };
+
+  const handleStorageDownload = async (path: string, bucket: string, fileName: string) => {
+    try {
+      const { data, error } = await supabase.storage.from(bucket).download(path);
+      if (error) throw error;
+      const url = URL.createObjectURL(data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading file:', error);
+      toast({ title: 'Download failed', description: 'Could not download the file.', variant: 'destructive' });
     }
   };
 
@@ -392,8 +483,88 @@ export function TaskDetailOutcomeDialog({ open, onOpenChange, task, onTaskUpdate
                 </div>
               )}
 
+              {/* ====== ATTACHED DOCUMENTS ====== */}
+              {taskDocuments.length > 0 && (
+                <div>
+                  <Label className="text-xs text-muted-foreground">Attached Documents</Label>
+                  <Card className="mt-1">
+                    <CardContent className="p-3 space-y-2">
+                      {taskDocuments.map((doc) => (
+                        <div key={doc.id} className="flex items-center justify-between p-2 border rounded">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <FileText className="h-4 w-4 shrink-0" />
+                            <span className="text-sm truncate">{doc.file_name || 'Document'}</span>
+                          </div>
+                          {doc.file_url && (
+                            <Button type="button" variant="ghost" size="sm" onClick={() => handleStorageDownload(doc.file_url!, 'documents', doc.file_name || 'document')}>
+                              <Download className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+
+              {/* ====== ATTACHED LETTERS ====== */}
+              {taskLetters.length > 0 && (
+                <div>
+                  <Label className="text-xs text-muted-foreground">Attached Letters</Label>
+                  <Card className="mt-1">
+                    <CardContent className="p-3 space-y-2">
+                      {taskLetters.map((letter) => (
+                        <div key={letter.id} className="flex items-center justify-between p-2 border rounded">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <FileText className="h-4 w-4 shrink-0" />
+                            <span className="text-sm truncate">{letter.generated_subject || letter.letter_number || 'Letter'}</span>
+                            {letter.letter_number && (
+                              <Badge variant="outline" className="text-xs shrink-0">#{letter.letter_number}</Badge>
+                            )}
+                          </div>
+                          {letter.file_path && (
+                            <Button type="button" variant="ghost" size="sm" onClick={() => handleStorageDownload(letter.file_path!, 'Letters', `letter-${letter.letter_number || letter.id}.png`)}>
+                              <Download className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+
+              {/* ====== ATTACHED FILES ====== */}
+              {taskLinkedFiles.length > 0 && (
+                <div>
+                  <Label className="text-xs text-muted-foreground">Attached Files</Label>
+                  <Card className="mt-1">
+                    <CardContent className="p-3 space-y-2">
+                      {taskLinkedFiles.map((file) => (
+                        <div key={file.id} className="flex items-center justify-between p-2 border rounded">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <FileText className="h-4 w-4 shrink-0" />
+                            <span className="text-sm truncate">{file.file_name}</span>
+                            {file.file_size && (
+                              <Badge variant="outline" className="text-xs shrink-0">
+                                {(file.file_size / 1024 / 1024).toFixed(2)} MB
+                              </Badge>
+                            )}
+                          </div>
+                          {file.file_url && (
+                            <Button type="button" variant="ghost" size="sm" onClick={() => handleStorageDownload(file.file_url!, 'Files', file.file_name)}>
+                              <Download className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+
               {/* ====== EDITABLE OUTCOME SECTION ====== */}
-              <div className="border-l-4 border-blue-400 pl-4 mt-4 space-y-4">
+              <div className="border-l-4 border-primary/40 pl-4 mt-4 space-y-4">
                 <h3 className="font-medium text-base">Your Outcome</h3>
 
                 {/* Status */}
