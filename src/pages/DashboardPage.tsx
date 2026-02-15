@@ -15,6 +15,7 @@ import { Label } from '@/components/ui/label';
 import { BarChart, FileText, Calculator, FolderOpen, Users, User, LogOut, CheckSquare, Clock, AlertCircle, Search, ArrowUpDown, ArrowUp, ArrowDown, Filter, X, MessageSquare, Edit, BookOpen, Mail, Building2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { TaskDetailOutcomeDialog } from '@/components/TaskDetailOutcomeDialog';
+import { RequestDetailDialog } from '@/components/RequestDetailDialog';
 import { useLanguage } from '@/contexts/LanguageContext';
 const DashboardPage = () => {
   const { language } = useLanguage();
@@ -30,6 +31,10 @@ const DashboardPage = () => {
   // Task edit dialog state
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<any>(null);
+
+  // Request detail dialog state
+  const [requestDetailDialogOpen, setRequestDetailDialogOpen] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState<any>(null);
   
   // Search and filter states for tasks
   const [searchTerm, setSearchTerm] = useState('');
@@ -912,6 +917,7 @@ const DashboardPage = () => {
                               <TableHead>Status</TableHead>
                               <TableHead>Due Date</TableHead>
                               <TableHead>Created At</TableHead>
+                              <TableHead>Actions</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -946,6 +952,11 @@ const DashboardPage = () => {
                                   <TableCell className="text-muted-foreground">
                                     {new Date(request.created_at).toLocaleDateString()}
                                   </TableCell>
+                                  <TableCell>
+                                    <Button variant="ghost" size="sm" onClick={() => { setSelectedRequest(request); setRequestDetailDialogOpen(true); }} className="h-8 w-8 p-0">
+                                      <Edit className="h-4 w-4" />
+                                    </Button>
+                                  </TableCell>
                                 </TableRow>
                               );
                             })}
@@ -972,6 +983,7 @@ const DashboardPage = () => {
                               <TableHead>Status</TableHead>
                               <TableHead>Due Date</TableHead>
                               <TableHead>Created At</TableHead>
+                              <TableHead>Actions</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -1006,6 +1018,11 @@ const DashboardPage = () => {
                                   <TableCell className="text-muted-foreground">
                                     {new Date(request.created_at).toLocaleDateString()}
                                   </TableCell>
+                                  <TableCell>
+                                    <Button variant="ghost" size="sm" onClick={() => { setSelectedRequest(request); setRequestDetailDialogOpen(true); }} className="h-8 w-8 p-0">
+                                      <Edit className="h-4 w-4" />
+                                    </Button>
+                                  </TableCell>
                                 </TableRow>
                               );
                             })}
@@ -1032,6 +1049,7 @@ const DashboardPage = () => {
                               <TableHead>Status</TableHead>
                               <TableHead>Due Date</TableHead>
                               <TableHead>Created At</TableHead>
+                              <TableHead>Actions</TableHead>
                             </TableRow>
                           </TableHeader>
                           <TableBody>
@@ -1065,6 +1083,11 @@ const DashboardPage = () => {
                                   </TableCell>
                                   <TableCell className="text-muted-foreground">
                                     {new Date(request.created_at).toLocaleDateString()}
+                                  </TableCell>
+                                  <TableCell>
+                                    <Button variant="ghost" size="sm" onClick={() => { setSelectedRequest(request); setRequestDetailDialogOpen(true); }} className="h-8 w-8 p-0">
+                                      <Edit className="h-4 w-4" />
+                                    </Button>
                                   </TableCell>
                                 </TableRow>
                               );
@@ -1106,6 +1129,15 @@ const DashboardPage = () => {
             fetchMyTasks();
             setSelectedTask(null);
           }}
+        />
+      )}
+
+      {/* Request Detail Dialog */}
+      {selectedRequest && (
+        <RequestDetailDialog
+          open={requestDetailDialogOpen}
+          onOpenChange={setRequestDetailDialogOpen}
+          request={selectedRequest}
         />
       )}
       
