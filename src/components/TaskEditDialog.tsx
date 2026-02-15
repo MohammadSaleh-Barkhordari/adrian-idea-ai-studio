@@ -58,6 +58,23 @@ interface RelatedTask {
   task_name: string | null;
 }
 
+interface LetterOption {
+  id: string;
+  generated_subject: string | null;
+}
+
+interface DocumentOption {
+  id: string;
+  title: string | null;
+  file_name: string | null;
+}
+
+interface FileItemOption {
+  id: string;
+  file_name: string;
+  description: string | null;
+}
+
 
 export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdated }: TaskEditDialogProps) {
   const [loading, setLoading] = useState(false);
@@ -66,6 +83,14 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
   const [existingFiles, setExistingFiles] = useState<FileItem[]>([]);
   const [authUsers, setAuthUsers] = useState<AuthUser[]>([]);
   const [relatedTasks, setRelatedTasks] = useState<RelatedTask[]>([]);
+
+  // Related items state
+  const [relatedLetters, setRelatedLetters] = useState<LetterOption[]>([]);
+  const [selectedLetters, setSelectedLetters] = useState<string[]>([]);
+  const [relatedDocuments, setRelatedDocuments] = useState<DocumentOption[]>([]);
+  const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
+  const [relatedFileItems, setRelatedFileItems] = useState<FileItemOption[]>([]);
+  const [selectedFileItems, setSelectedFileItems] = useState<string[]>([]);
   
   const [projectName, setProjectName] = useState('');
   const [startDate, setStartDate] = useState<Date | undefined>();
@@ -170,6 +195,10 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
 
       fetchExistingFiles();
       fetchProjectName();
+      fetchRelatedLetters();
+      fetchRelatedDocuments();
+      fetchRelatedFileItems();
+      fetchExistingRelationships();
     };
 
     initializeForm();
@@ -188,6 +217,56 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
     } catch {
       setProjectName(task.project_id);
     }
+  };
+
+  const fetchRelatedLetters = async () => {
+    if (!task?.project_id) return;
+    try {
+      const { data, error } = await supabase
+        .from('letters')
+        .select('id, generated_subject')
+        .eq('project_id', task.project_id)
+        .order('created_at', { ascending: false });
+      if (!error) setRelatedLetters(data || []);
+    } catch (e) { console.error('Error fetching letters:', e); }
+  };
+
+  const fetchRelatedDocuments = async () => {
+    if (!task?.project_id) return;
+    try {
+      const { data, error } = await supabase
+        .from('documents')
+        .select('id, title, file_name')
+        .eq('project_id', task.project_id)
+        .order('created_at', { ascending: false });
+      if (!error) setRelatedDocuments(data || []);
+    } catch (e) { console.error('Error fetching documents:', e); }
+  };
+
+  const fetchRelatedFileItems = async () => {
+    if (!task?.project_id) return;
+    try {
+      const { data, error } = await supabase
+        .from('files')
+        .select('id, file_name, description')
+        .eq('project_id', task.project_id)
+        .order('created_at', { ascending: false });
+      if (!error) setRelatedFileItems(data || []);
+    } catch (e) { console.error('Error fetching file items:', e); }
+  };
+
+  const fetchExistingRelationships = async () => {
+    if (!task?.id) return;
+    try {
+      const [lettersRes, docsRes, filesRes] = await Promise.all([
+        supabase.from('task_letters').select('letter_id').eq('task_id', task.id),
+        supabase.from('task_documents').select('document_id').eq('task_id', task.id),
+        supabase.from('task_files').select('file_id').eq('task_id', task.id),
+      ]);
+      setSelectedLetters((lettersRes.data || []).map((r: any) => r.letter_id));
+      setSelectedDocuments((docsRes.data || []).map((r: any) => r.document_id));
+      setSelectedFileItems((filesRes.data || []).map((r: any) => r.file_id));
+    } catch (e) { console.error('Error fetching existing relationships:', e); }
   };
 
 
@@ -374,6 +453,33 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
 
       await uploadFiles(task.id);
 
+      // Sync related letters, documents, files join tables
+      if (isAdmin) {
+        // Sync task_letters
+        const { data: currentLetters } = await supabase.from('task_letters').select('letter_id').eq('task_id', task.id);
+        const currentLetterIds = (currentLetters || []).map((r: any) => r.letter_id);
+        const lettersToRemove = currentLetterIds.filter((id: string) => !selectedLetters.includes(id));
+        const lettersToAdd = selectedLetters.filter(id => !currentLetterIds.includes(id));
+        if (lettersToRemove.length > 0) await supabase.from('task_letters').delete().eq('task_id', task.id).in('letter_id', lettersToRemove);
+        if (lettersToAdd.length > 0) await supabase.from('task_letters').insert(lettersToAdd.map(id => ({ task_id: task.id, letter_id: id })));
+
+        // Sync task_documents
+        const { data: currentDocs } = await supabase.from('task_documents').select('document_id').eq('task_id', task.id);
+        const currentDocIds = (currentDocs || []).map((r: any) => r.document_id);
+        const docsToRemove = currentDocIds.filter((id: string) => !selectedDocuments.includes(id));
+        const docsToAdd = selectedDocuments.filter(id => !currentDocIds.includes(id));
+        if (docsToRemove.length > 0) await supabase.from('task_documents').delete().eq('task_id', task.id).in('document_id', docsToRemove);
+        if (docsToAdd.length > 0) await supabase.from('task_documents').insert(docsToAdd.map(id => ({ task_id: task.id, document_id: id })));
+
+        // Sync task_files (related files only — compare against selectedFileItems)
+        const { data: currentFiles } = await supabase.from('task_files').select('file_id').eq('task_id', task.id);
+        const currentFileIds = (currentFiles || []).map((r: any) => r.file_id);
+        const filesToRemove = currentFileIds.filter((id: string) => !selectedFileItems.includes(id));
+        const filesToAdd = selectedFileItems.filter(id => !currentFileIds.includes(id));
+        if (filesToRemove.length > 0) await supabase.from('task_files').delete().eq('task_id', task.id).in('file_id', filesToRemove);
+        if (filesToAdd.length > 0) await supabase.from('task_files').insert(filesToAdd.map(id => ({ task_id: task.id, file_id: id })));
+      }
+
       if (isAdmin && formData.assignedTo && formData.assignedTo !== 'unassigned' && formData.assignedTo !== previousAssignedTo) {
         const { data: { user } } = await supabase.auth.getUser();
         if (user && formData.assignedTo !== user.id) {
@@ -403,6 +509,9 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
 
   const handleClose = () => {
     setSelectedFiles([]);
+    setSelectedLetters([]);
+    setSelectedDocuments([]);
+    setSelectedFileItems([]);
     onOpenChange(false);
   };
 
@@ -537,6 +646,129 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
                       ? (relatedTasks.find(t => t.id === formData.successorTaskId)?.task_name || '—')
                       : '—'}
                   </div>
+                )}
+              </div>
+
+              {/* Related Letters */}
+              <div className="grid gap-2">
+                <Label>Related Letters</Label>
+                {isAdmin ? (
+                  <Select value="" onValueChange={(value) => {
+                    if (value && !selectedLetters.includes(value)) {
+                      setSelectedLetters(prev => [...prev, value]);
+                    }
+                  }}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select related letters (optional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {relatedLetters.filter(l => !selectedLetters.includes(l.id)).map((letter) => (
+                        <SelectItem key={letter.id} value={letter.id}>
+                          {letter.generated_subject || `Letter ${letter.id.slice(0, 8)}`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : null}
+                {selectedLetters.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {selectedLetters.map((letterId) => {
+                      const letter = relatedLetters.find(l => l.id === letterId);
+                      return (
+                        <div key={letterId} className="flex items-center gap-1 bg-primary/10 text-primary px-2 py-1 rounded-md text-sm">
+                          <span>{letter?.generated_subject || `Letter ${letterId.slice(0, 8)}`}</span>
+                          {isAdmin && (
+                            <X className="h-3 w-3 cursor-pointer hover:text-primary/70" onClick={() => setSelectedLetters(prev => prev.filter(id => id !== letterId))} />
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                {!isAdmin && selectedLetters.length === 0 && (
+                  <div className={readOnlyStyle}>—</div>
+                )}
+              </div>
+
+              {/* Related Documents */}
+              <div className="grid gap-2">
+                <Label>Related Documents</Label>
+                {isAdmin ? (
+                  <Select value="" onValueChange={(value) => {
+                    if (value && !selectedDocuments.includes(value)) {
+                      setSelectedDocuments(prev => [...prev, value]);
+                    }
+                  }}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select related documents (optional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {relatedDocuments.filter(d => !selectedDocuments.includes(d.id)).map((doc) => (
+                        <SelectItem key={doc.id} value={doc.id}>
+                          {doc.title || doc.file_name || `Document ${doc.id.slice(0, 8)}`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : null}
+                {selectedDocuments.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {selectedDocuments.map((docId) => {
+                      const doc = relatedDocuments.find(d => d.id === docId);
+                      return (
+                        <div key={docId} className="flex items-center gap-1 bg-primary/10 text-primary px-2 py-1 rounded-md text-sm">
+                          <span>{doc?.title || doc?.file_name || `Document ${docId.slice(0, 8)}`}</span>
+                          {isAdmin && (
+                            <X className="h-3 w-3 cursor-pointer hover:text-primary/70" onClick={() => setSelectedDocuments(prev => prev.filter(id => id !== docId))} />
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                {!isAdmin && selectedDocuments.length === 0 && (
+                  <div className={readOnlyStyle}>—</div>
+                )}
+              </div>
+
+              {/* Related Files */}
+              <div className="grid gap-2">
+                <Label>Related Files</Label>
+                {isAdmin ? (
+                  <Select value="" onValueChange={(value) => {
+                    if (value && !selectedFileItems.includes(value)) {
+                      setSelectedFileItems(prev => [...prev, value]);
+                    }
+                  }}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select related files (optional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {relatedFileItems.filter(f => !selectedFileItems.includes(f.id)).map((fileItem) => (
+                        <SelectItem key={fileItem.id} value={fileItem.id}>
+                          {fileItem.file_name} {fileItem.description && `(${fileItem.description})`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : null}
+                {selectedFileItems.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {selectedFileItems.map((fileId) => {
+                      const fileItem = relatedFileItems.find(f => f.id === fileId);
+                      return (
+                        <div key={fileId} className="flex items-center gap-1 bg-primary/10 text-primary px-2 py-1 rounded-md text-sm">
+                          <span>{fileItem?.file_name || `File ${fileId.slice(0, 8)}`}</span>
+                          {isAdmin && (
+                            <X className="h-3 w-3 cursor-pointer hover:text-primary/70" onClick={() => setSelectedFileItems(prev => prev.filter(id => id !== fileId))} />
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                {!isAdmin && selectedFileItems.length === 0 && (
+                  <div className={readOnlyStyle}>—</div>
                 )}
               </div>
 
