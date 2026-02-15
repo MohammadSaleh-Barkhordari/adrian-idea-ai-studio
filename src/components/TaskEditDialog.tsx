@@ -101,7 +101,36 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
   const isAdmin = userRole === 'admin';
 
   useEffect(() => {
-    if (open && task?.id) {
+    const initializeForm = async () => {
+      if (!open || !task?.id) return;
+
+      // Phase 1: Fetch async data first so SelectItems exist before values are set
+      try {
+        const { data, error } = await supabase.functions.invoke('get-auth-users');
+        if (!error) {
+          setAuthUsers(data?.users || []);
+        }
+      } catch (error) {
+        console.error('Error fetching auth users:', error);
+      }
+
+      if (task.project_id) {
+        try {
+          const { data, error } = await supabase
+            .from('tasks')
+            .select('id, task_name')
+            .eq('project_id', task.project_id)
+            .neq('id', task.id)
+            .order('created_at', { ascending: false });
+          if (!error) {
+            setRelatedTasks(data || []);
+          }
+        } catch (error) {
+          console.error('Error fetching related tasks:', error);
+        }
+      }
+
+      // Phase 2: Set form data AFTER async data is loaded
       setFormData({
         taskName: task.task_name || '',
         taskType: task.task_type || 'general',
@@ -124,17 +153,14 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
       setOutcomeAudioUrl(task.outcome_audio_path || null);
       setDescriptionAudioBlob(null);
       setOutcomeAudioBlob(null);
-
-      // Non-admin defaults
       setUserOutcomeNotes(task.outcome_notes || '');
-      setUserStatus(task.status === 'completed' ? 'completed' : task.status === 'in_progress' ? 'in_progress' : 'in_progress');
+      setUserStatus(task.status === 'completed' ? 'completed' : 'in_progress');
 
-      fetchAuthUsers();
       fetchExistingFiles();
       fetchProjectName();
-      
-      if (task.project_id) fetchRelatedTasks(task.project_id);
-    }
+    };
+
+    initializeForm();
   }, [open, task?.id]);
 
   const fetchProjectName = async () => {
@@ -149,31 +175,6 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
       setProjectName(data?.project_name || task.project_id);
     } catch {
       setProjectName(task.project_id);
-    }
-  };
-
-  const fetchAuthUsers = async () => {
-    try {
-      const { data, error } = await supabase.functions.invoke('get-auth-users');
-      if (error) throw error;
-      setAuthUsers(data?.users || []);
-    } catch (error) {
-      console.error('Error fetching auth users:', error);
-    }
-  };
-
-  const fetchRelatedTasks = async (projectId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('tasks')
-        .select('id, task_name')
-        .eq('project_id', projectId)
-        .neq('id', task.id)
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-      setRelatedTasks(data || []);
-    } catch (error) {
-      console.error('Error fetching related tasks:', error);
     }
   };
 
