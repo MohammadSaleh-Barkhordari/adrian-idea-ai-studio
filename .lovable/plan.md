@@ -1,77 +1,74 @@
 
 
-# Reorganize Dashboard Sections
+# Fix: Task Edit Dialog Not Showing Content
 
-## Overview
+## Root Cause
 
-Remove the "Tasks Created By Me" section and add confirmation sections for both tasks and requests.
-
-## New Section Order
-
-**My Tasks:**
-1. Tasks Assigned To Me (existing)
-2. Tasks to Confirm (new -- tasks where `confirm_by` matches current user)
-
-**My Requests:**
-1. Requests To Me (existing)
-2. Requests to Confirm (new -- requests where `confirm_by` matches current user)
-
-## Changes in `src/pages/DashboardPage.tsx`
-
-### 1. Update task fetch query
-
-Current query fetches tasks where `assigned_to` or `assigned_by` matches user. Update to also fetch tasks where `confirm_by` matches user ID:
+The `TaskEditDialog` is wrapped in a conditional render: `{selectedTask && (<TaskEditDialog .../>)}`. This causes React to mount/unmount the Radix Dialog portal every time `selectedTask` changes. When `loadProjectData` runs (triggered by multiple re-renders from parallel data fetches), it can cause a race condition where React tries to remove portal DOM nodes that have already been moved, producing the crash:
 
 ```
-.or(`assigned_to.eq.${user.id},assigned_by.eq.${user.id},confirm_by.eq.${user.id}`)
+Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node.
 ```
 
-### 2. Update request fetch query
+This crash silently kills the dialog rendering, resulting in a blank overlay.
 
-Current query fetches requests where `user_id` or `request_to` matches user. Update to also fetch where `confirm_by` matches:
+## Fix
 
+### File: `src/pages/ProjectDetailsPage.tsx`
+
+**Remove the conditional wrapper** around `TaskEditDialog`. Always render the component and let the `open` prop control visibility. Pass `selectedTask` with a fallback so the component always receives a valid prop:
+
+Before:
+```tsx
+{selectedTask && (
+  <TaskEditDialog
+    open={taskEditDialogOpen}
+    onOpenChange={setTaskEditDialogOpen}
+    task={selectedTask}
+    ...
+  />
+)}
 ```
-.or(`user_id.eq.${user.id},request_to.eq.${user.id},confirm_by.eq.${user.id}`)
+
+After:
+```tsx
+<TaskEditDialog
+  open={taskEditDialogOpen}
+  onOpenChange={(open) => {
+    setTaskEditDialogOpen(open);
+    if (!open) setSelectedTask(null);
+  }}
+  task={selectedTask || {}}
+  userRole={userRole || 'general_user'}
+  onTaskUpdated={() => {
+    if (projectId && user) {
+      loadProjectData(projectId, user.id);
+    }
+  }}
+/>
 ```
 
-### 3. Update task categorization (`tasksByRole` memo)
+### File: `src/components/TaskEditDialog.tsx`
 
-- Remove `assignedByMe` category
-- Add `tasksToConfirm`: tasks where `confirm_by === user.id` (excluding duplicates already in assignedToMe)
+Update the guard at the top to check both `task` and `task.id` before proceeding, so it safely handles the empty object fallback:
 
-### 4. Update request categorization (`requestsByRole` memo)
+```tsx
+if (!task || !task.id) return null;
+```
 
-- Add `requestsToConfirm`: requests where `confirm_by === user.id`
+This is a one-line change since the component already has `if (!task) return null;` -- just add `|| !task.id`.
 
-### 5. Update filtered/sorted memos
+## Why This Works
 
-- Remove `assignedByMe` from `filteredAndSortedTasksByRole`
-- Add `tasksToConfirm` to `filteredAndSortedTasksByRole`
-- Add `requestsToConfirm` to `filteredAndSortedRequestsByRole`
-
-### 6. Update task count display
-
-Change the count in the filter card from referencing `assignedByMe` to `tasksToConfirm`.
-
-### 7. Remove "Tasks Created By Me" table (lines 587-647)
-
-Delete the entire card rendering `assignedByMe` tasks.
-
-### 8. Add "Tasks to Confirm" table
-
-New card after "Tasks Assigned To Me" with columns: Task Name, Project, Assigned To, Priority, Status, Due Date, Actions. Same row rendering pattern as existing tables.
-
-### 9. Add "Requests to Confirm" table
-
-New card after "Requests To Me" with columns: Request By, Description, Priority, Status, Due Date, Created At. Same row rendering pattern.
-
-### 10. Update empty state checks
-
-Update the "no tasks found" and "no requests found" conditions to reference the new categories instead of the removed ones.
+- The Dialog component stays mounted at all times, so portals are never torn down unexpectedly
+- The `open` prop cleanly controls visibility without DOM conflicts
+- `selectedTask` is cleared on close, not on unmount
+- The `task.id` guard prevents any data fetching when no task is selected
 
 ## Files Changed
 
 | File | Change |
 |------|--------|
-| `src/pages/DashboardPage.tsx` | Remove "Tasks Created By Me", add "Tasks to Confirm" and "Requests to Confirm" sections, update fetch queries and categorization logic |
+| `src/pages/ProjectDetailsPage.tsx` | Remove conditional wrapper around TaskEditDialog, move selectedTask cleanup to onOpenChange |
+| `src/components/TaskEditDialog.tsx` | Update guard to `if (!task \|\| !task.id) return null` |
 
