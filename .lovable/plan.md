@@ -1,92 +1,104 @@
 
-# Show Task Documents, Letters, and Files in Dashboard Action Dialog
 
-## Problem
-When clicking the action button on a task in the Dashboard's "My Tasks" section, the `TaskDetailOutcomeDialog` opens but only shows outcome files (uploaded via the outcome section). It does NOT show the documents, letters, or files that were linked to the task when it was created via `NewTaskDialog`. These are stored in the `task_documents`, `task_letters`, and `task_files` join tables.
+# App Subscriptions Tracker
 
-For requests in "My Requests", there are no action buttons at all, so the user cannot view request details or any associated files.
+## Overview
+A new page at `/subscriptions` where all employees can see company app/service subscriptions -- costs, billing cycles, access instructions, and usage details. Admins can add/edit; employees have read-only access.
 
-## Changes
+## Database Migration
 
-### File: `src/components/TaskDetailOutcomeDialog.tsx`
+Create the `subscriptions` table with all specified columns, RLS policies, indexes, and an `updated_at` trigger. Uses validation triggers instead of CHECK constraints (per project guidelines). References `employees(id)` for account_owner and `profiles(id)` for created_by.
 
-**1. Add state for task documents and letters:**
-- Add `taskDocuments` state (fetched via `task_documents` join table with `documents` table data)
-- Add `taskLetters` state (fetched via `task_letters` join table with `letters` table data)
+Key RLS:
+- Admins: full CRUD
+- Active employees: SELECT only
 
-**2. Add fetch functions:**
-- `fetchTaskDocuments`: Query `task_documents` joined with `documents` table to get `id, file_name, file_url, file_size, mime_type`
-- `fetchTaskLetters`: Query `task_letters` joined with `letters` table to get `id, generated_subject, file_path, letter_number`
-- Call both in the `useEffect` when dialog opens
+## New Files
 
-**3. Add download handler:**
-- A helper function that downloads from the correct storage bucket based on type:
-  - Documents: bucket `documents`, path from `file_url`
-  - Letters: bucket `Letters`, path from `file_path`
-  - Files: bucket `Files`, path from `file_url`
-- Creates a blob URL and triggers browser download
+### 1. `src/pages/SubscriptionsPage.tsx`
+Main page following the same pattern as `CustomerManagementPage.tsx`:
 
-**4. Add read-only display sections in the dialog (before the Outcome section):**
-- "Attached Documents" section: list each document with name and download button
-- "Attached Letters" section: list each letter with subject/number and download button
-- "Attached Files" section: list each file with name, size, and download button
-- Each section only appears if there are items to show
-- Uses the existing `Card` component pattern for consistency
+- **Auth check** and role detection (admin vs employee)
+- **Stats cards** (4 across): Total Monthly Cost, Active Subscriptions, Upcoming Payments (next 7 days), Seats Usage
+- **Filter bar**: Search by app name, category dropdown, status dropdown, billing cycle dropdown
+- **Subscription cards** (not a table): Visual card grid showing logo/icon, app name, purpose, plan, cost, usage, teams, login info, status badge
+- Cards have a colored left border based on category
+- "Add Subscription" button visible only to admins
+- "View Details" opens a detail dialog; "Edit" (admin only) opens the form dialog
 
-### File: `src/pages/DashboardPage.tsx`
+Responsive: `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3` for cards, `grid-cols-2 sm:grid-cols-4` for stats, filters stack on mobile.
 
-**5. Add request action buttons:**
-- Add an "Actions" column to request tables (Requests To Me, Requests to Confirm, Requests Created By Me)
-- Add state for `selectedRequest` and `requestDetailDialogOpen`
-- Each request row gets an Edit/View button that opens the request detail
+### 2. `src/components/SubscriptionForm.tsx`
+Add/Edit dialog with 5 sections matching the spec:
+- App Information, Billing, Access and Usage, Dates, Notes
+- Uses `ScrollArea` inside `DialogContent` with `w-[95vw] sm:max-w-2xl`
+- Fields use `grid-cols-1 sm:grid-cols-2` for responsive stacking
+- Persian fields marked RTL with `dir="rtl"`
+- Used By Teams as multi-select checkboxes
+- Employee dropdown for Account Owner (fetched from `employees` table)
 
-**6. Create a new `RequestDetailDialog` component:**
+### 3. `src/components/SubscriptionCard.tsx`
+Individual card component showing:
+- Logo/placeholder icon, app name, status badge
+- Purpose, plan, cost/cycle, renewal info
+- Usage limit, seats progress bar
+- Website link, login info, teams badges
+- Action buttons: View Details, Edit (admin), Visit Site
 
-### New File: `src/components/RequestDetailDialog.tsx`
-- A dialog showing request details (description, priority, status, dates, audio playback)
-- Shows description audio with signed URL playback if `description_audio_path` exists
-- Shows response audio with signed URL playback if `response_audio_path` exists
-- Shows response files (from `response_files_path` array) with download buttons
-- Read-only view for all fields
-- Uses same responsive patterns as TaskDetailOutcomeDialog (`w-[95vw] sm:max-w-[550px]`)
+### 4. `src/components/SubscriptionDetailDialog.tsx`
+Read-only detail view dialog showing all subscription information:
+- Full app info with clickable website
+- Billing summary with "Payment in X days" countdown
+- Seats usage progress bar
+- Access instructions prominently displayed
+- Notes section
+
+## Route and Navigation Changes
+
+### `src/App.tsx`
+- Import and add route: `<Route path="/subscriptions" element={<SubscriptionsPage />} />`
+
+### `src/pages/DashboardPage.tsx`
+- Add a "Subscriptions" card to the `dashboardItems` array with `CreditCard` icon, path `/subscriptions`, visible to all authenticated users (no `requiresAdmin`)
 
 ## Technical Details
 
-### Download pattern (matching ProjectDetailsPage):
-```tsx
-const handleDownload = async (path: string, bucket: string, fileName: string) => {
-  const { data, error } = await supabase.storage.from(bucket).download(path);
-  if (error) throw error;
-  const url = URL.createObjectURL(data);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = fileName;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-};
+### Category color mapping:
+```text
+ai_tools: purple
+design: pink
+development: blue
+communication: green
+project_management: orange
+marketing: red
+analytics: teal
+cloud_hosting: indigo
+video_production: amber
+storage: slate
+3d_modeling: cyan
+other: gray
 ```
 
-### Fetch queries:
-```tsx
-// Documents
-const { data } = await supabase
-  .from('task_documents')
-  .select('document_id, documents (id, file_name, file_url, file_size, mime_type)')
-  .eq('task_id', task.id);
+### Monthly cost calculation:
+- monthly: cost_per_cycle
+- yearly: cost_per_cycle / 12
+- weekly: cost_per_cycle * 4.33
+- lifetime/free/pay_as_you_go: 0
 
-// Letters
-const { data } = await supabase
-  .from('task_letters')
-  .select('letter_id, letters (id, generated_subject, file_path, letter_number)')
-  .eq('task_id', task.id);
-```
+### Data fetching:
+- Fetch subscriptions with employee join for account_owner name
+- Stats computed client-side from fetched data
+- Employees fetched separately for account owner dropdown in form
 
-## Summary
+### File summary:
 
-| File | Change |
+| File | Action |
 |------|--------|
-| `src/components/TaskDetailOutcomeDialog.tsx` | Fetch and display task documents, letters, and files with download buttons |
-| `src/components/RequestDetailDialog.tsx` | New dialog for viewing request details and downloading response files |
-| `src/pages/DashboardPage.tsx` | Add action buttons to request tables, wire up RequestDetailDialog |
+| Database migration (SQL) | Create `subscriptions` table, RLS, indexes, trigger |
+| `src/pages/SubscriptionsPage.tsx` | New page with stats, filters, card grid |
+| `src/components/SubscriptionForm.tsx` | New add/edit dialog component |
+| `src/components/SubscriptionCard.tsx` | New card display component |
+| `src/components/SubscriptionDetailDialog.tsx` | New detail view dialog |
+| `src/App.tsx` | Add `/subscriptions` route |
+| `src/pages/DashboardPage.tsx` | Add Subscriptions nav card |
+
