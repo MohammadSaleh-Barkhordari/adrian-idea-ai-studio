@@ -463,7 +463,7 @@ const ProjectDetailsPage = () => {
                   <CardTitle className="text-2xl">{project.project_name}</CardTitle>
                   <p className="text-muted-foreground mt-1">Project ID: {project.project_id}</p>
                 </div>
-                <div className="flex gap-2 items-start">
+                <div className="flex flex-wrap gap-2 items-start">
                   <Badge className={getStatusColor(project.status)}>
                     {formatStatus(project.status)}
                   </Badge>
@@ -577,7 +577,7 @@ const ProjectDetailsPage = () => {
                     <div key={task.id} className="border rounded-lg p-3">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
+                          <div className="flex flex-wrap items-center gap-2 mb-2">
                             <h4 className="font-medium">{task.task_name}</h4>
                             <Badge className={getTaskStatusColor(task.status)}>
                               {formatStatus(task.status)}
@@ -681,7 +681,7 @@ const ProjectDetailsPage = () => {
                 <div className="space-y-3">
                   {letters.map((letter) => (
                     <div key={letter.id} className="border rounded-lg p-3">
-                      <div className="flex justify-between items-start mb-2">
+                      <div className="flex flex-col sm:flex-row justify-between items-start gap-2 mb-2">
                         <div>
                           <h4 className="font-medium flex items-center gap-2">
                             <FileText className="w-4 h-4" />
@@ -691,7 +691,7 @@ const ProjectDetailsPage = () => {
                             <span className="text-xs text-muted-foreground">#{letter.letter_number}</span>
                           )}
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                           <Badge variant="outline" className="text-xs">
                             {formatStatus(letter.status)}
                           </Badge>

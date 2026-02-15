@@ -99,7 +99,7 @@ const TaskVoiceRecorderBox = ({ label, onAudioReady, disabled }: TaskVoiceRecord
   };
 
   return (
-    <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4">
+    <div className="w-full border-2 border-dashed border-muted-foreground/25 rounded-lg p-4">
       <div className="flex flex-col items-center space-y-3">
         <Mic className="h-8 w-8 text-muted-foreground" />
         <p className="text-sm text-muted-foreground font-medium">{label}</p>
@@ -110,7 +110,7 @@ const TaskVoiceRecorderBox = ({ label, onAudioReady, disabled }: TaskVoiceRecord
           disabled={disabled}
           variant={isRecording ? "destructive" : "outline"}
           size="sm"
-          className="flex items-center gap-1.5"
+          className="flex items-center gap-1.5 min-h-[44px] min-w-[44px]"
         >
           {isRecording ? (
             <MicOff className="h-4 w-4" />

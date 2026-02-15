@@ -206,19 +206,19 @@ const CustomerContactForm = ({ customerId, contact, onSuccess, onCancel }: Props
       </div>
 
       {/* Names EN */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div><Label>First Name *</Label><Input value={form.first_name} onChange={e => setForm(f => ({ ...f, first_name: e.target.value }))} required /></div>
         <div><Label>Last Name *</Label><Input value={form.last_name} onChange={e => setForm(f => ({ ...f, last_name: e.target.value }))} required /></div>
       </div>
 
       {/* Names FA */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div><Label>First Name (FA)</Label><Input dir="rtl" value={form.first_name_fa} onChange={e => setForm(f => ({ ...f, first_name_fa: e.target.value }))} /></div>
         <div><Label>Last Name (FA)</Label><Input dir="rtl" value={form.last_name_fa} onChange={e => setForm(f => ({ ...f, last_name_fa: e.target.value }))} /></div>
       </div>
 
       {/* Gender FA + Title FA */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <Label>Gender (FA)</Label>
           <Select value={form.honorific_fa} onValueChange={v => setForm(f => ({ ...f, honorific_fa: v }))}>
@@ -251,18 +251,18 @@ const CustomerContactForm = ({ customerId, contact, onSuccess, onCancel }: Props
       </div>
 
       {/* Job Title FA */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div><Label>Job Title (FA)</Label><Input dir="rtl" placeholder="مدیر عامل" value={form.job_title_fa} onChange={e => setForm(f => ({ ...f, job_title_fa: e.target.value }))} /></div>
       </div>
 
       {/* Job / Dept */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div><Label>Job Title</Label><Input value={form.job_title} onChange={e => setForm(f => ({ ...f, job_title: e.target.value }))} /></div>
         <div><Label>Department</Label><Input value={form.department} onChange={e => setForm(f => ({ ...f, department: e.target.value }))} /></div>
       </div>
 
       {/* Contact info */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div><Label>Email</Label><Input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} /></div>
         <div><Label>Phone</Label><Input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} /></div>
         <div><Label>Mobile</Label><Input value={form.mobile} onChange={e => setForm(f => ({ ...f, mobile: e.target.value }))} /></div>
@@ -285,7 +285,7 @@ const CustomerContactForm = ({ customerId, contact, onSuccess, onCancel }: Props
       </div>
 
       {/* Toggles */}
-      <div className="flex items-center gap-6">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
         <div className="flex items-center gap-2">
           <Switch checked={form.is_primary_contact} onCheckedChange={v => setForm(f => ({ ...f, is_primary_contact: v }))} />
           <Label>Primary Contact</Label>

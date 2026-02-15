@@ -240,7 +240,7 @@ const CustomerManagementPage = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
-      <main className="container mx-auto px-6 pt-20 pb-8" dir="ltr">
+      <main className="container mx-auto px-4 sm:px-6 pt-20 pb-8" dir="ltr">
         <div className="max-w-7xl mx-auto">
           <div className="mb-6">
             <Button variant="outline" onClick={() => navigate('/dashboard')} className="mb-4 flex items-center gap-2">
@@ -249,7 +249,7 @@ const CustomerManagementPage = () => {
           </div>
 
           {/* Header */}
-          <div className="mb-8 flex items-center justify-between">
+          <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <div className="flex items-center gap-3 mb-2">
                 <Building2 className="h-8 w-8 text-amber-500" />
@@ -263,7 +263,7 @@ const CustomerManagementPage = () => {
           </div>
 
           {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-8">
             <Card className="glass">
               <CardContent className="p-6">
                 <div className="flex items-center gap-2">
@@ -373,7 +373,7 @@ const CustomerManagementPage = () => {
                 </div>
               ) : (
                 <div className="overflow-x-auto">
-                  <Table>
+                  <Table className="min-w-[800px]">
                     <TableHeader>
                       <TableRow>
                         <TableHead className="w-12">Logo</TableHead>
@@ -453,7 +453,7 @@ const CustomerManagementPage = () => {
 
       {/* Add/Edit Customer Dialog */}
       <Dialog open={showCustomerForm} onOpenChange={setShowCustomerForm}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="w-[95vw] sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>{editingCustomer ? 'Edit Customer' : 'Add Customer'}</DialogTitle>
           </DialogHeader>

@@ -226,7 +226,7 @@ const CustomerForm = ({ customer, onSuccess, onCancel }: CustomerFormProps) => {
             <CardTitle className="text-base">Company Details</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="company_name">Company Name (EN) *</Label>
                 <Input id="company_name" value={formData.company_name} onChange={e => update('company_name', e.target.value)} required />
@@ -237,7 +237,7 @@ const CustomerForm = ({ customer, onSuccess, onCancel }: CustomerFormProps) => {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label>Industry</Label>
                 <Select value={formData.industry} onValueChange={v => update('industry', v)}>
@@ -258,7 +258,7 @@ const CustomerForm = ({ customer, onSuccess, onCancel }: CustomerFormProps) => {
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <Label htmlFor="website">Website</Label>
                 <Input id="website" value={formData.website} onChange={e => update('website', e.target.value)} placeholder="https://" />
@@ -273,7 +273,7 @@ const CustomerForm = ({ customer, onSuccess, onCancel }: CustomerFormProps) => {
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <Label htmlFor="address">Address</Label>
                 <Input id="address" value={formData.address} onChange={e => update('address', e.target.value)} />
@@ -288,7 +288,7 @@ const CustomerForm = ({ customer, onSuccess, onCancel }: CustomerFormProps) => {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="linkedin">LinkedIn URL</Label>
                 <Input id="linkedin" value={formData.linkedin_url} onChange={e => update('linkedin_url', e.target.value)} />
@@ -299,7 +299,7 @@ const CustomerForm = ({ customer, onSuccess, onCancel }: CustomerFormProps) => {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="logo">Company Logo</Label>
                 <Input id="logo" type="file" accept="image/*" onChange={e => setLogoFile(e.target.files?.[0] || null)} />
@@ -319,7 +319,7 @@ const CustomerForm = ({ customer, onSuccess, onCancel }: CustomerFormProps) => {
             <CardTitle className="text-base">Business Relationship</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label>Customer Status *</Label>
                 <Select value={formData.customer_status} onValueChange={v => update('customer_status', v)}>
@@ -347,7 +347,7 @@ const CustomerForm = ({ customer, onSuccess, onCancel }: CustomerFormProps) => {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="contract_start">Contract Start</Label>
                 <Input id="contract_start" type="date" value={formData.contract_start_date} onChange={e => update('contract_start_date', e.target.value)} />
@@ -358,7 +358,7 @@ const CustomerForm = ({ customer, onSuccess, onCancel }: CustomerFormProps) => {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="monthly_value">Monthly Value</Label>
                 <Input id="monthly_value" type="number" value={formData.monthly_value} onChange={e => update('monthly_value', e.target.value)} />

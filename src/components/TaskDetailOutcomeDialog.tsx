@@ -280,7 +280,7 @@ export function TaskDetailOutcomeDialog({ open, onOpenChange, task, onTaskUpdate
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[550px] max-h-[90vh]">
+      <DialogContent className="w-[95vw] sm:max-w-[550px] max-h-[90vh]">
         <DialogHeader>
           <DialogTitle className="text-lg">{task.task_name || 'Task Detail'}</DialogTitle>
           <DialogDescription>
@@ -302,7 +302,7 @@ export function TaskDetailOutcomeDialog({ open, onOpenChange, task, onTaskUpdate
               {task.description && (
                 <div>
                   <Label className="text-xs text-muted-foreground">Description</Label>
-                  <p className={cn(readOnlyText, "whitespace-pre-wrap mt-1")}>{task.description}</p>
+                  <p className={cn(readOnlyText, "whitespace-pre-wrap break-words mt-1")}>{task.description}</p>
                   {descriptionAudioUrl && (
                     <div className="flex items-center gap-2 mt-2">
                       <Play className="h-4 w-4 text-muted-foreground" />
@@ -313,7 +313,7 @@ export function TaskDetailOutcomeDialog({ open, onOpenChange, task, onTaskUpdate
               )}
 
               {/* People grid */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <Label className="text-xs text-muted-foreground">Assigned By</Label>
                   <p className={readOnlyText}>{task.assigned_by ? getUserEmail(task.assigned_by) : '—'}</p>
@@ -333,7 +333,7 @@ export function TaskDetailOutcomeDialog({ open, onOpenChange, task, onTaskUpdate
               </div>
 
               {/* Dates */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <Label className="text-xs text-muted-foreground">Start Date</Label>
                   <p className={readOnlyText}>{task.start_time ? format(new Date(task.start_time), 'PPP') : '—'}</p>
@@ -376,7 +376,7 @@ export function TaskDetailOutcomeDialog({ open, onOpenChange, task, onTaskUpdate
 
               {/* Predecessor / Successor */}
               {(task.predecessor_task_id || task.successor_task_id) && (
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {task.predecessor_task_id && (
                     <div>
                       <Label className="text-xs text-muted-foreground">Predecessor Task</Label>
