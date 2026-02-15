@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { BarChart, FileText, Calculator, FolderOpen, Users, User, LogOut, CheckSquare, Clock, AlertCircle, Search, ArrowUpDown, ArrowUp, ArrowDown, Filter, X, MessageSquare, Edit, BookOpen, Mail, Building2 } from 'lucide-react';
+import { BarChart, FileText, Calculator, FolderOpen, Users, User, LogOut, CheckSquare, Clock, AlertCircle, Search, ArrowUpDown, ArrowUp, ArrowDown, Filter, X, MessageSquare, Edit, BookOpen, Mail, Building2, CreditCard } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { TaskDetailOutcomeDialog } from '@/components/TaskDetailOutcomeDialog';
 import { RequestDetailDialog } from '@/components/RequestDetailDialog';
@@ -386,6 +386,13 @@ const DashboardPage = () => {
     path: '/hr-management',
     color: 'text-purple-500',
     requiresAdmin: true
+  }, {
+    title: 'Subscriptions',
+    description: 'View company app subscriptions and costs',
+    icon: CreditCard,
+    path: '/subscriptions',
+    color: 'text-violet-500',
+    requiresAdmin: false
   }, {
     title: 'Customers',
     description: 'Manage B2B customers and contacts',

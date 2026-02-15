@@ -1699,6 +1699,149 @@ export type Database = {
           },
         ]
       }
+      subscriptions: {
+        Row: {
+          access_instructions: string | null
+          access_instructions_fa: string | null
+          account_owner_id: string | null
+          app_name: string
+          app_name_fa: string | null
+          auto_renew: boolean | null
+          billing_cycle: string | null
+          category: string | null
+          cost_per_cycle: number | null
+          created_at: string
+          created_by: string | null
+          currency: string | null
+          expiry_date: string | null
+          id: string
+          login_email: string | null
+          login_method: string | null
+          logo_url: string | null
+          max_seats: number | null
+          next_payment_date: string | null
+          notes: string | null
+          notes_fa: string | null
+          payment_day: number | null
+          plan_name: string | null
+          purpose: string | null
+          purpose_fa: string | null
+          reset_day: number | null
+          start_date: string | null
+          status: string
+          tags: string[] | null
+          updated_at: string
+          usage_limit: string | null
+          usage_limit_fa: string | null
+          used_by_teams: string[] | null
+          used_seats: number | null
+          website_url: string | null
+        }
+        Insert: {
+          access_instructions?: string | null
+          access_instructions_fa?: string | null
+          account_owner_id?: string | null
+          app_name: string
+          app_name_fa?: string | null
+          auto_renew?: boolean | null
+          billing_cycle?: string | null
+          category?: string | null
+          cost_per_cycle?: number | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string | null
+          expiry_date?: string | null
+          id?: string
+          login_email?: string | null
+          login_method?: string | null
+          logo_url?: string | null
+          max_seats?: number | null
+          next_payment_date?: string | null
+          notes?: string | null
+          notes_fa?: string | null
+          payment_day?: number | null
+          plan_name?: string | null
+          purpose?: string | null
+          purpose_fa?: string | null
+          reset_day?: number | null
+          start_date?: string | null
+          status?: string
+          tags?: string[] | null
+          updated_at?: string
+          usage_limit?: string | null
+          usage_limit_fa?: string | null
+          used_by_teams?: string[] | null
+          used_seats?: number | null
+          website_url?: string | null
+        }
+        Update: {
+          access_instructions?: string | null
+          access_instructions_fa?: string | null
+          account_owner_id?: string | null
+          app_name?: string
+          app_name_fa?: string | null
+          auto_renew?: boolean | null
+          billing_cycle?: string | null
+          category?: string | null
+          cost_per_cycle?: number | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string | null
+          expiry_date?: string | null
+          id?: string
+          login_email?: string | null
+          login_method?: string | null
+          logo_url?: string | null
+          max_seats?: number | null
+          next_payment_date?: string | null
+          notes?: string | null
+          notes_fa?: string | null
+          payment_day?: number | null
+          plan_name?: string | null
+          purpose?: string | null
+          purpose_fa?: string | null
+          reset_day?: number | null
+          start_date?: string | null
+          status?: string
+          tags?: string[] | null
+          updated_at?: string
+          usage_limit?: string | null
+          usage_limit_fa?: string | null
+          used_by_teams?: string[] | null
+          used_seats?: number | null
+          website_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_account_owner_id_fkey"
+            columns: ["account_owner_id"]
+            isOneToOne: false
+            referencedRelation: "employee_full"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "subscriptions_account_owner_id_fkey"
+            columns: ["account_owner_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscriptions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "employee_full"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "subscriptions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       task_comments: {
         Row: {
           content: string

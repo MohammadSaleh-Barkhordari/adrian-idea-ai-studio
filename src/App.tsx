@@ -46,6 +46,7 @@ const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
 const EmailPage = lazy(() => import("./pages/EmailPage"));
 const CustomerManagementPage = lazy(() => import("./pages/CustomerManagementPage"));
 const CustomerDetailPage = lazy(() => import("./pages/CustomerDetailPage"));
+const SubscriptionsPage = lazy(() => import("./pages/SubscriptionsPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
@@ -109,6 +110,7 @@ const App = () => (
                 <Route path="/email" element={<EmailPage />} />
                 <Route path="/customers" element={<CustomerManagementPage />} />
                 <Route path="/customers/:customerId" element={<CustomerDetailPage />} />
+                <Route path="/subscriptions" element={<SubscriptionsPage />} />
                 
                 {/* Blog Dashboard routes */}
                 <Route path="/dashboard/blog" element={<BlogDashboardPage />} />
