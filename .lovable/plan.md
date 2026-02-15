@@ -1,74 +1,50 @@
 
 
-# Fix: Task Edit Dialog Not Showing Content
+# Fix: Task Edit Dialog Still Crashing with removeChild Error
 
-## Root Cause
+## Root Cause (Deeper)
 
-The `TaskEditDialog` is wrapped in a conditional render: `{selectedTask && (<TaskEditDialog .../>)}`. This causes React to mount/unmount the Radix Dialog portal every time `selectedTask` changes. When `loadProjectData` runs (triggered by multiple re-renders from parallel data fetches), it can cause a race condition where React tries to remove portal DOM nodes that have already been moved, producing the crash:
-
-```
-Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node.
-```
-
-This crash silently kills the dialog rendering, resulting in a blank overlay.
+The previous fix removed the conditional wrapper `{selectedTask && <TaskEditDialog/>}` but introduced `if (!task || !task.id) return null;` inside the component. This still causes the Dialog component to fully unmount when `task` is the empty fallback `{}`, and fully remount when `task` gets a real value. The mount/unmount cycle conflicts with React 18's reconciliation when `loadProjectData` triggers multiple sequential `setState` calls (setDocuments, setLetters, setTasks, setFiles), causing the `removeChild` portal crash.
 
 ## Fix
 
-### File: `src/pages/ProjectDetailsPage.tsx`
-
-**Remove the conditional wrapper** around `TaskEditDialog`. Always render the component and let the `open` prop control visibility. Pass `selectedTask` with a fallback so the component always receives a valid prop:
-
-Before:
-```tsx
-{selectedTask && (
-  <TaskEditDialog
-    open={taskEditDialogOpen}
-    onOpenChange={setTaskEditDialogOpen}
-    task={selectedTask}
-    ...
-  />
-)}
-```
-
-After:
-```tsx
-<TaskEditDialog
-  open={taskEditDialogOpen}
-  onOpenChange={(open) => {
-    setTaskEditDialogOpen(open);
-    if (!open) setSelectedTask(null);
-  }}
-  task={selectedTask || {}}
-  userRole={userRole || 'general_user'}
-  onTaskUpdated={() => {
-    if (projectId && user) {
-      loadProjectData(projectId, user.id);
-    }
-  }}
-/>
-```
-
 ### File: `src/components/TaskEditDialog.tsx`
 
-Update the guard at the top to check both `task` and `task.id` before proceeding, so it safely handles the empty object fallback:
+Remove the early return guard (`if (!task || !task.id) return null;`) and instead control visibility via the Dialog's `open` prop:
 
 ```tsx
+// REMOVE this line:
 if (!task || !task.id) return null;
+
+// CHANGE the Dialog open prop from:
+<Dialog open={open} onOpenChange={handleClose}>
+
+// TO:
+<Dialog open={open && !!task?.id} onOpenChange={handleClose}>
 ```
 
-This is a one-line change since the component already has `if (!task) return null;` -- just add `|| !task.id`.
+Also guard the `useEffect` to only run when `task.id` exists:
+
+```tsx
+useEffect(() => {
+  if (open && task?.id) {
+    // ... existing initialization code
+  }
+}, [open, task?.id]);
+```
+
+Using `task?.id` as the dependency (instead of `task`) prevents unnecessary re-fires when the `task` object reference changes but the id stays the same.
 
 ## Why This Works
 
-- The Dialog component stays mounted at all times, so portals are never torn down unexpectedly
-- The `open` prop cleanly controls visibility without DOM conflicts
-- `selectedTask` is cleared on close, not on unmount
-- The `task.id` guard prevents any data fetching when no task is selected
+- The Dialog component stays mounted at all times (no portal teardown)
+- `open && !!task?.id` ensures the dialog only shows when there's a valid task
+- The useEffect dependency on `task?.id` (a primitive string) prevents unnecessary re-triggers
+- No more DOM conflicts during React's commit phase
 
 ## Files Changed
 
 | File | Change |
 |------|--------|
-| `src/pages/ProjectDetailsPage.tsx` | Remove conditional wrapper around TaskEditDialog, move selectedTask cleanup to onOpenChange |
-| `src/components/TaskEditDialog.tsx` | Update guard to `if (!task \|\| !task.id) return null` |
+| `src/components/TaskEditDialog.tsx` | Remove early return guard, use `open && !!task?.id` on Dialog, stabilize useEffect dependency |
 
