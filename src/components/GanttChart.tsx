@@ -309,6 +309,7 @@ const GanttChart: React.FC<GanttChartProps> = ({ tasks }) => {
         </div>
       </CardHeader>
       <CardContent className="pt-0">
+        <p className="text-sm text-muted-foreground mb-2 md:hidden">📱 Rotate your device for a better view of the timeline.</p>
         <div className="w-full overflow-x-auto bg-card/50 rounded-xl border border-border/30 p-2">
           <svg 
             viewBox={`0 0 ${chartViewWidth} ${chartHeight + topMargin + bottomMargin}`}

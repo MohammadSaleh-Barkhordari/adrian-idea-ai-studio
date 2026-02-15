@@ -99,7 +99,7 @@ const CustomerInteractionForm = ({ customerId, contacts, onSuccess, onCancel }: 
       <div><Label>Subject *</Label><Input value={form.subject} onChange={e => setForm(f => ({ ...f, subject: e.target.value }))} required /></div>
       <div><Label>Description</Label><Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={3} /></div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div><Label>Interaction Date</Label><Input type="datetime-local" value={form.interaction_date} onChange={e => setForm(f => ({ ...f, interaction_date: e.target.value }))} /></div>
         <div><Label>Follow-up Date</Label><Input type="date" value={form.follow_up_date} onChange={e => setForm(f => ({ ...f, follow_up_date: e.target.value }))} /></div>
       </div>

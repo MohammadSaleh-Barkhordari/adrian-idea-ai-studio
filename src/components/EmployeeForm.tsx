@@ -350,7 +350,7 @@ const EmployeeForm = ({ employee, onSuccess, onCancel }: EmployeeFormProps) => {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <Tabs defaultValue="documents" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="flex w-full overflow-x-auto">
           <TabsTrigger value="documents">Documents</TabsTrigger>
           <TabsTrigger value="personal">Personal</TabsTrigger>
           <TabsTrigger value="employment">Employment</TabsTrigger>
@@ -379,7 +379,7 @@ const EmployeeForm = ({ employee, onSuccess, onCancel }: EmployeeFormProps) => {
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Row 1: Name / Surname */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="name">Name (English) *</Label>
                   <Input
@@ -432,7 +432,7 @@ const EmployeeForm = ({ employee, onSuccess, onCancel }: EmployeeFormProps) => {
 
               {/* Row 3: Persian Name/Surname (conditional) */}
               {isIranian && (
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="name_fa">Name (Persian)</Label>
                     <Input
@@ -455,7 +455,7 @@ const EmployeeForm = ({ employee, onSuccess, onCancel }: EmployeeFormProps) => {
               )}
 
               {/* Row 4: DOB / Gender */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="date_of_birth">Date of Birth</Label>
                   <Input
@@ -484,7 +484,7 @@ const EmployeeForm = ({ employee, onSuccess, onCancel }: EmployeeFormProps) => {
               </div>
 
               {/* Row 5: Marital Status / National ID */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="marital_status">Marital Status</Label>
                   <Select
@@ -536,7 +536,7 @@ const EmployeeForm = ({ employee, onSuccess, onCancel }: EmployeeFormProps) => {
               )}
 
               {/* Row 7: Email / Phone */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="personal_email">Personal Email</Label>
                   <Input
@@ -571,7 +571,7 @@ const EmployeeForm = ({ employee, onSuccess, onCancel }: EmployeeFormProps) => {
               {/* Emergency Contact Section */}
               <h4 className="text-sm font-semibold text-muted-foreground">Emergency Contact</h4>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="emergency_contact_name">Contact Name</Label>
                   <Input
@@ -621,7 +621,7 @@ const EmployeeForm = ({ employee, onSuccess, onCancel }: EmployeeFormProps) => {
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Row 1: Employee Number / Job Title */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="employee_number">Employee Number *</Label>
                   <Input
@@ -657,7 +657,7 @@ const EmployeeForm = ({ employee, onSuccess, onCancel }: EmployeeFormProps) => {
               </div>
 
               {/* Row 2: Department / Employment Type */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="department">Department</Label>
                   <Input
@@ -686,7 +686,7 @@ const EmployeeForm = ({ employee, onSuccess, onCancel }: EmployeeFormProps) => {
               </div>
 
               {/* Row 3: Status / Work Location */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="status">Employment Status *</Label>
                   <Select
@@ -723,7 +723,7 @@ const EmployeeForm = ({ employee, onSuccess, onCancel }: EmployeeFormProps) => {
               </div>
 
               {/* Row 4: Start Date / End Date (conditional) */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="start_date">Start Date</Label>
                   <Input
@@ -747,7 +747,7 @@ const EmployeeForm = ({ employee, onSuccess, onCancel }: EmployeeFormProps) => {
               </div>
 
               {/* Row 5: Probation / Manager */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="probation_end_date">Probation End Date</Label>
                   <Input
@@ -799,7 +799,7 @@ const EmployeeForm = ({ employee, onSuccess, onCancel }: EmployeeFormProps) => {
               {/* Contract Details */}
               <h4 className="text-sm font-semibold text-muted-foreground">Contract Details</h4>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="employment_contract_id">Contract ID</Label>
                   <Input
@@ -837,7 +837,7 @@ const EmployeeForm = ({ employee, onSuccess, onCancel }: EmployeeFormProps) => {
               <CardDescription>Salary and banking details</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="salary">Salary</Label>
                   <Input
@@ -884,7 +884,7 @@ const EmployeeForm = ({ employee, onSuccess, onCancel }: EmployeeFormProps) => {
               </div>
 
               {!!formData.bank_account_type && (
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="bank_name">Bank Name</Label>
                     <Input

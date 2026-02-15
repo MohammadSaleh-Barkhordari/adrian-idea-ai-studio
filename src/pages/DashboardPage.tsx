@@ -903,7 +903,7 @@ const DashboardPage = () => {
                         <CardDescription>Requests you have submitted</CardDescription>
                       </CardHeader>
                       <div className="overflow-x-auto">
-                        <Table>
+                        <Table className="min-w-[700px]">
                           <TableHeader>
                             <TableRow>
                               <TableHead>Request By</TableHead>
@@ -963,7 +963,7 @@ const DashboardPage = () => {
                         <CardDescription>Requests you need to handle</CardDescription>
                       </CardHeader>
                       <div className="overflow-x-auto">
-                        <Table>
+                        <Table className="min-w-[700px]">
                           <TableHeader>
                             <TableRow>
                               <TableHead>Request By</TableHead>
@@ -1023,7 +1023,7 @@ const DashboardPage = () => {
                         <CardDescription>Requests awaiting your confirmation</CardDescription>
                       </CardHeader>
                       <div className="overflow-x-auto">
-                        <Table>
+                        <Table className="min-w-[700px]">
                           <TableHeader>
                             <TableRow>
                               <TableHead>Request By</TableHead>

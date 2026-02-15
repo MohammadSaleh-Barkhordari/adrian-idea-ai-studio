@@ -410,7 +410,7 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
 
   return (
     <Dialog open={open && !!task?.id} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[500px] max-h-[90vh]">
+      <DialogContent className="w-[95vw] sm:max-w-[500px] max-h-[90vh]">
         <DialogHeader>
           <DialogTitle>{isAdmin ? 'Edit Task' : 'Update Task Outcome'}</DialogTitle>
           <DialogDescription>

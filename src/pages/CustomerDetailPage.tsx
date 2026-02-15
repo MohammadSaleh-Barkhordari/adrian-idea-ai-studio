@@ -214,7 +214,7 @@ const CustomerDetailPage = () => {
           </div>
 
           {/* Quick Stats */}
-          <div className="grid grid-cols-3 gap-4 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
             <Card><CardContent className="p-4 text-center"><p className="text-2xl font-bold">{contacts.length}</p><p className="text-sm text-muted-foreground">Contacts</p></CardContent></Card>
             <Card><CardContent className="p-4 text-center"><p className="text-2xl font-bold">{interactions.length}</p><p className="text-sm text-muted-foreground">Interactions</p></CardContent></Card>
             <Card><CardContent className="p-4 text-center"><p className="text-2xl font-bold">{formatCurrency(customer.monthly_value, customer.currency)}</p><p className="text-sm text-muted-foreground">Monthly Value</p></CardContent></Card>
@@ -400,21 +400,21 @@ const CustomerDetailPage = () => {
 
       {/* Edit Customer Dialog */}
       <Dialog open={showEditCustomer} onOpenChange={setShowEditCustomer}>
-        <DialogContent className="max-w-2xl"><DialogHeader><DialogTitle>Edit Customer</DialogTitle></DialogHeader>
+        <DialogContent className="w-[95vw] sm:max-w-2xl"><DialogHeader><DialogTitle>Edit Customer</DialogTitle></DialogHeader>
           <CustomerForm customer={customer} onSuccess={() => { setShowEditCustomer(false); fetchData(); }} onCancel={() => setShowEditCustomer(false)} />
         </DialogContent>
       </Dialog>
 
       {/* Contact Form Dialog */}
       <Dialog open={showContactForm} onOpenChange={setShowContactForm}>
-        <DialogContent className="max-w-lg"><DialogHeader><DialogTitle>{editingContact ? 'Edit Contact' : 'Add Contact'}</DialogTitle></DialogHeader>
+        <DialogContent className="w-[95vw] sm:max-w-lg"><DialogHeader><DialogTitle>{editingContact ? 'Edit Contact' : 'Add Contact'}</DialogTitle></DialogHeader>
           <CustomerContactForm customerId={customerId!} contact={editingContact} onSuccess={() => { setShowContactForm(false); fetchData(); }} onCancel={() => setShowContactForm(false)} />
         </DialogContent>
       </Dialog>
 
       {/* Interaction Form Dialog */}
       <Dialog open={showInteractionForm} onOpenChange={setShowInteractionForm}>
-        <DialogContent className="max-w-lg"><DialogHeader><DialogTitle>Log Interaction</DialogTitle></DialogHeader>
+        <DialogContent className="w-[95vw] sm:max-w-lg"><DialogHeader><DialogTitle>Log Interaction</DialogTitle></DialogHeader>
           <CustomerInteractionForm customerId={customerId!} contacts={contacts} onSuccess={() => { setShowInteractionForm(false); fetchData(); }} onCancel={() => setShowInteractionForm(false)} />
         </DialogContent>
       </Dialog>
