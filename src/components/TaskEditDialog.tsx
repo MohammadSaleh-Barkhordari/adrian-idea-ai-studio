@@ -75,6 +75,7 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
   const [descriptionAudioBlob, setDescriptionAudioBlob] = useState<Blob | null>(null);
   const [outcomeAudioBlob, setOutcomeAudioBlob] = useState<Blob | null>(null);
   const [outcomeAudioUrl, setOutcomeAudioUrl] = useState<string | null>(null);
+  const [descriptionAudioUrl, setDescriptionAudioUrl] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     taskName: '',
@@ -150,9 +151,20 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
       setStartDate(task.start_time ? new Date(task.start_time) : undefined);
       setDueDate(task.due_date ? new Date(task.due_date) : undefined);
       setSelectedFiles([]);
-      setOutcomeAudioUrl(task.outcome_audio_path || null);
       setDescriptionAudioBlob(null);
       setOutcomeAudioBlob(null);
+      setDescriptionAudioUrl(null);
+      setOutcomeAudioUrl(null);
+
+      // Build signed URLs for audio playback (private bucket)
+      if (task.outcome_audio_path) {
+        const { data: signedData } = await supabase.storage.from('Files').createSignedUrl(task.outcome_audio_path, 3600);
+        setOutcomeAudioUrl(signedData?.signedUrl || null);
+      }
+      if (task.description_audio_path) {
+        const { data: signedData } = await supabase.storage.from('Files').createSignedUrl(task.description_audio_path, 3600);
+        setDescriptionAudioUrl(signedData?.signedUrl || null);
+      }
       setUserOutcomeNotes(task.outcome_notes || '');
       setUserStatus(task.status === 'completed' ? 'completed' : 'in_progress');
 
@@ -446,6 +458,14 @@ export function TaskEditDialog({ open, onOpenChange, task, userRole, onTaskUpdat
                   onAudioReady={(blob) => setDescriptionAudioBlob(blob)}
                   disabled={loading}
                 />
+              )}
+
+              {/* Play existing description audio */}
+              {descriptionAudioUrl && !descriptionAudioBlob && (
+                <div className="flex items-center gap-2">
+                  <Play className="h-4 w-4 text-muted-foreground" />
+                  <audio controls src={descriptionAudioUrl} className="h-8 w-full" />
+                </div>
               )}
 
               {/* 4. Related Task */}
