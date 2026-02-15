@@ -93,8 +93,9 @@ export const NewFileDialog: React.FC<NewFileDialogProps> = ({
       const { error: insertError } = await supabase
         .from('files')
         .insert({
-          uploaded_by: user.id,
-          project_id: projectId,
+        uploaded_by: user.id,
+        user_id: user.id,
+        project_id: projectId,
           file_name: selectedFile.name,
           file_path: uploadData.path,
           file_url: uploadData.path,
