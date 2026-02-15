@@ -1,107 +1,54 @@
 
 
-# Fix: Select Dropdowns Not Showing Saved Values in Task Edit Dialog
+# Fix: Audio Playback and File Storage in Task Dialogs
 
-## Root Cause
+## Problems Found
 
-The `useEffect` (line 103) does two things simultaneously:
-1. Sets `formData` with saved values (e.g., `assignedTo = "19db583e-..."`)
-2. Calls `fetchAuthUsers()` and `fetchRelatedTasks()` asynchronously
+### 1. Description audio has no playback in TaskEditDialog
+The TaskEditDialog has a voice recorder for descriptions but no audio player to listen to previously recorded description audio. There is no `descriptionAudioUrl` state variable, and no `<audio>` element rendered for it.
 
-On the first render after the effect fires, formData has the correct UUID values, but `authUsers` is still an empty array. This means the `Select` component has `value="19db583e-..."` but no `SelectItem` with that value exists yet. Radix Select shows the placeholder when no item matches the value.
+### 2. Audio URLs built incorrectly (private bucket)
+Both `TaskDetailOutcomeDialog` and `TaskEditDialog` build audio playback URLs incorrectly:
+- **TaskDetailOutcomeDialog** uses `getPublicUrl()` on the private `Files` bucket -- this returns a URL that requires public access, which fails silently
+- **TaskEditDialog** sets `outcomeAudioUrl` to the raw storage path string (e.g., `task-audio/uuid/123.webm`) instead of a playable URL
 
-When `fetchAuthUsers` resolves and `setAuthUsers` triggers a re-render, the SelectItems now exist -- but the Select needs the value to be explicitly re-set or the component to properly reconcile. The issue is that Radix Select may not re-evaluate the display text once items load if the value was already set during the "empty items" render.
+Both need to use `createSignedUrl()` which generates a temporary authenticated URL for private buckets.
 
-## Fix: Load Users/Tasks First, Then Set Form Data
+### 3. File storage locations (answering your question)
+All task-related files are stored in the **`Files`** storage bucket:
+- **Task/Outcome files**: `{ProjectName}/{taskId}/{originalFilename}`
+- **Description audio**: `task-audio/{taskId}/desc-{timestamp}.webm`
+- **Outcome audio**: `task-audio/{taskId}/{timestamp}.webm`
 
-Restructure the `useEffect` to fetch async data first, then set formData after the data is available. This ensures that when `formData` values are set, the corresponding `SelectItem` entries already exist.
+## Planned Changes
 
 ### File: `src/components/TaskEditDialog.tsx`
 
-**Replace the single useEffect (lines 103-138) with a two-phase approach:**
+1. Add a `descriptionAudioUrl` state variable
+2. In the initialization `useEffect`, build signed URLs for both `description_audio_path` and `outcome_audio_path` using `createSignedUrl(path, 3600)` (1-hour expiry)
+3. Add an `<audio>` player below the description voice recorder to play back existing description audio
+4. Fix outcome audio URL to also use `createSignedUrl` instead of the raw path
 
-```tsx
-useEffect(() => {
-  const initializeForm = async () => {
-    if (!open || !task?.id) return;
+### File: `src/components/TaskDetailOutcomeDialog.tsx`
 
-    // Phase 1: Fetch async data first
-    let fetchedUsers: AuthUser[] = [];
-    let fetchedTasks: RelatedTask[] = [];
+1. Replace `getPublicUrl()` calls with `createSignedUrl()` for both `description_audio_path` and `outcome_audio_path`
+2. Handle the async nature of `createSignedUrl` (it returns a promise unlike `getPublicUrl`)
 
-    try {
-      const { data, error } = await supabase.functions.invoke('get-auth-users');
-      if (!error) {
-        fetchedUsers = data?.users || [];
-        setAuthUsers(fetchedUsers);
-      }
-    } catch (error) {
-      console.error('Error fetching auth users:', error);
-    }
+### Technical Detail
 
-    if (task.project_id) {
-      try {
-        const { data, error } = await supabase
-          .from('tasks')
-          .select('id, task_name')
-          .eq('project_id', task.project_id)
-          .neq('id', task.id)
-          .order('created_at', { ascending: false });
-        if (!error) {
-          fetchedTasks = data || [];
-          setRelatedTasks(fetchedTasks);
-        }
-      } catch (error) {
-        console.error('Error fetching related tasks:', error);
-      }
-    }
+```text
+Before (broken):
+  supabase.storage.from('Files').getPublicUrl(path)  // Returns unusable URL for private bucket
 
-    // Phase 2: Set form data AFTER async data is loaded
-    setFormData({
-      taskName: task.task_name || '',
-      taskType: task.task_type || 'general',
-      assignedBy: task.assigned_by || 'unassigned',
-      assignedTo: task.assigned_to || 'unassigned',
-      followBy: task.follow_by || 'unassigned',
-      confirmBy: task.confirm_by || 'unassigned',
-      priority: task.priority || 'medium',
-      status: task.status || 'todo',
-      description: task.description || '',
-      notes: task.notes || '',
-      relatedTaskId: task.related_task_id || 'none',
-      outcomeNotes: task.outcome_notes || '',
-      predecessorTaskId: task.predecessor_task_id || 'none',
-      successorTaskId: task.successor_task_id || 'none',
-    });
-
-    setStartDate(task.start_time ? new Date(task.start_time) : undefined);
-    setDueDate(task.due_date ? new Date(task.due_date) : undefined);
-    setSelectedFiles([]);
-    setOutcomeAudioUrl(task.outcome_audio_path || null);
-    setDescriptionAudioBlob(null);
-    setOutcomeAudioBlob(null);
-    setUserOutcomeNotes(task.outcome_notes || '');
-    setUserStatus(task.status === 'completed' ? 'completed' : 'in_progress');
-
-    fetchExistingFiles();
-    fetchProjectName();
-  };
-
-  initializeForm();
-}, [open, task?.id]);
+After (fixed):
+  const { data } = await supabase.storage.from('Files').createSignedUrl(path, 3600)
+  // Returns a temporary URL valid for 1 hour that works with private buckets
 ```
 
-**Also remove the now-unused standalone `fetchAuthUsers` and `fetchRelatedTasks` functions** (lines 155-178), since their logic is now inlined inside the useEffect.
-
-## Why This Fixes the Problem
-
-- By awaiting `fetchAuthUsers` and `fetchRelatedTasks` before calling `setFormData`, both `authUsers` and `relatedTasks` state arrays are populated before the Select components receive their values
-- On the render that follows, every Select has both a valid `value` and matching `SelectItem` entries, so Radix correctly displays the selected option instead of the placeholder
-- No extra useEffects, no race conditions, no timing issues
-
-## Files Changed
+## Summary of Changes
 
 | File | Change |
 |------|--------|
-| `src/components/TaskEditDialog.tsx` | Restructure useEffect to await async data before setting formData; remove standalone fetch functions |
+| `src/components/TaskEditDialog.tsx` | Add `descriptionAudioUrl` state, build signed URLs for both audio paths, add description audio player |
+| `src/components/TaskDetailOutcomeDialog.tsx` | Replace `getPublicUrl` with `createSignedUrl` for both audio paths |
 
