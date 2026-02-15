@@ -1,54 +1,37 @@
 
 
-# Fix: Audio Playback and File Storage in Task Dialogs
+# Save user_id When Uploading Files
 
-## Problems Found
+## Problem
+When uploading a file in the project details page (via `NewFileDialog`), the `user_id` field in the `files` table is not being set. Only `uploaded_by` is populated.
 
-### 1. Description audio has no playback in TaskEditDialog
-The TaskEditDialog has a voice recorder for descriptions but no audio player to listen to previously recorded description audio. There is no `descriptionAudioUrl` state variable, and no `<audio>` element rendered for it.
+## Fix
 
-### 2. Audio URLs built incorrectly (private bucket)
-Both `TaskDetailOutcomeDialog` and `TaskEditDialog` build audio playback URLs incorrectly:
-- **TaskDetailOutcomeDialog** uses `getPublicUrl()` on the private `Files` bucket -- this returns a URL that requires public access, which fails silently
-- **TaskEditDialog** sets `outcomeAudioUrl` to the raw storage path string (e.g., `task-audio/uuid/123.webm`) instead of a playable URL
+### File: `src/components/NewFileDialog.tsx`
 
-Both need to use `createSignedUrl()` which generates a temporary authenticated URL for private buckets.
+Add `user_id: user.id` to the insert object (alongside `uploaded_by`):
 
-### 3. File storage locations (answering your question)
-All task-related files are stored in the **`Files`** storage bucket:
-- **Task/Outcome files**: `{ProjectName}/{taskId}/{originalFilename}`
-- **Description audio**: `task-audio/{taskId}/desc-{timestamp}.webm`
-- **Outcome audio**: `task-audio/{taskId}/{timestamp}.webm`
-
-## Planned Changes
-
-### File: `src/components/TaskEditDialog.tsx`
-
-1. Add a `descriptionAudioUrl` state variable
-2. In the initialization `useEffect`, build signed URLs for both `description_audio_path` and `outcome_audio_path` using `createSignedUrl(path, 3600)` (1-hour expiry)
-3. Add an `<audio>` player below the description voice recorder to play back existing description audio
-4. Fix outcome audio URL to also use `createSignedUrl` instead of the raw path
-
-### File: `src/components/TaskDetailOutcomeDialog.tsx`
-
-1. Replace `getPublicUrl()` calls with `createSignedUrl()` for both `description_audio_path` and `outcome_audio_path`
-2. Handle the async nature of `createSignedUrl` (it returns a promise unlike `getPublicUrl`)
-
-### Technical Detail
-
-```text
-Before (broken):
-  supabase.storage.from('Files').getPublicUrl(path)  // Returns unusable URL for private bucket
-
-After (fixed):
-  const { data } = await supabase.storage.from('Files').createSignedUrl(path, 3600)
-  // Returns a temporary URL valid for 1 hour that works with private buckets
+```tsx
+const { error: insertError } = await supabase
+  .from('files')
+  .insert({
+    uploaded_by: user.id,
+    user_id: user.id,        // <-- add this line
+    project_id: projectId,
+    file_name: selectedFile.name,
+    file_path: uploadData.path,
+    file_url: uploadData.path,
+    file_size: selectedFile.size,
+    file_type: selectedFile.type,
+    description: description.trim() || null,
+  });
 ```
 
-## Summary of Changes
+This is a one-line addition. Both `uploaded_by` and `user_id` will now store the authenticated user's ID, consistent with how `NewDocumentDialog` handles document uploads.
+
+## Files Changed
 
 | File | Change |
 |------|--------|
-| `src/components/TaskEditDialog.tsx` | Add `descriptionAudioUrl` state, build signed URLs for both audio paths, add description audio player |
-| `src/components/TaskDetailOutcomeDialog.tsx` | Replace `getPublicUrl` with `createSignedUrl` for both audio paths |
+| `src/components/NewFileDialog.tsx` | Add `user_id: user.id` to the files insert |
 
