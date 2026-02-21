@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import Navigation from '@/components/Navigation';
@@ -9,7 +9,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Calculator, Upload, Mic, Edit, Search, Filter, Download, ChevronUp, ChevronDown, Trash2 } from 'lucide-react';
+import { ArrowLeft, Calculator, Upload, Mic, Edit, Search, Filter, Download, ChevronUp, ChevronDown, Trash2, Scale, CheckCircle2 } from 'lucide-react';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import { sendNotification, getOtherOurLifeUser, getOurLifeUserName } from '@/lib/notifications';
 import OurFinancialFileUpload from '@/components/OurFinancialFileUpload';
@@ -361,9 +362,10 @@ const OurFinancialPage = () => {
           </div>
 
           <Tabs defaultValue="entry" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="entry">Financial Entry</TabsTrigger>
               <TabsTrigger value="records">View Records</TabsTrigger>
+              <TabsTrigger value="balance">Balance</TabsTrigger>
             </TabsList>
 
             <TabsContent value="entry" className="space-y-6">
@@ -635,6 +637,54 @@ const OurFinancialPage = () => {
                 </CardContent>
               </Card>
             </TabsContent>
+
+            <BalanceTabContent
+              financialRecords={financialRecords}
+              user={user}
+              onSettleUp={async (whoPays: string, whomOwed: string, amount: number) => {
+                try {
+                  const { error } = await supabase
+                    .from('our_financial')
+                    .insert({
+                      user_id: user.id,
+                      payment_for: 'Settlement',
+                      transaction_type: 'expense',
+                      who_paid: whoPays,
+                      for_who: whomOwed,
+                      amount: amount,
+                      currency: 'GBP',
+                      description: 'Balance settlement',
+                      transaction_date: new Date().toISOString().split('T')[0]
+                    });
+                  if (error) throw error;
+
+                  const otherUserId = getOtherOurLifeUser(user.id);
+                  if (otherUserId) {
+                    const actorName = getOurLifeUserName(user.id);
+                    await sendNotification(
+                      '💰 Balance Settled',
+                      `${actorName} settled the balance: £${amount.toFixed(2)}`,
+                      [otherUserId],
+                      'financial',
+                      '/our-financial'
+                    );
+                  }
+
+                  await loadFinancialRecords();
+                  toast({
+                    title: "Settled Up! ✓",
+                    description: `Balance settlement of £${amount.toFixed(2)} recorded.`,
+                  });
+                } catch (error) {
+                  console.error('Error settling up:', error);
+                  toast({
+                    title: "Settlement Failed",
+                    description: "Failed to record settlement. Please try again.",
+                    variant: "destructive",
+                  });
+                }
+              }}
+            />
           </Tabs>
         </div>
       </main>
@@ -643,5 +693,203 @@ const OurFinancialPage = () => {
     </div>
   );
 };
+
+// Balance Tab Component
+function BalanceTabContent({ financialRecords, user, onSettleUp }: {
+  financialRecords: any[];
+  user: any;
+  onSettleUp: (whoPays: string, whomOwed: string, amount: number) => Promise<void>;
+}) {
+  const [settling, setSettling] = useState(false);
+
+  // Calculate net balance: positive = Sattari owes Barkhordari
+  const { netBalance, transactionsWithBalance } = useMemo(() => {
+    let barkhordariBalance = 0;
+
+    // Sort ascending by date for running balance
+    const sorted = [...financialRecords].sort(
+      (a, b) => new Date(a.transaction_date).getTime() - new Date(b.transaction_date).getTime()
+    );
+
+    const rows = sorted.map(record => {
+      const amount = Number(record.amount);
+      let bEffect = 0;
+      let sEffect = 0;
+
+      if (record.who_paid === record.for_who) {
+        // Paying for yourself — no balance effect
+      } else if (record.for_who === 'Both') {
+        if (record.who_paid === 'Barkhordari') {
+          bEffect = amount / 2;
+          sEffect = -(amount / 2);
+        } else if (record.who_paid === 'Sattari') {
+          bEffect = -(amount / 2);
+          sEffect = amount / 2;
+        }
+      } else if (record.for_who === 'Sattari' && record.who_paid === 'Barkhordari') {
+        bEffect = amount;
+        sEffect = -amount;
+      } else if (record.for_who === 'Barkhordari' && record.who_paid === 'Sattari') {
+        bEffect = -amount;
+        sEffect = amount;
+      }
+
+      barkhordariBalance += bEffect;
+
+      return {
+        ...record,
+        bEffect,
+        sEffect,
+        runningBalance: barkhordariBalance,
+      };
+    });
+
+    return { netBalance: barkhordariBalance, transactionsWithBalance: rows };
+  }, [financialRecords]);
+
+  const absBalance = Math.abs(netBalance);
+  const isSettled = absBalance < 0.01;
+  const owesPerson = netBalance > 0 ? 'Sattari' : 'Barkhordari';
+  const owedPerson = netBalance > 0 ? 'Barkhordari' : 'Sattari';
+
+  const handleSettleUp = async () => {
+    setSettling(true);
+    try {
+      await onSettleUp(owesPerson, owedPerson, absBalance);
+    } finally {
+      setSettling(false);
+    }
+  };
+
+  const formatEffect = (val: number) => {
+    if (val === 0) return '—';
+    const sign = val > 0 ? '+' : '';
+    return `${sign}£${val.toFixed(2)}`;
+  };
+
+  // Show most recent first in table display
+  const displayRows = [...transactionsWithBalance].reverse();
+
+  return (
+    <TabsContent value="balance" className="space-y-6">
+      {/* Balance Summary Card */}
+      <Card className="glass">
+        <CardContent className="pt-6">
+          <div className="flex flex-col items-center gap-4">
+            <div className="flex items-center gap-6 w-full justify-center">
+              {/* Barkhordari */}
+              <div className="flex flex-col items-center gap-2">
+                <Avatar className="h-14 w-14">
+                  <AvatarFallback className="bg-primary text-primary-foreground text-lg font-bold">B</AvatarFallback>
+                </Avatar>
+                <span className="font-semibold text-sm">Barkhordari</span>
+              </div>
+
+              {/* Balance display */}
+              <div className="flex flex-col items-center gap-1 px-6">
+                <Scale className="h-6 w-6 text-muted-foreground" />
+                {isSettled ? (
+                  <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
+                    <CheckCircle2 className="h-5 w-5" />
+                    <span className="font-bold text-lg">All settled up!</span>
+                  </div>
+                ) : (
+                  <div className="text-center">
+                    <p className="text-2xl font-bold font-mono text-amber-600 dark:text-amber-400">
+                      £{absBalance.toFixed(2)}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {owesPerson} owes {owedPerson}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Sattari */}
+              <div className="flex flex-col items-center gap-2">
+                <Avatar className="h-14 w-14">
+                  <AvatarFallback className="bg-accent text-accent-foreground text-lg font-bold">S</AvatarFallback>
+                </Avatar>
+                <span className="font-semibold text-sm">Sattari</span>
+              </div>
+            </div>
+
+            {!isSettled && (
+              <Button
+                onClick={handleSettleUp}
+                disabled={settling}
+                className="mt-4"
+                size="lg"
+              >
+                {settling ? 'Settling...' : `Settle Up — £${absBalance.toFixed(2)}`}
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Transaction Breakdown Table */}
+      <Card className="glass">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Scale className="h-5 w-5" />
+            Transaction Breakdown
+          </CardTitle>
+          <CardDescription>
+            Balance effect of each transaction (sorted newest first)
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="rounded-md border overflow-x-auto">
+            <Table className="min-w-[800px]">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Paid By</TableHead>
+                  <TableHead>Amount</TableHead>
+                  <TableHead>For Who</TableHead>
+                  <TableHead>Payment For</TableHead>
+                  <TableHead className="text-right">B Effect</TableHead>
+                  <TableHead className="text-right">S Effect</TableHead>
+                  <TableHead className="text-right">Running Balance</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {displayRows.map((row) => (
+                  <TableRow key={row.id}>
+                    <TableCell>{new Date(row.transaction_date).toLocaleDateString()}</TableCell>
+                    <TableCell>{row.who_paid}</TableCell>
+                    <TableCell className="font-mono">£{Number(row.amount).toFixed(2)}</TableCell>
+                    <TableCell>{row.for_who}</TableCell>
+                    <TableCell>{row.payment_for}</TableCell>
+                    <TableCell className={`text-right font-mono ${row.bEffect > 0 ? 'text-green-600 dark:text-green-400' : row.bEffect < 0 ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'}`}>
+                      {formatEffect(row.bEffect)}
+                    </TableCell>
+                    <TableCell className={`text-right font-mono ${row.sEffect > 0 ? 'text-green-600 dark:text-green-400' : row.sEffect < 0 ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'}`}>
+                      {formatEffect(row.sEffect)}
+                    </TableCell>
+                    <TableCell className={`text-right font-mono font-bold ${row.runningBalance > 0 ? 'text-green-600 dark:text-green-400' : row.runningBalance < 0 ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'}`}>
+                      {row.runningBalance === 0 ? '£0.00' : `${row.runningBalance > 0 ? '' : '-'}£${Math.abs(row.runningBalance).toFixed(2)}`}
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {displayRows.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                      No financial records found.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+          <p className="text-xs text-muted-foreground mt-3">
+            Positive running balance = Sattari owes Barkhordari. Negative = Barkhordari owes Sattari.
+          </p>
+        </CardContent>
+      </Card>
+    </TabsContent>
+  );
+}
 
 export default OurFinancialPage;
