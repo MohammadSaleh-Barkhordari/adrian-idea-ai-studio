@@ -152,41 +152,68 @@ const OurFinancialPage = () => {
 
       // If there's an uploaded file, save it to documents table and Our_Life storage
       if (uploadedFileInfo) {
-        // Create document record first to get the ID
-        const { data: documentData, error: documentError } = await supabase
-          .from('documents')
-          .insert({
-            uploaded_by: user.id,
-            project_id: 'our-life', // Using a standard project_id for our life
-            title: `Our Financial Document - ${uploadedFileInfo.fileName}`,
-            file_name: uploadedFileInfo.fileName,
-            file_path: '', // Will be updated after upload
-            file_type: uploadedFileInfo.fileType,
-            file_size: uploadedFileInfo.file.size
-          })
-          .select()
-          .single();
+        try {
+          // Create document record first to get the ID
+          const { data: documentData, error: documentError } = await supabase
+            .from('documents')
+            .insert({
+              uploaded_by: user.id,
+              project_id: 'our-life',
+              title: `Our Financial Document - ${uploadedFileInfo.fileName}`,
+              file_name: uploadedFileInfo.fileName,
+              file_path: '',
+              file_type: uploadedFileInfo.fileType,
+              file_size: uploadedFileInfo.file.size
+            })
+            .select()
+            .single();
 
-        if (documentError) throw documentError;
-        
-        documentId = documentData.id;
+          if (documentError) throw documentError;
+          
+          documentId = documentData.id;
 
-        // Upload file to our-life bucket with structured path
-        const filePath = `Financial/${documentId}/${uploadedFileInfo.fileName}`;
-        
-        const { error: uploadError } = await supabase.storage
-          .from('our-life')
-          .upload(filePath, uploadedFileInfo.file);
+          // Sanitize filename to ASCII-only for storage compatibility
+          const safeFileName = uploadedFileInfo.fileName.replace(/[^\x20-\x7E]/g, '_');
+          const filePath = `Financial/${documentId}/${safeFileName}`;
+          
+          // Explicitly set contentType to avoid browser MIME detection issues
+          const { error: uploadError } = await supabase.storage
+            .from('our-life')
+            .upload(filePath, uploadedFileInfo.file, {
+              contentType: uploadedFileInfo.fileType || 'application/octet-stream'
+            });
 
-        if (uploadError) throw uploadError;
+          if (uploadError) {
+            console.error('Storage upload failed, cleaning up document record:', uploadError);
+            // Clean up the orphaned document record
+            await supabase.from('documents').delete().eq('id', documentId);
+            documentId = null;
+            // Show warning but don't abort - financial record will still be saved
+            toast({
+              title: "Attachment Warning",
+              description: "Could not upload the file attachment, but your financial record will still be saved.",
+              variant: "default",
+            });
+          } else {
+            // Update document record with correct file path and url
+            const { error: updateError } = await supabase
+              .from('documents')
+              .update({ file_path: filePath, file_url: filePath })
+              .eq('id', documentId);
 
-        // Update document record with correct file path and url
-        const { error: updateError } = await supabase
-          .from('documents')
-          .update({ file_path: filePath, file_url: filePath })
-          .eq('id', documentId);
-
-        if (updateError) throw updateError;
+            if (updateError) {
+              console.error('Failed to update document path:', updateError);
+            }
+          }
+        } catch (fileError) {
+          console.error('File upload process failed:', fileError);
+          documentId = null;
+          toast({
+            title: "Attachment Warning",
+            description: "Could not save the file attachment, but your financial record will still be saved.",
+            variant: "default",
+          });
+        }
       }
 
       // Create our financial record (document is saved separately in documents table)
