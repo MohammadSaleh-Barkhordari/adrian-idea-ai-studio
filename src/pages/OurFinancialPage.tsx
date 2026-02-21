@@ -174,7 +174,7 @@ const OurFinancialPage = () => {
         const filePath = `Financial/${documentId}/${uploadedFileInfo.fileName}`;
         
         const { error: uploadError } = await supabase.storage
-          .from('Our_Life')
+          .from('our-life')
           .upload(filePath, uploadedFileInfo.file);
 
         if (uploadError) throw uploadError;
