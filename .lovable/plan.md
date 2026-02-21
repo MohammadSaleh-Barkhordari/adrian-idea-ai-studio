@@ -1,50 +1,60 @@
 
+# Fix Storage Upload Failure for Sattari on Our Financial Page
 
-# Fix Our Financial: Shared Visibility and Storage Upload
+## Root Cause
 
-## Problem 1: Each User Only Sees Their Own Records
-The `our_financial` table has an RLS policy `user_id = auth.uid()` which restricts each user to only their own records. This breaks the Balance tab and View Records -- neither user sees the full picture.
+The `our-life` storage bucket has `allowed_mime_types` restrictions (`[image/png, image/jpeg, image/gif, image/webp, application/pdf]`) and a 50MB `file_size_limit`. In contrast, the `Files` bucket (where Sattari has successfully uploaded files) has NO such restrictions.
 
-## Problem 2: Storage Upload Fails for Sattari
-Sattari has 4 orphaned document records (rows created in the documents table) but zero actual files in storage. There are duplicate storage policies for the `our-life` bucket which will be cleaned up.
+On certain devices/browsers, the `File` object's MIME type can be reported differently (e.g., empty string, or a variant like `image/x-png`), causing the bucket to reject the upload even though the file is a valid PNG. This explains why Barkhordari's uploads work (his browser reports the type correctly) while Sattari's fail.
+
+Evidence:
+- Sattari's document record IS created in the `documents` table (DB insert works)
+- But NO files from Sattari exist in the `our-life` storage bucket (upload fails)
+- Sattari HAS successfully uploaded to the `Files` bucket (which has no mime type restrictions)
+- The upload failure causes the entire save to abort, so no `our_financial` record is created either
 
 ## Changes
 
-### 1. Database Migration -- Fix `our_financial` RLS
+### 1. Database Migration -- Remove Bucket Restrictions
 
-Replace the current restrictive policy with one that allows BOTH Our Life users to see and manage ALL `our_financial` records:
+Remove `allowed_mime_types` and `file_size_limit` from the `our-life` bucket to match the `Files` bucket behavior. The frontend already validates file types before upload, so the bucket-level restriction is redundant and causes cross-browser compatibility issues.
 
-- DROP the existing "Users can manage own financial records" ALL policy
-- CREATE a new SELECT policy allowing both user IDs to read all records
-- CREATE a new INSERT policy with WITH CHECK for both user IDs
-- CREATE a new UPDATE policy for both user IDs
-- CREATE a new DELETE policy for both user IDs
+```sql
+UPDATE storage.buckets 
+SET allowed_mime_types = NULL, file_size_limit = NULL 
+WHERE id = 'our-life';
+```
 
-The two user IDs:
-- `19db583e-1e4a-4a20-9f3c-591cb2ca3dc7` (Barkhordari)
-- `8dd0bb2f-2768-4c1c-9e62-495f36b882d4` (Sattari)
+### 2. Code Fix -- `src/pages/OurFinancialPage.tsx`
 
-### 2. Database Migration -- Clean Up Duplicate Storage Policies
+**a) Explicitly set `contentType` during storage upload** (line 177-179):
 
-Remove the three duplicate storage policies for `our-life` bucket:
-- DROP "Users can upload to our-life" (duplicate of "Authenticated users can upload to our-life")
-- DROP "Users can view our-life" (duplicate of "Authenticated users can view our-life files")
-- DROP "Users can delete from our-life" (duplicate of "Authenticated users can delete from our-life")
+Add `contentType` option to the `.upload()` call to avoid relying on browser MIME type detection:
 
-### 3. Database Migration -- Clean Up Orphaned Document Records
+```typescript
+const { error: uploadError } = await supabase.storage
+  .from('our-life')
+  .upload(filePath, uploadedFileInfo.file, {
+    contentType: uploadedFileInfo.fileType || 'application/octet-stream'
+  });
+```
 
-Delete the 4 orphaned document records created by Sattari that have no corresponding storage files.
+**b) Make the save resilient** -- Separate the file upload from the financial record creation so that a storage failure does not prevent saving the core financial data. If the upload fails, still save the financial record and show a warning about the attachment.
 
-### 4. No Code Changes Needed
+**c) Clean up orphaned document records** -- Delete Sattari's orphaned document record (has empty file_path, no corresponding storage file):
 
-The `loadFinancialRecords()` function already does `select('*')` -- once the RLS policy is updated, both users will automatically see all records. The Balance tab calculation and View Records tab will work correctly for both users.
+```sql
+DELETE FROM documents 
+WHERE uploaded_by = '8dd0bb2f-2768-4c1c-9e62-495f36b882d4' 
+AND project_id = 'our-life' 
+AND file_path = '';
+```
 
 ## Summary
 
 | Item | Change |
 |------|--------|
-| `our_financial` RLS | Allow both Our Life users to see/manage all records |
-| Storage policies | Remove 3 duplicate policies for `our-life` bucket |
-| Orphaned data | Clean up 4 document records with no files |
-| Code | No changes needed |
-
+| `our-life` bucket config | Remove `allowed_mime_types` and `file_size_limit` restrictions |
+| `OurFinancialPage.tsx` line 177-179 | Explicitly pass `contentType` to storage upload |
+| `OurFinancialPage.tsx` save function | Make upload failure non-blocking for financial record creation |
+| Data cleanup | Delete orphaned document record from Sattari |
