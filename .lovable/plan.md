@@ -1,82 +1,50 @@
 
 
-# Add "Balance" Tab to Our Financial Page
+# Fix Our Financial: Shared Visibility and Storage Upload
 
-## Overview
-Add a third "Balance" tab to the existing tabs on `/our-financial` that calculates a Splitwise-style running balance between Barkhordari and Sattari using the existing `our_financial` table data.
+## Problem 1: Each User Only Sees Their Own Records
+The `our_financial` table has an RLS policy `user_id = auth.uid()` which restricts each user to only their own records. This breaks the Balance tab and View Records -- neither user sees the full picture.
+
+## Problem 2: Storage Upload Fails for Sattari
+Sattari has 4 orphaned document records (rows created in the documents table) but zero actual files in storage. There are duplicate storage policies for the `our-life` bucket which will be cleaned up.
 
 ## Changes
 
-### File: `src/pages/OurFinancialPage.tsx`
+### 1. Database Migration -- Fix `our_financial` RLS
 
-**1. Update TabsList from 2 columns to 3 and add the new tab trigger (line 364):**
-- Change `grid-cols-2` to `grid-cols-3`
-- Add `<TabsTrigger value="balance">Balance</TabsTrigger>`
+Replace the current restrictive policy with one that allows BOTH Our Life users to see and manage ALL `our_financial` records:
 
-**2. Add new imports:**
-- `Scale` or `Handshake` icon from lucide-react for the Balance tab visual
-- `Avatar, AvatarFallback` from UI components for the two-person visual
+- DROP the existing "Users can manage own financial records" ALL policy
+- CREATE a new SELECT policy allowing both user IDs to read all records
+- CREATE a new INSERT policy with WITH CHECK for both user IDs
+- CREATE a new UPDATE policy for both user IDs
+- CREATE a new DELETE policy for both user IDs
 
-**3. Add the new `<TabsContent value="balance">` section after the "records" TabsContent (after line 637):**
+The two user IDs:
+- `19db583e-1e4a-4a20-9f3c-591cb2ca3dc7` (Barkhordari)
+- `8dd0bb2f-2768-4c1c-9e62-495f36b882d4` (Sattari)
 
-This section contains two parts:
+### 2. Database Migration -- Clean Up Duplicate Storage Policies
 
-**Part A -- Balance Summary Card:**
-- Loop through all `financialRecords`, apply the balance logic to compute a net balance number (positive = Barkhordari is owed, negative = Sattari is owed)
-- Balance logic (computed via a `useMemo`):
-  - Skip if `who_paid === for_who` (paying for yourself)
-  - If `for_who === "Both"`: payer gets `+amount/2`, other gets `-amount/2`
-  - If `for_who` is the other person: payer gets `+amount`, other gets `-amount`
-- Display two names/avatars on left and right with the net amount in between
-- Show settlement message: "Sattari owes Barkhordari £X" or "All settled up!"
-- Green styling when settled, amber/red when someone owes
+Remove the three duplicate storage policies for `our-life` bucket:
+- DROP "Users can upload to our-life" (duplicate of "Authenticated users can upload to our-life")
+- DROP "Users can view our-life" (duplicate of "Authenticated users can view our-life files")
+- DROP "Users can delete from our-life" (duplicate of "Authenticated users can delete from our-life")
 
-**Part B -- Transaction Breakdown Table:**
-- Table with columns: Date, Paid By, Amount (in GBP), For Who, Payment For, Barkhordari Effect, Sattari Effect, Running Balance
-- Sort records by `transaction_date` ascending to compute running balance
-- Each row shows the per-transaction effect (e.g., "+£11.00" / "-£11.00") and cumulative running balance
-- Color-code positive (green) and negative (red) amounts
+### 3. Database Migration -- Clean Up Orphaned Document Records
 
-**Part C -- "Settle Up" Button:**
-- Only visible when balance is not zero
-- On click, inserts a new record into `our_financial` with:
-  - `who_paid`: the person who owes
-  - `for_who`: the person who is owed
-  - `amount`: the absolute balance amount
-  - `payment_for`: "Settlement"
-  - `transaction_type`: "expense"
-  - `currency`: "GBP"
-  - `transaction_date`: today
-  - `description`: "Balance settlement"
-- After insert, reload records and show success toast
-- Send push notification to the other user
+Delete the 4 orphaned document records created by Sattari that have no corresponding storage files.
 
-**4. Balance calculation helper (useMemo):**
+### 4. No Code Changes Needed
 
-```text
-For each record in financialRecords:
-  - Skip if who_paid === for_who
-  - If for_who === "Both":
-      barkhordariBalance += (who_paid === "Barkhordari" ? amount/2 : -amount/2)
-  - If for_who === "Sattari" && who_paid === "Barkhordari":
-      barkhordariBalance += amount
-  - If for_who === "Barkhordari" && who_paid === "Sattari":
-      barkhordariBalance -= amount
-
-Net balance = barkhordariBalance
-  Positive: Sattari owes Barkhordari
-  Negative: Barkhordari owes Sattari
-  Zero: Settled
-```
-
-## No database or backend changes needed
-All data comes from the existing `our_financial` table. The "Settle Up" button uses the same `saveFinancialRecord`-style insert that already works.
+The `loadFinancialRecords()` function already does `select('*')` -- once the RLS policy is updated, both users will automatically see all records. The Balance tab calculation and View Records tab will work correctly for both users.
 
 ## Summary
 
 | Item | Change |
 |------|--------|
-| `OurFinancialPage.tsx` | Add Balance tab with summary card, transaction breakdown table, and Settle Up button |
-| New imports | `Scale`/`Handshake` icon, Avatar components |
-| Database | No changes |
+| `our_financial` RLS | Allow both Our Life users to see/manage all records |
+| Storage policies | Remove 3 duplicate policies for `our-life` bucket |
+| Orphaned data | Clean up 4 document records with no files |
+| Code | No changes needed |
 
