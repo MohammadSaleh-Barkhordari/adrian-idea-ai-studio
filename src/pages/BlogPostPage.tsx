@@ -165,7 +165,7 @@ const BlogPostPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background relative overflow-x-hidden" dir={isRTL ? 'rtl' : 'ltr'}>
+    <HomeShell>
       <Helmet>
         {/* Primary Meta Tags */}
         <title>{post.title} | Adrian Idea</title>
@@ -200,7 +200,6 @@ const BlogPostPage = () => {
       </Helmet>
 
       <MouseTrail />
-      <Navigation />
 
       <main className="container mx-auto px-4 pt-32 pb-20">
         <div className="max-w-4xl mx-auto">
@@ -326,9 +325,7 @@ const BlogPostPage = () => {
           </div>
         </div>
       </main>
-
-      <Footer />
-    </div>
+    </HomeShell>
   );
 };
 
