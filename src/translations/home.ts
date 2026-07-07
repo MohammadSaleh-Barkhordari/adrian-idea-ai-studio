@@ -343,7 +343,20 @@ export const homeEn = {
     ccNoteBold: 'We reply within one business day.',
     ccNoteRest: ' Prefer async? Send two paragraphs — your problem and your current stack — and you will get back a scoped read on feasibility.',
     formHeader: 'Or send a message',
+    form: {
+      firstName: 'First name',
+      lastName: 'Last name',
+      email: 'Email',
+      company: 'Company (optional)',
+      details: 'Project details',
+      detailsPh: 'What are you trying to solve?',
+      send: 'Send message',
+      sending: 'Sending…',
+      sent: 'Message sent',
+      sentDesc: 'We will reply within one business day.',
+    },
   },
+
   blog: {
     crumb: 'Blog',
     titlePre: 'Notes from',
