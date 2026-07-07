@@ -1,15 +1,15 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { homeCopy } from '@/translations/home';
+import { LogoMark as SharedLogoMark, Preloader as SharedPreloader, Counter as SharedCounter, useHomeEffects as sharedUseHomeEffects, HomeNav, HomeFooter } from '@/components/home/shared';
 import '@/styles/home.css';
 
 /* ============================================================
    Adrian Idea homepage — 1:1 port of index2.html visual system.
-   Scoped under `.home-root`. Effects (shader, cursor, magnetic,
-   reveals, counters, quotes, agent-console, kinetic bands) all
-   live in useEffects below.
+   Scoped under `.home-root`.
 ============================================================ */
+
 
 const LogoMark = ({ gold = false }: { gold?: boolean }) => (
   <svg viewBox="0 0 100 110" aria-hidden="true">
