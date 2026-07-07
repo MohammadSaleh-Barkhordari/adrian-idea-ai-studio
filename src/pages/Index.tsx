@@ -523,21 +523,22 @@ const Index = () => {
       {/* NAV */}
       <nav className="hr-nav">
         <div className="nav-inner">
-          <a href="#" className="brand" data-cursor="home" aria-label="Adrian Idea — home">
+          <a href="/" className="brand" data-cursor="home" aria-label="Adrian Idea — home">
             <LogoMark gold />
             <span className="wordmark">{t.wordmark.main}<small>{t.wordmark.sub}</small></span>
           </a>
           <ul className="nav-links">
-            <li><a href="#capabilities" data-cursor="go">{t.nav.capabilities}</a></li>
-            <li><a href="#agent-console" data-cursor="go">{t.nav.product}</a></li>
-            <li><a href="#process" data-cursor="go">{t.nav.process}</a></li>
-            <li><a href="#voices" data-cursor="go">{t.nav.voices}</a></li>
+            <li><a href="/about" data-cursor="go">{t.pagesNav.about}</a></li>
+            <li><a href="/services" data-cursor="go">{t.pagesNav.services}</a></li>
+            <li><a href="/case-studies" data-cursor="go">{t.pagesNav.cases}</a></li>
+            <li><a href="/ai-philosophy" data-cursor="go">{t.pagesNav.philosophy}</a></li>
+            <li><a href="/blog" data-cursor="go">{t.pagesNav.blog}</a></li>
           </ul>
           <div className="nav-right">
             <button className="lang-btn" onClick={toggleLang} aria-label="Switch language">
               {language === 'fa' ? 'EN' : 'فا'}
             </button>
-            <a href="#contact" className="btn btn-fill btn-sm magnetic" data-cursor="start">
+            <a href="/contact" className="btn btn-fill btn-sm magnetic" data-cursor="start">
               <span>{t.nav.startProject}</span>
             </a>
             <button className="menu-btn" onClick={() => setMenuOpen(true)} aria-label="Open menu" aria-expanded={menuOpen}>
@@ -553,12 +554,15 @@ const Index = () => {
           {language === 'fa' ? 'EN' : 'فا'}
         </button>
         <button className="menu-close" onClick={() => setMenuOpen(false)}>{t.nav.menuClose}</button>
-        <a href="#capabilities" onClick={() => setMenuOpen(false)}><span>{t.nav.capabilities}</span><small>01</small></a>
-        <a href="#agent-console" onClick={() => setMenuOpen(false)}><span>{t.nav.product}</span><small>02</small></a>
-        <a href="#process" onClick={() => setMenuOpen(false)}><span>{t.nav.process}</span><small>03</small></a>
-        <a href="#voices" onClick={() => setMenuOpen(false)}><span>{t.nav.voices}</span><small>04</small></a>
-        <a href="#contact" onClick={() => setMenuOpen(false)}><span>{t.nav.contact}</span><small>05</small></a>
+        <a href="/" onClick={() => setMenuOpen(false)}><span>{t.pagesNav.home}</span><small>01</small></a>
+        <a href="/about" onClick={() => setMenuOpen(false)}><span>{t.pagesNav.about}</span><small>02</small></a>
+        <a href="/services" onClick={() => setMenuOpen(false)}><span>{t.pagesNav.services}</span><small>03</small></a>
+        <a href="/case-studies" onClick={() => setMenuOpen(false)}><span>{t.pagesNav.cases}</span><small>04</small></a>
+        <a href="/ai-philosophy" onClick={() => setMenuOpen(false)}><span>{t.pagesNav.philosophy}</span><small>05</small></a>
+        <a href="/blog" onClick={() => setMenuOpen(false)}><span>{t.pagesNav.blog}</span><small>06</small></a>
+        <a href="/contact" onClick={() => setMenuOpen(false)}><span>{t.pagesNav.contact}</span><small>07</small></a>
       </div>
+
 
       <main id="main">
         {/* HERO */}
