@@ -1,11 +1,24 @@
+import { useState } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { homeCopy } from '@/translations/home';
-import { HomeShell, PageHero, SecHead } from '@/components/home/shared';
-import Contact from '@/components/Contact';
+import { HomeShell, PageHero, Field } from '@/components/home/shared';
+import { useToast } from '@/hooks/use-toast';
 
 const ContactPage = () => {
   const { language } = useLanguage();
   const t = homeCopy[language].contact;
+  const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    // Preserves the existing (no-backend) submission behaviour from the old <Contact /> component.
+    await new Promise((r) => setTimeout(r, 1200));
+    toast({ title: t.form.sent, description: t.form.sentDesc });
+    (e.target as HTMLFormElement).reset();
+    setIsSubmitting(false);
+  };
 
   return (
     <HomeShell>
@@ -54,7 +67,28 @@ const ContactPage = () => {
 
         <div className="wrap contact-form-wrap">
           <h3>{t.formHeader}</h3>
-          <Contact />
+          <form onSubmit={handleSubmit} className="ai-form">
+            <div className="ai-form-row">
+              <Field label={t.form.firstName}>
+                <input name="firstName" required autoComplete="given-name" />
+              </Field>
+              <Field label={t.form.lastName}>
+                <input name="lastName" required autoComplete="family-name" />
+              </Field>
+            </div>
+            <Field label={t.form.email}>
+              <input type="email" name="email" required autoComplete="email" />
+            </Field>
+            <Field label={t.form.company}>
+              <input name="company" autoComplete="organization" />
+            </Field>
+            <Field label={t.form.details}>
+              <textarea name="details" rows={5} placeholder={t.form.detailsPh} required />
+            </Field>
+            <button type="submit" disabled={isSubmitting} className="btn btn-fill magnetic" data-cursor="send">
+              <span>{isSubmitting ? t.form.sending : t.form.send}</span>
+            </button>
+          </form>
         </div>
       </section>
     </HomeShell>
@@ -62,3 +96,4 @@ const ContactPage = () => {
 };
 
 export default ContactPage;
+
