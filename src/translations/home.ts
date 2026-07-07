@@ -14,6 +14,7 @@ export const homeEn = {
     voices: 'Voices',
     contact: 'Contact',
     startProject: 'Start a project',
+    signIn: 'Sign in',
     menuBtn: 'Menu',
     menuClose: 'Close',
   },
