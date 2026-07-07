@@ -19,11 +19,11 @@ const TermsOfServicePageFa = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background" dir="rtl">
+    <HomeShell>
       
 
       {/* Content */}
-      <main className="container mx-auto px-6 py-16 max-w-4xl font-sahel">
+      <main className="wrap legal-doc font-sahel" style={{paddingTop:120}}>
         <h1 className="text-4xl md:text-5xl font-display font-bold mb-4 text-right">شرایط استفاده از خدمات</h1>
         <p className="text-muted-foreground mb-8 text-right">تاریخ اجرا: ۱۰ مهر ۱۴۰۴</p>
 
