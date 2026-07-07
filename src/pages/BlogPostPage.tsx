@@ -1,7 +1,7 @@
-import Navigation from '@/components/Navigation';
-import Footer from '@/components/Footer';
+import { HomeShell } from '@/components/home/shared';
 import MouseTrail from '@/components/MouseTrail';
 import useSmoothScroll from '@/hooks/useSmoothScroll';
+
 import { Calendar, User, Clock, ArrowLeft, Tag } from 'lucide-react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
