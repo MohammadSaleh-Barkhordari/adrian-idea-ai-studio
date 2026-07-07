@@ -90,7 +90,7 @@ const EmailDetail = ({ emailId, onReply, onForward, onBack, onRefresh }: EmailDe
     if (action === 'star') updates.is_starred = !email.is_starred;
     if (action === 'unread') updates.is_read = false;
 
-    await supabase.from('emails').update(updates).eq('id', email.id);
+    await supabase.from('emails').update(updates as any).eq('id', email.id);
 
     if (action === 'star') {
       setEmail((prev: any) => ({ ...prev, is_starred: !prev.is_starred }));

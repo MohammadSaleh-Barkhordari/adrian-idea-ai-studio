@@ -59,7 +59,7 @@ export default function BlogEditorPage() {
   const [mediaInsertType, setMediaInsertType] = useState<'featured' | 'content'>('featured');
   const [showVersionHistory, setShowVersionHistory] = useState(false);
   const quillRef = useRef<ReactQuill>(null);
-  const autoSaveTimeoutRef = useRef<NodeJS.Timeout>();
+  const autoSaveTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
   
   const [formData, setFormData] = useState({
     title: '',
@@ -220,7 +220,7 @@ export default function BlogEditorPage() {
 
     await supabase
       .from('blog_posts')
-      .update(postData)
+      .update(postData as any)
       .eq('id', id);
   };
 
@@ -356,13 +356,13 @@ export default function BlogEditorPage() {
     if (isEditMode) {
       const result = await supabase
         .from('blog_posts')
-        .update(postData)
+        .update(postData as any)
         .eq('id', id);
       error = result.error;
     } else {
       const result = await supabase
         .from('blog_posts')
-        .insert([postData]);
+        .insert([postData as any]);
       error = result.error;
     }
 
