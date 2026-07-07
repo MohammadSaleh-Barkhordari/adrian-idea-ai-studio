@@ -1,7 +1,7 @@
-import Navigation from '@/components/Navigation';
-import Footer from '@/components/Footer';
+import { HomeShell } from '@/components/home/shared';
 import MouseTrail from '@/components/MouseTrail';
 import useSmoothScroll from '@/hooks/useSmoothScroll';
+
 import { Calendar, User, Clock, ArrowLeft, Tag } from 'lucide-react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -165,7 +165,7 @@ const BlogPostPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background relative overflow-x-hidden" dir={isRTL ? 'rtl' : 'ltr'}>
+    <HomeShell>
       <Helmet>
         {/* Primary Meta Tags */}
         <title>{post.title} | Adrian Idea</title>
@@ -200,7 +200,6 @@ const BlogPostPage = () => {
       </Helmet>
 
       <MouseTrail />
-      <Navigation />
 
       <main className="container mx-auto px-4 pt-32 pb-20">
         <div className="max-w-4xl mx-auto">
@@ -326,9 +325,7 @@ const BlogPostPage = () => {
           </div>
         </div>
       </main>
-
-      <Footer />
-    </div>
+    </HomeShell>
   );
 };
 

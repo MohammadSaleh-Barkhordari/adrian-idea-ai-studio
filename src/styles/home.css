@@ -1248,3 +1248,13 @@
 .home-root .legal-doc ul,
 .home-root .legal-doc ol { padding-inline-start: 24px; margin: 12px 0; }
 .home-root .legal-doc li { margin: 6px 0; }
+
+/* Contact form (new inline form on ContactPage) */
+.home-root .ai-form {
+  display: flex; flex-direction: column; gap: 18px;
+  max-width: 640px; margin-top: 20px;
+}
+.home-root .ai-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 640px) { .home-root .ai-form-row { grid-template-columns: 1fr; } }
+.home-root .ai-form button[type="submit"] { align-self: flex-start; margin-top: 6px; }
+.home-root .ai-form button[type="submit"][disabled] { opacity: .6; cursor: wait; }
