@@ -1,21 +1,44 @@
-import Navigation from '@/components/Navigation';
-import Services from '@/components/Services';
-import Footer from '@/components/Footer';
-import MouseTrail from '@/components/MouseTrail';
-import useSmoothScroll from '@/hooks/useSmoothScroll';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { homeCopy } from '@/translations/home';
+import { HomeShell, PageHero, SecHead, FinalCTA } from '@/components/home/shared';
 
 const ServicesPage = () => {
-  useSmoothScroll();
+  const { language } = useLanguage();
+  const t = homeCopy[language].services;
 
   return (
-    <div className="min-h-screen bg-background relative overflow-x-hidden">
-      <MouseTrail />
-      <Navigation />
-      <main className="relative z-10 pt-20">
-        <Services />
-      </main>
-      <Footer />
-    </div>
+    <HomeShell>
+      <PageHero
+        crumb={t.crumb}
+        titleHtml={<>{t.titlePre}<br /><span className="serif">{t.titleSerif}</span></>}
+        intro={t.intro}
+      />
+
+      <section>
+        <div className="wrap">
+          <SecHead index={t.svcIndex} titlePre={t.svcTitlePre} titleSerif={t.svcTitleSerif} />
+          {t.items.map((s, i) => (
+            <div className="svc-row fade-up" key={i}>
+              <div className="svc-num">{s.n}</div>
+              <div>
+                <h3>{s.h}</h3>
+                <p className="svc-desc">{s.desc}</p>
+              </div>
+              <ul className="svc-feats">
+                {s.feats.map((f, j) => <li key={j}>{f}</li>)}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <FinalCTA
+        titleParts={{ l1: t.ctaTitleL1, l2Pre: t.ctaTitleL2Pre, l2Serif: t.ctaTitleL2Serif }}
+        p={t.ctaP}
+        cta1={t.ctaBtn1} cta1Href="/contact"
+        cta2={t.ctaBtn2} cta2Href="/#process"
+      />
+    </HomeShell>
   );
 };
 
