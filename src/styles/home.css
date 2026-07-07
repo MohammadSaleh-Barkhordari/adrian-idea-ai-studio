@@ -1258,3 +1258,55 @@
 @media (max-width: 640px) { .home-root .ai-form-row { grid-template-columns: 1fr; } }
 .home-root .ai-form button[type="submit"] { align-self: flex-start; margin-top: 6px; }
 .home-root .ai-form button[type="submit"][disabled] { opacity: .6; cursor: wait; }
+
+/* Auth / Reset password pages */
+.home-root .auth-wrap { max-width: 480px; margin: 0 auto; padding-top: 40px; padding-bottom: 80px; }
+.home-root .auth-back { margin-bottom: 24px; }
+.home-root .auth-tabs { display: flex; gap: 10px; margin-bottom: 24px; }
+.home-root .auth-tabs .btn { flex: 1; justify-content: center; }
+.home-root .auth-form { max-width: 100%; }
+.home-root .auth-form button[type="submit"] { align-self: stretch; justify-content: center; }
+.home-root .auth-link {
+  background: none; border: none; color: var(--ink-dim); font: inherit; font-size: 13px;
+  cursor: pointer; padding: 6px 0; text-align: center; text-decoration: underline;
+  text-underline-offset: 3px; margin-top: 4px;
+}
+.home-root .auth-link:hover { color: var(--gold); }
+
+/* Install app page */
+.home-root .install-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+  padding-top: 40px; padding-bottom: 40px;
+}
+@media (max-width: 720px) { .home-root .install-grid { grid-template-columns: 1fr; } }
+.home-root .install-card {
+  border: 1px solid var(--line); border-radius: 14px; padding: 24px;
+  background: rgba(255,255,255,0.02); display: flex; flex-direction: column; gap: 14px;
+  transition: border-color .3s ease;
+}
+.home-root .install-card:hover { border-color: var(--line-strong); }
+.home-root .install-card-head { display: flex; align-items: center; gap: 10px; }
+.home-root .install-card-head h3 { font-size: 18px; font-weight: 500; margin: 0; }
+.home-root .install-card-desc { color: var(--ink-dim); font-size: 14px; font-weight: 300; margin: 0; }
+.home-root .install-status {
+  display: flex; align-items: center; gap: 8px; color: var(--gold); font-size: 14px;
+}
+.home-root .install-steps p { color: var(--ink-dim); font-size: 14px; margin: 0 0 10px; }
+.home-root .install-steps ol {
+  list-style: decimal; padding-inline-start: 20px;
+  color: var(--ink-dim); font-size: 14px; display: flex; flex-direction: column; gap: 8px;
+}
+.home-root .install-steps ol li { display: list-item; }
+.home-root .install-steps ol li svg { vertical-align: middle; margin-inline-end: 6px; }
+.home-root .install-features { padding-top: 40px; padding-bottom: 80px; }
+.home-root .install-features-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px;
+}
+@media (max-width: 720px) { .home-root .install-features-grid { grid-template-columns: 1fr; } }
+.home-root .install-feature {
+  border: 1px solid var(--line); border-radius: 14px; padding: 22px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.home-root .install-feature h4 { font-size: 15px; font-weight: 500; margin: 0; }
+.home-root .install-feature p { color: var(--ink-dim); font-size: 13px; font-weight: 300; margin: 0; }
+
