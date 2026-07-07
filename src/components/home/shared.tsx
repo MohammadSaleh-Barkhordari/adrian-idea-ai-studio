@@ -499,8 +499,11 @@ export const Field = ({
   </label>
 );
 
-/* ---------------- SectionTitle (alias for reuse) ---------------- */
-export const SectionTitle = SecHead;
+/* ---------------- SectionTitle (alias for reuse; see SecHead below) ---------------- */
+export const SectionTitle = (props: { index: string; titlePre: string; titleSerif: string }) => (
+  <SecHead {...props} />
+);
+
 
 
 /* ---------------- Page hero (interior pages) ---------------- */
