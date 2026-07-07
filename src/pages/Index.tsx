@@ -815,6 +815,10 @@ const Index = () => {
                 <button key={i} className={i === quoteIdx ? 'on' : ''} onClick={() => goQuote(i)} aria-label={`Show quote ${i + 1}`}><i /></button>
               ))}
             </div>
+            <div style={{ textAlign: 'center', marginTop: 40 }}>
+              <a href="/case-studies" className="btn btn-line magnetic" data-cursor="cases">{t.voices.all}</a>
+            </div>
+
           </div>
         </section>
 
