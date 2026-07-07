@@ -15,19 +15,21 @@ const LogoMark = ({ gold = false }: { gold?: boolean }) => (
     {gold && (
       <defs>
         <linearGradient id="goldGrad" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#f0cd7e" />
-          <stop offset="0.55" stopColor="#d9a441" />
-          <stop offset="1" stopColor="#8a6420" />
+          <stop offset="0" stopColor="#f6d67f" />
+          <stop offset="0.45" stopColor="#e2ae4a" />
+          <stop offset="0.78" stopColor="#c08c2e" />
+          <stop offset="1" stopColor="#7a5518" />
         </linearGradient>
       </defs>
     )}
     <g fill={gold ? 'url(#goldGrad)' : 'currentColor'}>
-      <path d="M51 3 66 26 50 48 37 27Z" />
-      <path d="M52 51 64 35 94 99q2 6-4 6H70q4-6 1-12Z" />
-      <path d="M17 105 32 68q4 20-3 30 4 5 11 7z" />
+      <path d="M50.6 4.9 60.7 28.1 48.3 48.2 37.9 27.7Z" />
+      <path d="M49.3 49.3 59.6 29.6 95.7 99Q96.6 100.7 94.2 100.7L63.8 100.7Q68.2 98.1 67.7 90.9Z" />
+      <path d="M20.8 71.5 5.2 100.7 27.5 100.7Q30 99.8 28.8 97.7Q23.5 85.5 20.8 71.5Z" />
     </g>
   </svg>
 );
+
 
 /* ---------------- Count-up hook ---------------- */
 function useCountUp(target: number, decimals: number) {
@@ -90,10 +92,11 @@ const Preloader = ({ onDone, label }: { onDone: () => void; label: string }) => 
   return (
     <div id="preloader" className={done ? 'done' : ''} aria-hidden="true">
       <svg className="pre-mark" viewBox="0 0 100 110" fill="none">
-        <path d="M51 3 66 26 50 48 37 27Z" />
-        <path d="M52 51 64 35 94 99q2 6-4 6H70q4-6 1-12Z" />
-        <path d="M17 105 32 68q4 20-3 30 4 5 11 7z" />
+        <path d="M50.6 4.9 60.7 28.1 48.3 48.2 37.9 27.7Z" />
+        <path d="M49.3 49.3 59.6 29.6 95.7 99Q96.6 100.7 94.2 100.7L63.8 100.7Q68.2 98.1 67.7 90.9Z" />
+        <path d="M20.8 71.5 5.2 100.7 27.5 100.7Q30 99.8 28.8 97.7Q23.5 85.5 20.8 71.5Z" />
       </svg>
+
       <div className="pre-label"><span>{label}</span> <b>{num}</b></div>
     </div>
   );
@@ -520,21 +523,22 @@ const Index = () => {
       {/* NAV */}
       <nav className="hr-nav">
         <div className="nav-inner">
-          <a href="#" className="brand" data-cursor="home" aria-label="Adrian Idea — home">
+          <a href="/" className="brand" data-cursor="home" aria-label="Adrian Idea — home">
             <LogoMark gold />
             <span className="wordmark">{t.wordmark.main}<small>{t.wordmark.sub}</small></span>
           </a>
           <ul className="nav-links">
-            <li><a href="#capabilities" data-cursor="go">{t.nav.capabilities}</a></li>
-            <li><a href="#agent-console" data-cursor="go">{t.nav.product}</a></li>
-            <li><a href="#process" data-cursor="go">{t.nav.process}</a></li>
-            <li><a href="#voices" data-cursor="go">{t.nav.voices}</a></li>
+            <li><a href="/about" data-cursor="go">{t.pagesNav.about}</a></li>
+            <li><a href="/services" data-cursor="go">{t.pagesNav.services}</a></li>
+            <li><a href="/case-studies" data-cursor="go">{t.pagesNav.cases}</a></li>
+            <li><a href="/ai-philosophy" data-cursor="go">{t.pagesNav.philosophy}</a></li>
+            <li><a href="/blog" data-cursor="go">{t.pagesNav.blog}</a></li>
           </ul>
           <div className="nav-right">
             <button className="lang-btn" onClick={toggleLang} aria-label="Switch language">
               {language === 'fa' ? 'EN' : 'فا'}
             </button>
-            <a href="#contact" className="btn btn-fill btn-sm magnetic" data-cursor="start">
+            <a href="/contact" className="btn btn-fill btn-sm magnetic" data-cursor="start">
               <span>{t.nav.startProject}</span>
             </a>
             <button className="menu-btn" onClick={() => setMenuOpen(true)} aria-label="Open menu" aria-expanded={menuOpen}>
@@ -550,12 +554,15 @@ const Index = () => {
           {language === 'fa' ? 'EN' : 'فا'}
         </button>
         <button className="menu-close" onClick={() => setMenuOpen(false)}>{t.nav.menuClose}</button>
-        <a href="#capabilities" onClick={() => setMenuOpen(false)}><span>{t.nav.capabilities}</span><small>01</small></a>
-        <a href="#agent-console" onClick={() => setMenuOpen(false)}><span>{t.nav.product}</span><small>02</small></a>
-        <a href="#process" onClick={() => setMenuOpen(false)}><span>{t.nav.process}</span><small>03</small></a>
-        <a href="#voices" onClick={() => setMenuOpen(false)}><span>{t.nav.voices}</span><small>04</small></a>
-        <a href="#contact" onClick={() => setMenuOpen(false)}><span>{t.nav.contact}</span><small>05</small></a>
+        <a href="/" onClick={() => setMenuOpen(false)}><span>{t.pagesNav.home}</span><small>01</small></a>
+        <a href="/about" onClick={() => setMenuOpen(false)}><span>{t.pagesNav.about}</span><small>02</small></a>
+        <a href="/services" onClick={() => setMenuOpen(false)}><span>{t.pagesNav.services}</span><small>03</small></a>
+        <a href="/case-studies" onClick={() => setMenuOpen(false)}><span>{t.pagesNav.cases}</span><small>04</small></a>
+        <a href="/ai-philosophy" onClick={() => setMenuOpen(false)}><span>{t.pagesNav.philosophy}</span><small>05</small></a>
+        <a href="/blog" onClick={() => setMenuOpen(false)}><span>{t.pagesNav.blog}</span><small>06</small></a>
+        <a href="/contact" onClick={() => setMenuOpen(false)}><span>{t.pagesNav.contact}</span><small>07</small></a>
       </div>
+
 
       <main id="main">
         {/* HERO */}
@@ -590,7 +597,7 @@ const Index = () => {
                 <strong>{t.hero.sub.pre}</strong>{t.hero.sub.body}<span className="gold">{t.hero.sub.gold}</span>{t.hero.sub.tail}
               </p>
               <div className="hero-ctas">
-                <a href="#contact" className="btn btn-fill magnetic" data-cursor="let's go"><span>{t.hero.cta1}</span></a>
+                <a href="/contact" className="btn btn-fill magnetic" data-cursor="let's go"><span>{t.hero.cta1}</span></a>
                 <a href="#agent-console" className="btn btn-line magnetic" data-cursor="watch">{t.hero.cta2}</a>
               </div>
             </div>
@@ -611,11 +618,12 @@ const Index = () => {
         {/* MARQUEE */}
         <div className="marquee-band" aria-hidden="true">
           <div className="marquee-track">
-            {[...t.marquee, ...t.marquee, ...t.marquee, ...t.marquee].map((m, i) => (
+            {[...t.marquee, ...t.marquee].map((m, i) => (
               <span key={i} className={`mq-item${i % 2 ? ' ghost' : ''}`}>{m}</span>
             ))}
           </div>
         </div>
+
 
         {/* CAPABILITIES */}
         <section id="capabilities">
@@ -672,7 +680,7 @@ const Index = () => {
                     <circle className="track" cx="55" cy="55" r="50" />
                     <circle className="val" cx="55" cy="55" r="50" />
                   </svg>
-                  <div className="shield-pct">SOC2</div>
+                  <div className="shield-pct">100%</div>
                 </div>
                 <span className="tag">{t.capabilities.cells.e.tag}</span>
                 <h3>{t.capabilities.cells.e.h}</h3>
@@ -724,7 +732,7 @@ const Index = () => {
                 <div className="msg m5" style={{ maxWidth: '100%' }}>
                   <div className="approval">
                     <span><small>{t.agentConsole.approvalLabel}</small>{t.agentConsole.approvalQ}</span>
-                    <a href="#contact" className="btn btn-fill" data-cursor="approve"><span>{t.agentConsole.approvalBtn}</span></a>
+                    <a href="/contact" className="btn btn-fill" data-cursor="approve"><span>{t.agentConsole.approvalBtn}</span></a>
                   </div>
                 </div>
                 <div className="msg agent m6">
@@ -807,6 +815,10 @@ const Index = () => {
                 <button key={i} className={i === quoteIdx ? 'on' : ''} onClick={() => goQuote(i)} aria-label={`Show quote ${i + 1}`}><i /></button>
               ))}
             </div>
+            <div style={{ textAlign: 'center', marginTop: 40 }}>
+              <a href="/case-studies" className="btn btn-line magnetic" data-cursor="cases">{t.voices.all}</a>
+            </div>
+
           </div>
         </section>
 
@@ -833,19 +845,20 @@ const Index = () => {
         <div className="foot-big-wrap"><div className="foot-big" aria-hidden="true">ADRIAN&nbsp;IDEA</div></div>
         <div className="foot-grid">
           <div className="foot-brand">
-            <a href="#" className="brand" aria-label="Adrian Idea">
+            <a href="/" className="brand" aria-label="Adrian Idea">
               <LogoMark gold />
-              <span className="wordmark">{t.wordmark.main}<small>{t.footer.wordmarkSub}</small></span>
+              <span className="wordmark">{t.wordmark.main}<small>آدرین ایده کوشا</small></span>
             </a>
             <p>{t.footer.p}</p>
           </div>
           <div className="foot-col">
             <h4>{t.footer.studioH}</h4>
             <ul>
-              <li><a href="#capabilities">{t.footer.studio[0]}</a></li>
-              <li><a href="#agent-console">{t.footer.studio[1]}</a></li>
-              <li><a href="#process">{t.footer.studio[2]}</a></li>
-              <li><a href="#voices">{t.footer.studio[3]}</a></li>
+              <li><a href="/about">{t.footer.studio[0]}</a></li>
+              <li><a href="/services">{t.footer.studio[1]}</a></li>
+              <li><a href="/case-studies">{t.footer.studio[2]}</a></li>
+              <li><a href="/ai-philosophy">{t.footer.studio[3]}</a></li>
+              <li><a href="/blog">{t.footer.studio[4]}</a></li>
             </ul>
           </div>
           <div className="foot-col">
@@ -859,15 +872,17 @@ const Index = () => {
           <div className="foot-col">
             <h4>{t.footer.legalH}</h4>
             <ul>
-              <li><a href="#">{t.footer.legal[0]}</a></li>
-              <li><a href="#">{t.footer.legal[1]}</a></li>
-              <li><a href="#">{t.footer.legal[2]}</a></li>
+              <li><a href="https://adrianidea.ir/privacy-policy">{t.footer.legal[0]}</a></li>
+              <li><a href="https://adrianidea.ir/terms-of-service">{t.footer.legal[1]}</a></li>
+              <li><a href="https://adrianidea.ir/cookie-policy">{t.footer.legal[2]}</a></li>
+              <li><a href="https://adrianidea.ir/data-processing">{t.footer.legal[3]}</a></li>
             </ul>
           </div>
         </div>
         <div className="foot-bottom">
           <span>{t.footer.copy}</span>
           <span>{t.footer.tag}</span>
+
         </div>
       </footer>
     </div>
