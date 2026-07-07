@@ -390,6 +390,7 @@ export const homeFa: HomeCopy = {
     voices: 'مشتریان',
     contact: 'تماس',
     startProject: 'شروع همکاری',
+    signIn: 'ورود',
     menuBtn: 'منو',
     menuClose: 'بستن',
   },

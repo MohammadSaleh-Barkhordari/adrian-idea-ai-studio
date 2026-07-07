@@ -335,6 +335,9 @@ export const HomeNav = ({ menuOpen, setMenuOpen }: { menuOpen: boolean; setMenuO
             <button className="lang-btn" onClick={toggleLang} aria-label="Switch language">
               {language === 'fa' ? 'EN' : 'فا'}
             </button>
+            <Link to="/auth" className="btn btn-line btn-sm magnetic" data-cursor="go">
+              <span>{t.nav.signIn}</span>
+            </Link>
             <Link to="/contact" className="btn btn-fill btn-sm magnetic" data-cursor="start">
               <span>{t.nav.startProject}</span>
             </Link>
@@ -356,6 +359,7 @@ export const HomeNav = ({ menuOpen, setMenuOpen }: { menuOpen: boolean; setMenuO
         <Link to="/ai-philosophy" onClick={() => setMenuOpen(false)}><span>{t.pagesNav.philosophy}</span><small>05</small></Link>
         <Link to="/blog" onClick={() => setMenuOpen(false)}><span>{t.pagesNav.blog}</span><small>06</small></Link>
         <Link to="/contact" onClick={() => setMenuOpen(false)}><span>{t.pagesNav.contact}</span><small>07</small></Link>
+        <Link to="/auth" onClick={() => setMenuOpen(false)}><span>{t.nav.signIn}</span><small>08</small></Link>
       </div>
     </>
   );
