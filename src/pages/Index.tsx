@@ -597,7 +597,7 @@ const Index = () => {
                 <strong>{t.hero.sub.pre}</strong>{t.hero.sub.body}<span className="gold">{t.hero.sub.gold}</span>{t.hero.sub.tail}
               </p>
               <div className="hero-ctas">
-                <a href="#contact" className="btn btn-fill magnetic" data-cursor="let's go"><span>{t.hero.cta1}</span></a>
+                <a href="/contact" className="btn btn-fill magnetic" data-cursor="let's go"><span>{t.hero.cta1}</span></a>
                 <a href="#agent-console" className="btn btn-line magnetic" data-cursor="watch">{t.hero.cta2}</a>
               </div>
             </div>
@@ -618,11 +618,12 @@ const Index = () => {
         {/* MARQUEE */}
         <div className="marquee-band" aria-hidden="true">
           <div className="marquee-track">
-            {[...t.marquee, ...t.marquee, ...t.marquee, ...t.marquee].map((m, i) => (
+            {[...t.marquee, ...t.marquee].map((m, i) => (
               <span key={i} className={`mq-item${i % 2 ? ' ghost' : ''}`}>{m}</span>
             ))}
           </div>
         </div>
+
 
         {/* CAPABILITIES */}
         <section id="capabilities">
