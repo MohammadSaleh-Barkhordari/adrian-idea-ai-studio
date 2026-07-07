@@ -131,6 +131,7 @@ export const homeEn = {
     index: '04 / Voices',
     titlePre: 'Proof over',
     titleSerif: 'promises',
+    all: 'All case studies ↗',
     quotes: [
       { pre: '"We replaced a nine-month ML roadmap with a six-week Adrian Idea deployment. Forecast accuracy jumped ', mark: '23%', post: ' — and the system retrains itself."', avi: 'SM', name: 'S. Mohammadi', role: 'Head of Data · Fintech client' },
       { pre: '"Their agents now handle ', mark: '70%', post: ' of tier-one support end-to-end. Satisfaction went up. My team finally works on the hard problems."', avi: 'RK', name: 'R. Karimi', role: 'COO · E-commerce client' },
@@ -146,16 +147,17 @@ export const homeEn = {
     phone: '+98 912 563 3479',
   },
   footer: {
-    p: 'Applied-AI studio. Autonomous agents, custom models, and intelligence infrastructure — engineered to ship.',
+    p: 'Applied-AI studio. Practical, secure, production-ready solutions — engineered for measurable results.',
     studioH: 'Studio',
-    studio: ['Capabilities', 'Product', 'Process', 'Voices'],
+    studio: ['About', 'Services', 'Case Studies', 'Philosophy', 'Blog'],
     reachH: 'Reach us',
     legalH: 'Legal',
-    legal: ['Privacy Policy', 'Terms of Service', 'Cookie Policy'],
+    legal: ['Privacy Policy', 'Terms of Service', 'Cookie Policy', 'Data Processing'],
     copy: '© 2026 Adrian Idea Kusha Co.',
     tag: 'The AI in AI',
     wordmarkSub: 'آدرین ایده کوشا',
   },
+
   pagesNav: {
     home: 'Home',
     about: 'About',
