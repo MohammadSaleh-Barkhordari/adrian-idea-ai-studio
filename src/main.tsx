@@ -12,7 +12,7 @@ import '@fontsource/inter/300.css'
 import '@fontsource/inter/400.css'
 import '@fontsource/inter/500.css'
 import '@fontsource/inter/600.css'
-import '@fontsource-variable/vazirmatn'
+import '@fontsource-variable/vazirmatn/index.css'
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
