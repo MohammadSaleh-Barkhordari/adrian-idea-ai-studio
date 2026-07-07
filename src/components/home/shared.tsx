@@ -412,11 +412,22 @@ export const HomeFooter = () => {
 };
 
 /* ---------------- HomeShell (wrap interior pages) ---------------- */
-export const HomeShell = ({ children, className = '' }: { children: ReactNode; className?: string }) => {
+export const HomeShell = ({
+  children,
+  className = '',
+  skipPreloader = false,
+  hideFooter = false,
+}: {
+  children: ReactNode;
+  className?: string;
+  skipPreloader?: boolean;
+  hideFooter?: boolean;
+}) => {
   const rootRef = useRef<HTMLDivElement>(null);
   const { language } = useLanguage();
   const t = homeCopy[language];
   const [preloading, setPreloading] = useState(() => {
+    if (skipPreloader) return false;
     if (typeof window === 'undefined') return true;
     return !sessionStorage.getItem('ai-preloaded');
   });
@@ -455,10 +466,42 @@ export const HomeShell = ({ children, className = '' }: { children: ReactNode; c
       <a href="#main" className="skip-link">{t.skip}</a>
       <HomeNav menuOpen={menuOpen} setMenuOpen={setMenuOpen} />
       <main id="main">{children}</main>
-      <HomeFooter />
+      {!hideFooter && <HomeFooter />}
     </div>
   );
 };
+
+/* ---------------- AppShell (internal authenticated pages) ---------------- */
+export const AppShell = ({ children, className = '' }: { children: ReactNode; className?: string }) => (
+  <HomeShell skipPreloader className={`app-shell ${className}`}>
+    {children}
+  </HomeShell>
+);
+
+/* ---------------- Panel (gold-bordered card) ---------------- */
+export const Panel = ({
+  children,
+  className = '',
+  as: Tag = 'div',
+  ...rest
+}: { children: ReactNode; className?: string; as?: any; [k: string]: any }) => (
+  <Tag className={`ai-panel ${className}`} {...rest}>{children}</Tag>
+);
+
+/* ---------------- Field (labeled input/textarea/select) ---------------- */
+export const Field = ({
+  label, hint, children, className = '',
+}: { label?: ReactNode; hint?: ReactNode; children: ReactNode; className?: string }) => (
+  <label className={`ai-field ${className}`}>
+    {label && <span className="ai-field-label">{label}</span>}
+    {children}
+    {hint && <span className="ai-field-hint">{hint}</span>}
+  </label>
+);
+
+/* ---------------- SectionTitle (alias for reuse) ---------------- */
+export const SectionTitle = SecHead;
+
 
 /* ---------------- Page hero (interior pages) ---------------- */
 export const PageHero = ({
