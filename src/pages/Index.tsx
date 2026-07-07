@@ -680,7 +680,7 @@ const Index = () => {
                     <circle className="track" cx="55" cy="55" r="50" />
                     <circle className="val" cx="55" cy="55" r="50" />
                   </svg>
-                  <div className="shield-pct">SOC2</div>
+                  <div className="shield-pct">100%</div>
                 </div>
                 <span className="tag">{t.capabilities.cells.e.tag}</span>
                 <h3>{t.capabilities.cells.e.h}</h3>
