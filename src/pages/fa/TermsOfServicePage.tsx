@@ -1,7 +1,6 @@
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useEffect } from 'react';
-import Navigation from '@/components/Navigation';
-import Footer from '@/components/Footer';
+import { HomeShell } from '@/components/home/shared';
 
 const TermsOfServicePageFa = () => {
   const { language } = useLanguage();
@@ -21,7 +20,7 @@ const TermsOfServicePageFa = () => {
 
   return (
     <div className="min-h-screen bg-background" dir="rtl">
-      <Navigation />
+      
 
       {/* Content */}
       <main className="container mx-auto px-6 py-16 max-w-4xl font-sahel">
@@ -186,12 +185,12 @@ const TermsOfServicePageFa = () => {
               <p><strong>نام شرکت:</strong> آدرین ایده کوشا</p>
               <p><strong>ایمیل:</strong> <a href="mailto:contact@adrianidea.ir" className="text-accent hover:underline">contact@adrianidea.ir</a></p>
               <p><strong>تلفن:</strong> <a href="tel:+989125633479" className="text-accent hover:underline" dir="ltr">۰۹۱۲ ۵۶۳ ۳۴۷۹</a></p>
-            </div>
+            </HomeShell>
           </section>
         </div>
       </main>
       
-      <Footer />
+      
     </div>
   );
 };

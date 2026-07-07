@@ -1,7 +1,6 @@
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useEffect } from 'react';
-import Navigation from '@/components/Navigation';
-import Footer from '@/components/Footer';
+import { HomeShell } from '@/components/home/shared';
 
 const DataProcessingPage = () => {
   const { language } = useLanguage();
@@ -20,11 +19,11 @@ const DataProcessingPage = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navigation />
+    <HomeShell>
+      
 
       {/* Content */}
-      <main className="container mx-auto px-6 py-16 max-w-4xl">
+      <main className="wrap legal-doc" style={{paddingTop:120}}>
         <h1 className="text-4xl md:text-5xl font-display font-bold mb-4">Data Processing Agreement</h1>
         <p className="text-muted-foreground mb-8">Last updated: {new Date().toLocaleDateString('en-GB', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
 
@@ -54,7 +53,7 @@ const DataProcessingPage = () => {
               <p><strong>"Sub-processor"</strong> means any processor engaged by Adrian Idea to process personal data on behalf of the Data Controller.</p>
               <p><strong>"UK GDPR"</strong> means the UK General Data Protection Regulation.</p>
               <p><strong>"Data Protection Laws"</strong> means all applicable laws relating to the processing of personal data, including the UK GDPR and the Data Protection Act 2018.</p>
-            </div>
+            </HomeShell>
           </section>
 
           {/* Scope of Processing */}
@@ -357,7 +356,7 @@ const DataProcessingPage = () => {
         </div>
       </main>
       
-      <Footer />
+      
     </div>
   );
 };

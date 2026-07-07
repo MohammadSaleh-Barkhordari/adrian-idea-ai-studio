@@ -1,7 +1,6 @@
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useEffect } from 'react';
-import Navigation from '@/components/Navigation';
-import Footer from '@/components/Footer';
+import { HomeShell } from '@/components/home/shared';
 
 const PrivacyPolicyPageFa = () => {
   const { language } = useLanguage();
@@ -21,7 +20,7 @@ const PrivacyPolicyPageFa = () => {
 
   return (
     <div className="min-h-screen bg-background" dir="rtl">
-      <Navigation />
+      
 
       {/* Content */}
       <main className="container mx-auto px-6 py-16 max-w-4xl font-sahel">
@@ -47,7 +46,7 @@ const PrivacyPolicyPageFa = () => {
               <p><strong>ایمیل:</strong> contact@adrianidea.ir</p>
               <p><strong>تلفن:</strong> <span dir="ltr">۰۹۱۲ ۵۶۳ ۳۴۷۹</span></p>
               <p><strong>آدرس:</strong> ایران، تهران</p>
-            </div>
+            </HomeShell>
           </section>
 
           {/* Types of Data Collected */}
@@ -193,7 +192,7 @@ const PrivacyPolicyPageFa = () => {
         </div>
       </main>
       
-      <Footer />
+      
     </div>
   );
 };

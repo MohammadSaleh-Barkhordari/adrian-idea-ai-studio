@@ -1,7 +1,6 @@
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useEffect } from 'react';
-import Navigation from '@/components/Navigation';
-import Footer from '@/components/Footer';
+import { HomeShell } from '@/components/home/shared';
 
 const CookiePolicyPageFa = () => {
   const { language } = useLanguage();
@@ -21,7 +20,7 @@ const CookiePolicyPageFa = () => {
 
   return (
     <div className="min-h-screen bg-background" dir="rtl">
-      <Navigation />
+      
 
       {/* Content */}
       <main className="container mx-auto px-6 py-16 max-w-4xl font-sahel">
@@ -89,7 +88,7 @@ const CookiePolicyPageFa = () => {
                 <p className="leading-relaxed mt-2">
                   <strong>مدت زمان:</strong> جلسه‌ای یا تا ۱۲ ماه
                 </p>
-              </div>
+              </HomeShell>
 
               {/* Performance Cookies */}
               <div className="bg-card border border-border rounded-lg p-6">
@@ -225,7 +224,7 @@ const CookiePolicyPageFa = () => {
         </div>
       </main>
       
-      <Footer />
+      
     </div>
   );
 };

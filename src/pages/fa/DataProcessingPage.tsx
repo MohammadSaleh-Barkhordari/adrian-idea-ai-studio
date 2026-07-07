@@ -1,7 +1,6 @@
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useEffect } from 'react';
-import Navigation from '@/components/Navigation';
-import Footer from '@/components/Footer';
+import { HomeShell } from '@/components/home/shared';
 
 const DataProcessingPageFa = () => {
   const { language } = useLanguage();
@@ -21,7 +20,7 @@ const DataProcessingPageFa = () => {
 
   return (
     <div className="min-h-screen bg-background" dir="rtl">
-      <Navigation />
+      
 
       {/* Content */}
       <main className="container mx-auto px-6 py-16 max-w-4xl font-sahel">
@@ -52,7 +51,7 @@ const DataProcessingPageFa = () => {
               <p><strong>«پردازش»</strong> به هر عملیات یا مجموعه عملیاتی گفته می‌شود که بر روی داده‌های شخصی انجام می‌شود، مانند جمع‌آوری، ثبت، سازماندهی، ذخیره‌سازی، تطبیق، بازیابی، استفاده، افشا یا حذف.</p>
               <p><strong>«صاحب داده»</strong> به فردی گفته می‌شود که داده‌های شخصی به او مربوط می‌شود.</p>
               <p><strong>«پردازشگر فرعی»</strong> به هر پردازشگری گفته می‌شود که توسط آدرین ایده کوشا برای پردازش داده‌های شخصی از طرف کنترل‌کننده داده استخدام شده است.</p>
-            </div>
+            </HomeShell>
           </section>
 
           {/* Scope of Processing */}
@@ -234,7 +233,7 @@ const DataProcessingPageFa = () => {
         </div>
       </main>
       
-      <Footer />
+      
     </div>
   );
 };
