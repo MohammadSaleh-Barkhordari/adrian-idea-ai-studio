@@ -845,19 +845,20 @@ const Index = () => {
         <div className="foot-big-wrap"><div className="foot-big" aria-hidden="true">ADRIAN&nbsp;IDEA</div></div>
         <div className="foot-grid">
           <div className="foot-brand">
-            <a href="#" className="brand" aria-label="Adrian Idea">
+            <a href="/" className="brand" aria-label="Adrian Idea">
               <LogoMark gold />
-              <span className="wordmark">{t.wordmark.main}<small>{t.footer.wordmarkSub}</small></span>
+              <span className="wordmark">{t.wordmark.main}<small>آدرین ایده کوشا</small></span>
             </a>
             <p>{t.footer.p}</p>
           </div>
           <div className="foot-col">
             <h4>{t.footer.studioH}</h4>
             <ul>
-              <li><a href="#capabilities">{t.footer.studio[0]}</a></li>
-              <li><a href="#agent-console">{t.footer.studio[1]}</a></li>
-              <li><a href="#process">{t.footer.studio[2]}</a></li>
-              <li><a href="#voices">{t.footer.studio[3]}</a></li>
+              <li><a href="/about">{t.footer.studio[0]}</a></li>
+              <li><a href="/services">{t.footer.studio[1]}</a></li>
+              <li><a href="/case-studies">{t.footer.studio[2]}</a></li>
+              <li><a href="/ai-philosophy">{t.footer.studio[3]}</a></li>
+              <li><a href="/blog">{t.footer.studio[4]}</a></li>
             </ul>
           </div>
           <div className="foot-col">
@@ -871,15 +872,17 @@ const Index = () => {
           <div className="foot-col">
             <h4>{t.footer.legalH}</h4>
             <ul>
-              <li><a href="#">{t.footer.legal[0]}</a></li>
-              <li><a href="#">{t.footer.legal[1]}</a></li>
-              <li><a href="#">{t.footer.legal[2]}</a></li>
+              <li><a href="https://adrianidea.ir/privacy-policy">{t.footer.legal[0]}</a></li>
+              <li><a href="https://adrianidea.ir/terms-of-service">{t.footer.legal[1]}</a></li>
+              <li><a href="https://adrianidea.ir/cookie-policy">{t.footer.legal[2]}</a></li>
+              <li><a href="https://adrianidea.ir/data-processing">{t.footer.legal[3]}</a></li>
             </ul>
           </div>
         </div>
         <div className="foot-bottom">
           <span>{t.footer.copy}</span>
           <span>{t.footer.tag}</span>
+
         </div>
       </footer>
     </div>
