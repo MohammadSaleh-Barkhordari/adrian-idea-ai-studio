@@ -1,16 +1,23 @@
-Add a **Sign in** link right next to the existing **Start a project** CTA in the top navigation.
+The homepage (`src/pages/Index.tsx`) has its own inline nav — separate from the shared `HomeNav` I edited last turn. That's why the Sign in button doesn't show on `/`.
 
-## Scope
-- File: `src/components/home/shared.tsx` (`HomeNav`, ~line 338)
-- File: `src/translations/home.ts` — add `nav.signIn: 'Sign in'` (EN) / `'ورود'` (FA)
-- File: `src/styles/home.css` — no new class needed; reuse `.btn.btn-line.btn-sm.magnetic` so it visually pairs with the gold-filled CTA (outlined pill on the left, gold pill on the right)
-- Mobile menu: append a matching "Sign in" entry after the Contact link
+## Fix
 
-## Behavior
-- Link target: `/auth`
-- Order in `.nav-right`: `[lang toggle] [Sign in — outlined] [Start a project — gold] [menu button]`
-- Existing `useEffect` in `AuthPage` already redirects logged-in users to `/dashboard`, so no auth-state gating is added in the nav (keeps it a simple entry link)
+**`src/pages/Index.tsx`** (~line 541, desktop nav):
+Insert a "Sign in" pill immediately before the gold "Start a project" CTA:
+```tsx
+<a href="/auth" className="btn btn-line btn-sm magnetic" data-cursor="go">
+  <span>{t.nav.signIn}</span>
+</a>
+```
+Final desktop order: `[EN/فا] [Sign in — outlined] [Start a project — gold] [menu]`.
+
+**`src/pages/Index.tsx`** (~line 563, mobile menu):
+Append a matching entry after the Contact link:
+```tsx
+<a href="/auth" onClick={() => setMenuOpen(false)}><span>{t.nav.signIn}</span><small>08</small></a>
+```
 
 ## Out of scope
-- No visual redesign of the nav
-- No changes to auth flow, footer, or other pages
+- No changes to `HomeNav` in `shared.tsx` (already done).
+- No visual/CSS changes — reuses existing `.btn.btn-line.btn-sm.magnetic`.
+- Translations already added (`t.nav.signIn`).
