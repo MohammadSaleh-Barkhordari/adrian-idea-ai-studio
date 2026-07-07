@@ -1,54 +1,78 @@
-
 ## Goal
-Make `src/pages/Index.tsx` match the uploaded `index-2.html` 1:1 in structure, labels, and links — while keeping the existing shader/effects/i18n plumbing intact.
 
-## Diffs I found vs. the HTML
+Bring every remaining page under the new home-style design system (warm-black + gold, `HomeShell` chrome, PageShader, gold-bordered panels, serif accent titles). This is a large restyle — it will take multiple turns. This plan lays out the full scope, the phased execution order, and the shared primitives to build once so per-page work stays small.
 
-**Nav / brand**
-- Nav brand `href` currently `#` → should point to `/` (home).
-- Desktop nav links point to on-page anchors (Capabilities, Product, Process, Voices). HTML links to the sibling pages (About, Services, Case Studies, Philosophy, Blog). Since those pages now exist as React routes, use `/about`, `/services`, `/case-studies`, `/ai-philosophy`, `/blog`.
-- Hero "Book a strategy call" and CTA email/phone section: hero button should link to `/contact` (HTML links to contact.html). "See it work" stays `#agent-console`.
-- Approval button inside console → `/contact`.
+## Phase 0 — Shared design primitives (do first, one turn)
 
-**Mobile menu**
-- HTML lists 7 items: Home, About, Services, Case Studies, Philosophy, Blog, Contact (numbered 01–07). Current list has 5 anchors. Replace with the 7-item page-route version.
+Add reusable pieces to `src/components/home/shared.tsx` and `src/styles/home.css` so every page pulls from the same vocabulary:
 
-**Logo (both nav + footer + orbit-core + preloader)**
-- HTML paths (exact):
-  - `M50.6 4.9 60.7 28.1 48.3 48.2 37.9 27.7Z`
-  - `M49.3 49.3 59.6 29.6 95.7 99Q96.6 100.7 94.2 100.7L63.8 100.7Q68.2 98.1 67.7 90.9Z`
-  - `M20.8 71.5 5.2 100.7 27.5 100.7Q30 99.8 28.8 97.7Q23.5 85.5 20.8 71.5Z`
-- Gold gradient: 4 stops — `#f6d67f 0`, `#e2ae4a .45`, `#c08c2e .78`, `#7a5518 1`.
-- Update `LogoMark` and the inlined preloader SVG to use these exact paths + gradient.
+- **`AppShell`** — variant of `HomeShell` that skips the preloader (internal pages shouldn't preload every navigation) and exposes an authenticated-user slot in the nav (avatar + sign-out) when a session exists.
+- **`Panel`** — gold-bordered card wrapper (`.ai-panel`) replacing shadcn `<Card>` visually.
+- **`SectionTitle`** — thin wrapper over existing `SecHead` for reuse.
+- **`Field`** — labeled input/textarea/select using tokens, replaces raw shadcn `<Input>` styling on marketing-adjacent forms.
+- **`DataTable` skin** — CSS-only overrides scoped under `.ai-table` so existing `<table>` markup inherits the new look (dark row bg, `--line` dividers, gold hover row, `--ink-dim` body).
+- **`DialogSkin`** — CSS overrides for shadcn `DialogContent` inside `.home-root` so all existing dialogs read as warm-black + gold without touching every dialog file.
+- **`ButtonSkin`** — CSS overrides for shadcn `<Button>` inside `.home-root` mapping default/secondary/outline/ghost to `.btn.btn-fill` / `.btn.btn-line` / etc.
 
-**Capabilities cell E**
-- Shield percentage badge shows `100%` in HTML (currently `SOC2`). Restore `100%`.
+These skins let internal pages keep their shadcn markup (tables, dialogs, tabs, dropdowns) while inheriting the new look through the `.home-root` scope — this is what makes "full restyle" feasible without rewriting every complex flow.
 
-**Voices section**
-- After the quote-nav dots, HTML has a centered CTA: `All case studies ↗` linking to `/case-studies`. Add it (with translation key `voices.all`).
+## Phase 1 — Public / marketing tail (one turn)
 
-**Footer**
-- Wordmark sub should always be `آدرین ایده کوشا` (matches HTML footer), not the translated hero sub. Hardcode.
-- Studio column: 5 items (About, Services, Case Studies, Philosophy, Blog) linking to their routes — currently 4 in-page anchors.
-- Legal column: 4 items (Privacy Policy, Terms of Service, Cookie Policy, Data Processing). Currently 3.
+- **`src/pages/ContactPage.tsx`** — drop `<Contact />`, inline a new-design form (first/last name, email, company, project details). Reuse the existing `isSubmitting` + `useToast` submission behavior verbatim (no backend call today).
+- **Legal pages** — wrap in `HomeShell` + `PageHero`, keep textual content, remove old `Navigation`/`Footer`:
+  - `src/pages/PrivacyPolicyPage.tsx`
+  - `src/pages/TermsOfServicePage.tsx`
+  - `src/pages/CookiePolicyPage.tsx`
+  - `src/pages/DataProcessingPage.tsx`
+  - Farsi mirrors under `src/pages/fa/`
+- **`src/pages/BlogPostPage.tsx`** — swap chrome to `HomeShell`; keep all data loading, comments, and rendering logic.
+- **`src/pages/NotFound.tsx`** — restyle inside `HomeShell` with a large serif "404" and gold CTA back home.
 
-**Marquee**
-- HTML explicitly alternates 6 labels with `ghost` class per position (`Custom AI Platforms`, `Business Analysis` ghost, `Autonomous Agents`, `Predictive Analytics` ghost, `Computer Vision`, `24/7 Support` ghost) and repeats the block twice. Current React repeats `t.marquee` 4× and toggles `ghost` by index parity — that mismatches which items are ghost. Fix by mapping each source item to its `ghost` flag from the HTML pattern and repeating the sequence twice.
+## Phase 2 — Auth surface (one turn)
 
-**Translations (`src/translations/home.ts`)**
-- Add `nav.about`, `nav.services`, `nav.cases`, `nav.philosophy`, `nav.blog`, `nav.home` (mobile menu labels + desktop nav labels), matching FA_DICT strings from the HTML.
-- Add `voices.all` = "All case studies ↗" / "همه‌ی نمونه‌کارها ↗".
-- Add `footer.studio` array of 5 (About/Services/Case Studies/Philosophy/Blog) and `footer.legal` array of 4.
-- Add `footer.wordmarkSubFixed` = `آدرین ایده کوشا` (constant across locales) — or just hardcode in JSX.
+- **`src/pages/AuthPage.tsx`** — rebuild the shell in `HomeShell` (no preloader), keep all existing Supabase auth logic (sign-in, sign-up, Google OAuth, forgot-password). Form styled with `Field` primitives + gold `btn-fill` submit; social button uses `btn-line`.
+- **`src/pages/ResetPasswordPage.tsx`** — same treatment: keep `type=recovery` detection + `supabase.auth.updateUser({password})` logic, restyle chrome and form.
+- **`src/pages/InstallAppPage.tsx`** — restyle in `HomeShell`, keep install prompt logic and platform detection.
 
-## Files to touch
+## Phase 3 — Internal app pages (three turns, grouped)
 
-1. `src/pages/Index.tsx` — nav links, brand href, mobile menu, LogoMark paths + gradient, Preloader SVG paths, shield text, hero/console CTA hrefs, marquee mapping, voices "All case studies" link, footer studio/legal lists, footer wordmark sub.
-2. `src/translations/home.ts` — add the new nav labels, `voices.all`, footer arrays.
+Every page in this phase gets: `Navigation`/`Footer` → `AppShell`, page background → `bg-background` via `.home-root`, headers → `SectionTitle`, cards → `Panel`, forms → `Field`, tables inherit `.ai-table` skin, dialogs inherit `DialogSkin`. Business logic, data fetching, RLS calls, and state stay unchanged.
 
-No CSS changes required — all class names already exist in `home.css`.
+**Turn A — Dashboards & lists**
+- `src/pages/DashboardPage.tsx`
+- `src/pages/ProjectsPage.tsx`
+- `src/pages/ProjectDetailsPage.tsx`
+- `src/pages/SubscriptionsPage.tsx`
+- `src/pages/BlogDashboardPage.tsx`
 
-## Verification
+**Turn B — CRM, HR, Email**
+- `src/pages/CustomerManagementPage.tsx`
+- `src/pages/CustomerDetailPage.tsx`
+- `src/pages/HRManagementPage.tsx`
+- `src/pages/EmailPage.tsx`
+
+**Turn C — Content, financial, life**
+- `src/pages/BlogEditorPage.tsx`
+- `src/pages/WritingLetterPage.tsx`
+- `src/pages/CreateDocumentPage.tsx`
+- `src/pages/CreateRequestPage.tsx`
+- `src/pages/FinancialAnalysisPage.tsx`
+- `src/pages/OurLifePage.tsx`
+- `src/pages/OurFinancialPage.tsx`
+- `src/pages/OurCalendarPage.tsx`
+- `src/pages/OurTodoPage.tsx`
+
+## Explicitly out of scope
+
+- Component internals of complex features (LetterBuilder canvas, GanttChart, MediaLibrary editors, EmployeeForm tabs, EmailCompose editor, VoiceRecorder, dialog children) — they inherit the skin, no logic changes.
+- `src/components/Navigation.tsx`, `Footer.tsx`, `Hero.tsx`, and the other old marketing components — left in place, unused by the migrated routes.
+- Supabase schemas, RLS policies, edge functions, translations for internal pages — untouched.
+
+## Verification (per phase)
 
 - `tsgo` typecheck.
-- Playwright: load `/` at 1280×1800 and `/?lang=fa`, screenshot hero + capabilities + footer; confirm nav labels, mobile menu (open menu, screenshot), shield says `100%`, footer has 5 studio + 4 legal links, "All case studies" appears after voices, and page links navigate to the correct routes.
+- Playwright screenshots at 1280×1800 for a representative sample per phase (both `en` and `fa` where applicable) to confirm only the new UI is visible and no old chrome / purple gradients leak through.
+
+## Confirmation before starting
+
+If this phased plan is right, approve it and I'll execute **Phase 0** first (shared primitives), then pause so you can eyeball one restyled internal page before I fan out to the rest. Prefer a different order or want to trim scope? Reply with the change and I'll re-issue the plan.

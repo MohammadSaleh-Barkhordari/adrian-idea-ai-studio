@@ -1055,3 +1055,196 @@
   .home-root .case-card.featured { grid-column: auto; }
   .home-root .page-hero { min-height: 55vh; padding-top: 130px; }
 }
+
+/* ============================================================
+   PHASE 0 — App primitives + shadcn skins scoped to .home-root
+   Used by AppShell to restyle internal pages without rewriting markup.
+============================================================ */
+
+/* AppShell tweaks: drop the giant footer wordmark, tighter main */
+.home-root.app-shell .hr-footer .foot-big-wrap { display: none; }
+.home-root.app-shell main#main { min-height: 70vh; padding-top: 96px; }
+
+/* --- Panel --- */
+.home-root .ai-panel {
+  background: linear-gradient(180deg, var(--s1), var(--s0));
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 22px;
+  box-shadow: var(--shadow-card);
+  position: relative;
+}
+.home-root .ai-panel:hover { border-color: var(--line-strong); }
+.home-root .ai-panel > h3,
+.home-root .ai-panel > h2 {
+  font-family: var(--display);
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0 0 12px;
+  letter-spacing: -0.01em;
+}
+
+/* --- Field --- */
+.home-root .ai-field {
+  display: flex; flex-direction: column; gap: 6px;
+  color: var(--ink);
+}
+.home-root .ai-field-label {
+  font-size: 12px; text-transform: uppercase; letter-spacing: 0.12em;
+  color: var(--ink-dim); font-weight: 500;
+}
+.home-root .ai-field-hint {
+  font-size: 12px; color: var(--ink-faint);
+}
+.home-root .ai-field input,
+.home-root .ai-field textarea,
+.home-root .ai-field select,
+.home-root input[type="text"]:not([class*="react-day-picker"]),
+.home-root input[type="email"],
+.home-root input[type="password"],
+.home-root input[type="search"],
+.home-root input[type="tel"],
+.home-root input[type="url"],
+.home-root input[type="number"],
+.home-root textarea {
+  background: rgba(255,255,255,0.02);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px 14px;
+  color: var(--ink);
+  font-family: var(--body);
+  font-size: 14px;
+  transition: border-color var(--t-fast), background var(--t-fast);
+  width: 100%;
+}
+.home-root .ai-field input:focus,
+.home-root .ai-field textarea:focus,
+.home-root .ai-field select:focus,
+.home-root input:focus,
+.home-root textarea:focus {
+  outline: none;
+  border-color: var(--gold);
+  background: rgba(217,164,65,0.04);
+}
+.home-root textarea { resize: vertical; min-height: 96px; }
+
+/* --- Table skin (opt-in via .ai-table) --- */
+.home-root .ai-table,
+.home-root table {
+  width: 100%; border-collapse: collapse; color: var(--ink);
+}
+.home-root .ai-table thead th,
+.home-root table thead th {
+  text-align: start; font-family: var(--body); font-weight: 500;
+  font-size: 11px; text-transform: uppercase; letter-spacing: 0.14em;
+  color: var(--ink-faint); padding: 12px 14px;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+}
+.home-root .ai-table tbody td,
+.home-root table tbody td {
+  padding: 14px; border-bottom: 1px solid var(--line);
+  color: var(--ink); font-size: 14px;
+}
+.home-root .ai-table tbody tr:hover,
+.home-root table tbody tr:hover {
+  background: rgba(217,164,65,0.03);
+}
+
+/* --- Shadcn Button skin --- */
+.home-root button[class*="bg-primary"],
+.home-root a[class*="bg-primary"] {
+  background: var(--gold) !important;
+  color: #0b0906 !important;
+  border-radius: 999px !important;
+  font-weight: 600;
+  border: 1px solid var(--gold-hi) !important;
+}
+.home-root button[class*="bg-primary"]:hover,
+.home-root a[class*="bg-primary"]:hover {
+  background: var(--gold-hi) !important;
+  filter: brightness(1.05);
+}
+.home-root button[class*="border-input"],
+.home-root button[class*="border-border"],
+.home-root button[class*="variant-outline"],
+.home-root a[class*="variant-outline"] {
+  background: transparent !important;
+  color: var(--ink) !important;
+  border: 1px solid var(--line-strong) !important;
+  border-radius: 999px !important;
+}
+.home-root button[class*="border-input"]:hover,
+.home-root button[class*="border-border"]:hover {
+  border-color: var(--gold) !important;
+  color: var(--gold-hi) !important;
+}
+.home-root button[class*="bg-secondary"] {
+  background: rgba(255,255,255,0.04) !important;
+  color: var(--ink) !important;
+  border-radius: 999px !important;
+}
+.home-root button[class*="bg-destructive"] {
+  background: #b23a2a !important; color: #fff !important;
+  border-radius: 999px !important;
+}
+
+/* --- Shadcn Card / Dialog / Popover / Sheet skin --- */
+.home-root [class*="rounded-lg"][class*="bg-card"],
+.home-root [class*="bg-card"] {
+  background: linear-gradient(180deg, var(--s1), var(--s0)) !important;
+  border-color: var(--line) !important;
+  color: var(--ink) !important;
+}
+.home-root [role="dialog"],
+.home-root [class*="DialogContent"],
+.home-root [data-radix-popper-content-wrapper] > * {
+  background: linear-gradient(180deg, var(--s1), var(--s0)) !important;
+  border: 1px solid var(--line-strong) !important;
+  color: var(--ink) !important;
+  box-shadow: var(--shadow-lift) !important;
+}
+
+/* Portal-rendered dialogs/popovers sit outside .home-root; provide a global sibling skin */
+[data-radix-popper-content-wrapper] [class*="bg-popover"],
+[data-radix-popper-content-wrapper] [class*="bg-card"] {
+  background: linear-gradient(180deg, #12100b, #0b0a07) !important;
+  color: #f4efe4 !important;
+  border-color: rgba(244,239,228,0.18) !important;
+}
+
+/* --- Tabs skin --- */
+.home-root [role="tablist"] {
+  background: rgba(255,255,255,0.03) !important;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 4px;
+}
+.home-root [role="tab"][data-state="active"] {
+  background: var(--gold) !important;
+  color: #0b0906 !important;
+  border-radius: 999px !important;
+}
+
+/* --- Body text baseline for app pages --- */
+.home-root.app-shell h1,
+.home-root.app-shell h2,
+.home-root.app-shell h3 { font-family: var(--display); color: var(--ink); }
+.home-root.app-shell p { color: var(--ink-dim); }
+
+/* --- Legal document prose --- */
+.home-root .legal-doc {
+  max-width: 780px; margin: 0 auto; padding: 40px 0 80px;
+  color: var(--ink-dim); font-size: 15px; line-height: 1.85;
+}
+.home-root .legal-doc h2,
+.home-root .legal-doc h3 {
+  color: var(--ink); font-family: var(--display); font-weight: 600;
+  margin: 32px 0 12px; letter-spacing: -0.01em;
+}
+.home-root .legal-doc h2 { font-size: 22px; }
+.home-root .legal-doc h3 { font-size: 18px; }
+.home-root .legal-doc a { color: var(--gold-hi); text-decoration: underline; }
+.home-root .legal-doc ul,
+.home-root .legal-doc ol { padding-inline-start: 24px; margin: 12px 0; }
+.home-root .legal-doc li { margin: 6px 0; }
