@@ -92,10 +92,11 @@ const Preloader = ({ onDone, label }: { onDone: () => void; label: string }) => 
   return (
     <div id="preloader" className={done ? 'done' : ''} aria-hidden="true">
       <svg className="pre-mark" viewBox="0 0 100 110" fill="none">
-        <path d="M51 3 66 26 50 48 37 27Z" />
-        <path d="M52 51 64 35 94 99q2 6-4 6H70q4-6 1-12Z" />
-        <path d="M17 105 32 68q4 20-3 30 4 5 11 7z" />
+        <path d="M50.6 4.9 60.7 28.1 48.3 48.2 37.9 27.7Z" />
+        <path d="M49.3 49.3 59.6 29.6 95.7 99Q96.6 100.7 94.2 100.7L63.8 100.7Q68.2 98.1 67.7 90.9Z" />
+        <path d="M20.8 71.5 5.2 100.7 27.5 100.7Q30 99.8 28.8 97.7Q23.5 85.5 20.8 71.5Z" />
       </svg>
+
       <div className="pre-label"><span>{label}</span> <b>{num}</b></div>
     </div>
   );
