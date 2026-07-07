@@ -66,7 +66,7 @@ const EmailCompose = ({
   const [crmContacts, setCrmContacts] = useState<{ id: string; first_name: string; last_name: string; first_name_fa: string | null; last_name_fa: string | null; email: string | null }[]>([]);
   const [selectedCustomerId, setSelectedCustomerId] = useState('');
   const [selectedContactId, setSelectedContactId] = useState('');
-  const debounceRef = useRef<NodeJS.Timeout>();
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 

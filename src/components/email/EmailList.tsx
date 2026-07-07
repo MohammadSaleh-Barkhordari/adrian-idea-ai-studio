@@ -152,7 +152,7 @@ const EmailList = ({ folder, searchQuery, onSearchChange, selectedEmailId, onSel
     if (action === 'read') updates.is_read = true;
     if (action === 'unread') updates.is_read = false;
 
-    await supabase.from('emails').update(updates).in('id', ids);
+    await supabase.from('emails').update(updates as any).in('id', ids);
     setSelected(new Set());
     fetchEmails();
     toast({ title: `${ids.length} email(s) updated` });
