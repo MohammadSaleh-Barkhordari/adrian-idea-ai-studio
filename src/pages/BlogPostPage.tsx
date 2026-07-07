@@ -129,11 +129,14 @@ const BlogPostPage = () => {
 
   if (loading || !post) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
+      <HomeShell>
+        <div style={{ minHeight: '70vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2" style={{ borderColor: 'var(--gold)' }}></div>
+        </div>
+      </HomeShell>
     );
   }
+
 
   const categoryName = category ? (isRTL ? category.name_fa : category.name_en) : '';
   const currentMetaDesc = post.meta_description || post.excerpt || '';
