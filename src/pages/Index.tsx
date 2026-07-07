@@ -15,19 +15,21 @@ const LogoMark = ({ gold = false }: { gold?: boolean }) => (
     {gold && (
       <defs>
         <linearGradient id="goldGrad" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#f0cd7e" />
-          <stop offset="0.55" stopColor="#d9a441" />
-          <stop offset="1" stopColor="#8a6420" />
+          <stop offset="0" stopColor="#f6d67f" />
+          <stop offset="0.45" stopColor="#e2ae4a" />
+          <stop offset="0.78" stopColor="#c08c2e" />
+          <stop offset="1" stopColor="#7a5518" />
         </linearGradient>
       </defs>
     )}
     <g fill={gold ? 'url(#goldGrad)' : 'currentColor'}>
-      <path d="M51 3 66 26 50 48 37 27Z" />
-      <path d="M52 51 64 35 94 99q2 6-4 6H70q4-6 1-12Z" />
-      <path d="M17 105 32 68q4 20-3 30 4 5 11 7z" />
+      <path d="M50.6 4.9 60.7 28.1 48.3 48.2 37.9 27.7Z" />
+      <path d="M49.3 49.3 59.6 29.6 95.7 99Q96.6 100.7 94.2 100.7L63.8 100.7Q68.2 98.1 67.7 90.9Z" />
+      <path d="M20.8 71.5 5.2 100.7 27.5 100.7Q30 99.8 28.8 97.7Q23.5 85.5 20.8 71.5Z" />
     </g>
   </svg>
 );
+
 
 /* ---------------- Count-up hook ---------------- */
 function useCountUp(target: number, decimals: number) {
