@@ -538,6 +538,9 @@ const Index = () => {
             <button className="lang-btn" onClick={toggleLang} aria-label="Switch language">
               {language === 'fa' ? 'EN' : 'فا'}
             </button>
+            <a href="/auth" className="btn btn-line btn-sm magnetic" data-cursor="go">
+              <span>{t.nav.signIn}</span>
+            </a>
             <a href="/contact" className="btn btn-fill btn-sm magnetic" data-cursor="start">
               <span>{t.nav.startProject}</span>
             </a>
@@ -561,6 +564,7 @@ const Index = () => {
         <a href="/ai-philosophy" onClick={() => setMenuOpen(false)}><span>{t.pagesNav.philosophy}</span><small>05</small></a>
         <a href="/blog" onClick={() => setMenuOpen(false)}><span>{t.pagesNav.blog}</span><small>06</small></a>
         <a href="/contact" onClick={() => setMenuOpen(false)}><span>{t.pagesNav.contact}</span><small>07</small></a>
+        <a href="/auth" onClick={() => setMenuOpen(false)}><span>{t.nav.signIn}</span><small>08</small></a>
       </div>
 
 
