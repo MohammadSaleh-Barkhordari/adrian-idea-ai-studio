@@ -266,13 +266,13 @@ const TermsOfServicePage = () => {
               <p><strong>Company Name:</strong> Adrian Idea</p>
               <p><strong>Email:</strong> <a href="mailto:contact@adrianidea.ir" className="text-accent hover:underline">contact@adrianidea.ir</a></p>
               <p><strong>Phone:</strong> <a href="tel:+989125633479" className="text-accent hover:underline">+98 912 563 3479</a></p>
-            </HomeShell>
+            </div>
           </section>
         </div>
       </main>
       
       
-    </div>
+    </HomeShell>
   );
 };
 

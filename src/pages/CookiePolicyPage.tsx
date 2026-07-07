@@ -88,7 +88,7 @@ const CookiePolicyPage = () => {
                 <p className="leading-relaxed mt-2">
                   <strong>Duration:</strong> Session or up to 12 months
                 </p>
-              </HomeShell>
+              </div>
 
               {/* Performance Cookies */}
               <div className="bg-card border border-border rounded-lg p-6">
@@ -266,7 +266,7 @@ const CookiePolicyPage = () => {
       </main>
       
       
-    </div>
+    </HomeShell>
   );
 };
 

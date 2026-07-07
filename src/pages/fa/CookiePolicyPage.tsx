@@ -88,7 +88,7 @@ const CookiePolicyPageFa = () => {
                 <p className="leading-relaxed mt-2">
                   <strong>مدت زمان:</strong> جلسه‌ای یا تا ۱۲ ماه
                 </p>
-              </HomeShell>
+              </div>
 
               {/* Performance Cookies */}
               <div className="bg-card border border-border rounded-lg p-6">
@@ -225,7 +225,7 @@ const CookiePolicyPageFa = () => {
       </main>
       
       
-    </div>
+    </HomeShell>
   );
 };
 

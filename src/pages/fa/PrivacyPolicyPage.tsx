@@ -46,7 +46,7 @@ const PrivacyPolicyPageFa = () => {
               <p><strong>ایمیل:</strong> contact@adrianidea.ir</p>
               <p><strong>تلفن:</strong> <span dir="ltr">۰۹۱۲ ۵۶۳ ۳۴۷۹</span></p>
               <p><strong>آدرس:</strong> ایران، تهران</p>
-            </HomeShell>
+            </div>
           </section>
 
           {/* Types of Data Collected */}
@@ -193,7 +193,7 @@ const PrivacyPolicyPageFa = () => {
       </main>
       
       
-    </div>
+    </HomeShell>
   );
 };
 

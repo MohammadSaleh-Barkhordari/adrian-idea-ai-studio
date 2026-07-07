@@ -46,7 +46,7 @@ const PrivacyPolicyPage = () => {
               <p><strong>Email:</strong> contact@adrianidea.ir</p>
               <p><strong>Phone:</strong> +98 912 563 3479</p>
               <p><strong>Address:</strong> Iran, Tehran</p>
-            </HomeShell>
+            </div>
           </section>
 
           {/* Types of Data Collected */}
@@ -203,7 +203,7 @@ const PrivacyPolicyPage = () => {
       </main>
       
       
-    </div>
+    </HomeShell>
   );
 };
 

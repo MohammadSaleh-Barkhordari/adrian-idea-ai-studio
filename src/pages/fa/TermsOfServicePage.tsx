@@ -185,13 +185,13 @@ const TermsOfServicePageFa = () => {
               <p><strong>نام شرکت:</strong> آدرین ایده کوشا</p>
               <p><strong>ایمیل:</strong> <a href="mailto:contact@adrianidea.ir" className="text-accent hover:underline">contact@adrianidea.ir</a></p>
               <p><strong>تلفن:</strong> <a href="tel:+989125633479" className="text-accent hover:underline" dir="ltr">۰۹۱۲ ۵۶۳ ۳۴۷۹</a></p>
-            </HomeShell>
+            </div>
           </section>
         </div>
       </main>
       
       
-    </div>
+    </HomeShell>
   );
 };
 
