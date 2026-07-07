@@ -732,7 +732,7 @@ const Index = () => {
                 <div className="msg m5" style={{ maxWidth: '100%' }}>
                   <div className="approval">
                     <span><small>{t.agentConsole.approvalLabel}</small>{t.agentConsole.approvalQ}</span>
-                    <a href="#contact" className="btn btn-fill" data-cursor="approve"><span>{t.agentConsole.approvalBtn}</span></a>
+                    <a href="/contact" className="btn btn-fill" data-cursor="approve"><span>{t.agentConsole.approvalBtn}</span></a>
                   </div>
                 </div>
                 <div className="msg agent m6">
