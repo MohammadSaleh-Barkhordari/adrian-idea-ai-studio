@@ -17,6 +17,7 @@ import { useToast } from '@/hooks/use-toast';
 import { TaskDetailOutcomeDialog } from '@/components/TaskDetailOutcomeDialog';
 import { RequestDetailDialog } from '@/components/RequestDetailDialog';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { SEO } from '@/components/SEO';
 const DashboardPage = () => {
   const { language } = useLanguage();
   const langPrefix = language === 'en' ? '/en' : '';
@@ -451,6 +452,7 @@ const DashboardPage = () => {
     return true;
   });
   return <div className="min-h-screen bg-background">
+      <SEO path="/dashboard" title="Dashboard — Adrian Idea" description="Adrian Idea internal workspace." robots="noindex, nofollow" />
       <Navigation />
       
       <main className="container mx-auto px-4 sm:px-6 py-16 sm:py-20" dir="ltr">

@@ -1,37 +1,22 @@
 import { Link } from 'react-router-dom';
-import { useState } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { homeCopy } from '@/translations/home';
-import { HomeShell, PageHero, SecHead, FinalCTA } from '@/components/home/shared';
-import elecompImage from '@/assets/elecomp-2025-exhibition.png';
+import { HomeShell, PageHero, FinalCTA } from '@/components/home/shared';
+import { SEO } from '@/components/SEO';
 
 const BlogPage = () => {
-  const { language, t: appT } = useLanguage();
+  const { language } = useLanguage();
   const t = homeCopy[language].blog;
-  const langPrefix = language === 'en' ? '/en' : '';
-
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState(t.allCategory);
-
-  const posts = (appT?.blog?.posts || []).map((p: any) =>
-    p.slug === 'elecomp-2025-exhibition-analysis'
-      ? { ...p, image: elecompImage, imageLarge: elecompImage }
-      : p
-  );
-
-  const catNames = new Set<string>();
-  posts.forEach((p: any) => { if (p.category) catNames.add(p.category); });
-  const categories = [t.allCategory, ...Array.from(catNames)];
-
-  const filtered = posts.filter((p: any) => {
-    const s = searchTerm.toLowerCase();
-    const matchS = !s || p.title.toLowerCase().includes(s) || p.excerpt.toLowerCase().includes(s);
-    const matchC = selectedCategory === t.allCategory || p.category === selectedCategory;
-    return matchS && matchC;
-  });
 
   return (
     <HomeShell>
+      <SEO
+        path="/blog"
+        lang={language}
+        title="Blog — Adrian Idea"
+        description="The Adrian Idea blog — applied AI insights, case notes, and studio updates. New writing coming soon; in the meantime, get in touch to talk shop."
+        robots="noindex, follow"
+      />
       <PageHero
         crumb={t.crumb}
         titleHtml={<>{t.titlePre}<br /><span className="serif">{t.titleSerif}</span></>}
@@ -39,42 +24,19 @@ const BlogPage = () => {
       />
 
       <section>
-        <div className="wrap">
-          <SecHead index={t.poIndex} titlePre={t.poTitlePre} titleSerif={t.poTitleSerif} />
-
-          <div className="blog-tools">
-            <input
-              type="text"
-              placeholder={t.searchPlaceholder}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-            <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)}>
-              {categories.map((c) => <option key={c} value={c}>{c}</option>)}
-            </select>
-          </div>
-
-          {filtered.length === 0 ? (
-            <div className="blog-empty">
-              <p>{t.empty}</p>
-              <button onClick={() => { setSearchTerm(''); setSelectedCategory(t.allCategory); }}>{t.clear}</button>
-            </div>
-          ) : (
-            <div className="post-grid">
-              {filtered.map((p: any) => (
-                <Link className="post-card fade-up" key={p.id} to={`${langPrefix}/blog/${p.slug}`}>
-                  {p.image && <img className="post-img" src={p.image} alt={p.title} loading="lazy" />}
-                  <div className="post-meta">
-                    <span className="cat">{p.category}</span>
-                    <span>{p.readTime}</span>
-                  </div>
-                  <h3>{p.title}</h3>
-                  <p>{p.excerpt}</p>
-                  <span className="read">{t.readMore} ↗</span>
-                </Link>
-              ))}
-            </div>
-          )}
+        <div className="wrap" style={{ textAlign: 'center', padding: '80px 20px' }}>
+          <div className="sec-index" style={{ marginBottom: 18 }}>{t.poIndex}</div>
+          <h2 className="sec-title" style={{ marginBottom: 24 }}>
+            <span className="serif">Coming soon</span>
+          </h2>
+          <p style={{ color: 'var(--ink-dim)', maxWidth: '52ch', margin: '0 auto 36px', lineHeight: 1.6 }}>
+            We're preparing the first pieces of writing from the studio — applied AI notes, case
+            breakdowns, and behind-the-scenes work. In the meantime, reach out directly if there's
+            a topic you'd like us to cover, or a project you'd like to discuss.
+          </p>
+          <Link to="/contact" className="btn btn-fill magnetic" data-cursor="start">
+            <span>{t.ctaBtn1 || 'Get in touch'}</span>
+          </Link>
         </div>
       </section>
 
@@ -82,7 +44,7 @@ const BlogPage = () => {
         titleParts={{ l1: t.ctaTitleL1, l2Serif: t.ctaTitleL2Serif }}
         p={t.ctaP}
         cta1={t.ctaBtn1} cta1Href="/contact"
-        cta2={t.ctaBtn2} cta2Href="https://adrianidea.ir/blog" cta2External
+        cta2={t.ctaBtn2} cta2Href="/services"
       />
     </HomeShell>
   );

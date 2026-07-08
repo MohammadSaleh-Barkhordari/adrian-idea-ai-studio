@@ -4,6 +4,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { HomeShell, PageHero, Field } from '@/components/home/shared';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { SEO } from '@/components/SEO';
 
 type Mode = 'signin' | 'signup' | 'forgot';
 
@@ -82,6 +83,12 @@ const AuthPage = () => {
 
   return (
     <HomeShell>
+      <SEO
+        path="/auth"
+        title="Sign in — Adrian Idea"
+        description="Sign in to the Adrian Idea internal workspace."
+        robots="noindex, nofollow"
+      />
       <PageHero
         crumb="Account"
         titleHtml={<>Welcome<br /><span className="serif">back</span></>}

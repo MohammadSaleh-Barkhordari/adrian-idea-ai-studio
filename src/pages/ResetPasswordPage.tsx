@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { HomeShell, PageHero, Field } from '@/components/home/shared';
+import { SEO } from '@/components/SEO';
 
 const ResetPasswordPage = () => {
   const [newPassword, setNewPassword] = useState('');
@@ -44,6 +45,12 @@ const ResetPasswordPage = () => {
 
   return (
     <HomeShell>
+      <SEO
+        path="/reset-password"
+        title="Reset password — Adrian Idea"
+        description="Reset your Adrian Idea workspace password."
+        robots="noindex, nofollow"
+      />
       <PageHero
         crumb="Account"
         titleHtml={<>Reset<br /><span className="serif">password</span></>}

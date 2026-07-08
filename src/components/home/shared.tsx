@@ -315,7 +315,6 @@ export const HomeNav = ({ menuOpen, setMenuOpen }: { menuOpen: boolean; setMenuO
     { href: '/services', label: t.pagesNav.services },
     { href: '/case-studies', label: t.pagesNav.cases },
     { href: '/ai-philosophy', label: t.pagesNav.philosophy },
-    { href: '/blog', label: t.pagesNav.blog },
   ];
 
   return (
@@ -335,9 +334,6 @@ export const HomeNav = ({ menuOpen, setMenuOpen }: { menuOpen: boolean; setMenuO
             <button className="lang-btn" onClick={toggleLang} aria-label="Switch language">
               {language === 'fa' ? 'EN' : 'فا'}
             </button>
-            <Link to="/auth" className="btn btn-line btn-sm magnetic" data-cursor="go">
-              <span>{t.nav.signIn}</span>
-            </Link>
             <Link to="/contact" className="btn btn-fill btn-sm magnetic" data-cursor="start">
               <span>{t.nav.startProject}</span>
             </Link>
@@ -357,10 +353,9 @@ export const HomeNav = ({ menuOpen, setMenuOpen }: { menuOpen: boolean; setMenuO
         <Link to="/services" onClick={() => setMenuOpen(false)}><span>{t.pagesNav.services}</span><small>03</small></Link>
         <Link to="/case-studies" onClick={() => setMenuOpen(false)}><span>{t.pagesNav.cases}</span><small>04</small></Link>
         <Link to="/ai-philosophy" onClick={() => setMenuOpen(false)}><span>{t.pagesNav.philosophy}</span><small>05</small></Link>
-        <Link to="/blog" onClick={() => setMenuOpen(false)}><span>{t.pagesNav.blog}</span><small>06</small></Link>
-        <Link to="/contact" onClick={() => setMenuOpen(false)}><span>{t.pagesNav.contact}</span><small>07</small></Link>
-        <Link to="/auth" onClick={() => setMenuOpen(false)}><span>{t.nav.signIn}</span><small>08</small></Link>
+        <Link to="/contact" onClick={() => setMenuOpen(false)}><span>{t.pagesNav.contact}</span><small>06</small></Link>
       </div>
+
     </>
   );
 };
@@ -387,8 +382,8 @@ export const HomeFooter = () => {
             <li><Link to="/services">{t.pagesNav.services}</Link></li>
             <li><Link to="/case-studies">{t.pagesNav.cases}</Link></li>
             <li><Link to="/ai-philosophy">{t.pagesNav.philosophy}</Link></li>
-            <li><Link to="/blog">{t.pagesNav.blog}</Link></li>
           </ul>
+
         </div>
         <div className="foot-col">
           <h4>{t.footer.reachH}</h4>

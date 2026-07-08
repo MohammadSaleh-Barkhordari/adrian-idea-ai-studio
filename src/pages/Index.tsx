@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { homeCopy } from '@/translations/home';
+import { SEO } from '@/components/SEO';
 import '@/styles/home.css';
+
 
 /* ============================================================
    Adrian Idea homepage — 1:1 port of index2.html visual system.
@@ -509,7 +511,37 @@ const Index = () => {
 
   return (
     <div ref={rootRef} className="home-root" lang={langCode} dir={dir}>
+      <SEO
+        path="/"
+        lang={language}
+        title="Adrian Idea — Applied AI Studio | آدرین ایده"
+        description="Adrian Idea (آدرین ایده کوشا) — an applied AI studio building practical, secure, production-ready solutions engineered for measurable business results."
+        jsonLd={{
+          '@context': 'https://schema.org',
+          '@type': 'Organization',
+          name: 'Adrian Idea',
+          alternateName: 'آدرین ایده کوشا',
+          url: 'https://adrianidea.ir',
+          logo: 'https://adrianidea.ir/favicon.png',
+          image: 'https://adrianidea.ir/og.png',
+          email: 'Contact@AdrianIdea.ir',
+          telephone: '+98 912 563 3479',
+          address: {
+            '@type': 'PostalAddress',
+            streetAddress: 'No. 46, Maleki Street, Tajrish Square',
+            addressLocality: 'Tehran',
+            addressCountry: 'IR',
+          },
+          sameAs: [
+            'https://instagram.com/adrianidea',
+            'https://t.me/adrianidea',
+            'https://wa.me/989125633479',
+            'https://linkedin.com/company/adrianidea',
+          ],
+        }}
+      />
       {preloading && <Preloader onDone={() => setPreloading(false)} label={t.preLabel} />}
+
 
       {/* Cursor */}
       <div className="cursor-dot" aria-hidden="true" />
@@ -532,15 +564,11 @@ const Index = () => {
             <li><a href="/services" data-cursor="go">{t.pagesNav.services}</a></li>
             <li><a href="/case-studies" data-cursor="go">{t.pagesNav.cases}</a></li>
             <li><a href="/ai-philosophy" data-cursor="go">{t.pagesNav.philosophy}</a></li>
-            <li><a href="/blog" data-cursor="go">{t.pagesNav.blog}</a></li>
           </ul>
           <div className="nav-right">
             <button className="lang-btn" onClick={toggleLang} aria-label="Switch language">
               {language === 'fa' ? 'EN' : 'فا'}
             </button>
-            <a href="/auth" className="btn btn-line btn-sm magnetic" data-cursor="go">
-              <span>{t.nav.signIn}</span>
-            </a>
             <a href="/contact" className="btn btn-fill btn-sm magnetic" data-cursor="start">
               <span>{t.nav.startProject}</span>
             </a>
@@ -562,10 +590,9 @@ const Index = () => {
         <a href="/services" onClick={() => setMenuOpen(false)}><span>{t.pagesNav.services}</span><small>03</small></a>
         <a href="/case-studies" onClick={() => setMenuOpen(false)}><span>{t.pagesNav.cases}</span><small>04</small></a>
         <a href="/ai-philosophy" onClick={() => setMenuOpen(false)}><span>{t.pagesNav.philosophy}</span><small>05</small></a>
-        <a href="/blog" onClick={() => setMenuOpen(false)}><span>{t.pagesNav.blog}</span><small>06</small></a>
-        <a href="/contact" onClick={() => setMenuOpen(false)}><span>{t.pagesNav.contact}</span><small>07</small></a>
-        <a href="/auth" onClick={() => setMenuOpen(false)}><span>{t.nav.signIn}</span><small>08</small></a>
+        <a href="/contact" onClick={() => setMenuOpen(false)}><span>{t.pagesNav.contact}</span><small>06</small></a>
       </div>
+
 
 
       <main id="main">

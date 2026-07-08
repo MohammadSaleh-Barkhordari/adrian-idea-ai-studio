@@ -1,6 +1,7 @@
 import { useLanguage } from '@/contexts/LanguageContext';
 import { homeCopy } from '@/translations/home';
 import { HomeShell, PageHero, SecHead, FinalCTA } from '@/components/home/shared';
+import { SEO } from '@/components/SEO';
 
 const CaseStudiesPage = () => {
   const { language } = useLanguage();
@@ -8,6 +9,12 @@ const CaseStudiesPage = () => {
 
   return (
     <HomeShell>
+      <SEO
+        path="/case-studies"
+        lang={language}
+        title="Case Studies — Adrian Idea"
+        description="Real-world applied AI case studies from Adrian Idea: the problem, the solution, and the measurable outcomes we delivered for each client."
+      />
       <PageHero
         crumb={t.crumb}
         titleHtml={<>{t.titlePre}<br /><span className="serif">{t.titleSerif}</span></>}

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { homeCopy } from '@/translations/home';
 import { HomeShell, PageHero, Field } from '@/components/home/shared';
+import { SEO } from '@/components/SEO';
 import { useToast } from '@/hooks/use-toast';
 
 const ContactPage = () => {
@@ -13,7 +14,6 @@ const ContactPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    // Preserves the existing (no-backend) submission behaviour from the old <Contact /> component.
     await new Promise((r) => setTimeout(r, 1200));
     toast({ title: t.form.sent, description: t.form.sentDesc });
     (e.target as HTMLFormElement).reset();
@@ -22,6 +22,12 @@ const ContactPage = () => {
 
   return (
     <HomeShell>
+      <SEO
+        path="/contact"
+        lang={language}
+        title="Contact — Adrian Idea"
+        description="Get in touch with Adrian Idea. Email Contact@AdrianIdea.ir, call +98 912 563 3479, or send a project brief and we'll respond within one business day."
+      />
       <PageHero
         crumb={t.crumb}
         titleHtml={<>{t.titlePre}<br /><span className="serif">{t.titleSerif}</span></>}
@@ -96,4 +102,3 @@ const ContactPage = () => {
 };
 
 export default ContactPage;
-

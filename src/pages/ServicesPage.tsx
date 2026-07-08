@@ -1,6 +1,7 @@
 import { useLanguage } from '@/contexts/LanguageContext';
 import { homeCopy } from '@/translations/home';
 import { HomeShell, PageHero, SecHead, FinalCTA } from '@/components/home/shared';
+import { SEO } from '@/components/SEO';
 
 const ServicesPage = () => {
   const { language } = useLanguage();
@@ -8,6 +9,12 @@ const ServicesPage = () => {
 
   return (
     <HomeShell>
+      <SEO
+        path="/services"
+        lang={language}
+        title="Services — Adrian Idea"
+        description="Applied AI services from Adrian Idea: strategy, automation, custom ML models, LLM integration, computer vision, and production-ready deployment."
+      />
       <PageHero
         crumb={t.crumb}
         titleHtml={<>{t.titlePre}<br /><span className="serif">{t.titleSerif}</span></>}

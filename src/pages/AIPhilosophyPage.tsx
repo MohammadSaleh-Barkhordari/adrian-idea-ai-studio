@@ -1,6 +1,7 @@
 import { useLanguage } from '@/contexts/LanguageContext';
 import { homeCopy } from '@/translations/home';
 import { HomeShell, PageHero, SecHead, FinalCTA } from '@/components/home/shared';
+import { SEO } from '@/components/SEO';
 
 const AIPhilosophyPage = () => {
   const { language } = useLanguage();
@@ -8,6 +9,12 @@ const AIPhilosophyPage = () => {
 
   return (
     <HomeShell>
+      <SEO
+        path="/ai-philosophy"
+        lang={language}
+        title="AI Philosophy — Adrian Idea"
+        description="Adrian Idea's approach to AI: pragmatic, human-centered, and safety-first. The pillars and commitments guiding every project we ship."
+      />
       <PageHero
         crumb={t.crumb}
         titleHtml={<>{t.titlePre}<br /><span className="serif">{t.titleSerif}</span></>}

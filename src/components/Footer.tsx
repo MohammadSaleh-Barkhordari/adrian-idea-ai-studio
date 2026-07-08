@@ -67,7 +67,26 @@ const Footer = () => {
             <p className="text-muted-foreground mb-6 max-w-md leading-relaxed">
               {t?.footer?.tagline || 'Transforming businesses with intelligent AI solutions'}
             </p>
-            
+
+            {/* Direct contact block */}
+            <ul className="mb-6 space-y-2 text-sm">
+              <li>
+                <a href="mailto:Contact@AdrianIdea.ir" className="text-muted-foreground hover:text-accent transition-colors">
+                  Contact@AdrianIdea.ir
+                </a>
+              </li>
+              <li>
+                <a href="tel:+989125633479" className="text-muted-foreground hover:text-accent transition-colors" dir="ltr">
+                  +98 912 563 3479
+                </a>
+              </li>
+              <li>
+                <a href="https://www.AdrianIdea.ir" className="text-muted-foreground hover:text-accent transition-colors">
+                  www.AdrianIdea.ir
+                </a>
+              </li>
+            </ul>
+
             {/* Social Links */}
             <div className={`flex items-center justify-center sm:justify-start flex-wrap gap-2 sm:gap-3 ${isRTL ? 'flex-row-reverse' : ''}`}>
               {socialLinks.map((social) => {
@@ -86,6 +105,7 @@ const Footer = () => {
                 );
               })}
             </div>
+
           </div>
 
           {/* Quick Links */}
@@ -113,15 +133,11 @@ const Footer = () => {
                 </Link>
               </li>
               <li>
-                <Link to={`${langPrefix}/blog`} className="text-muted-foreground hover:text-accent transition-colors duration-300">
-                  {t?.nav?.blog || 'Blog'}
-                </Link>
-              </li>
-              <li>
                 <Link to={`${langPrefix}/contact`} className="text-muted-foreground hover:text-accent transition-colors duration-300">
                   {t?.nav?.contact || 'Contact'}
                 </Link>
               </li>
+
             </ul>
           </div>
 

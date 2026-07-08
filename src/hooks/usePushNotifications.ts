@@ -116,7 +116,6 @@ export const usePushNotifications = () => {
 
       // Register service worker if not already registered
       const registration = await navigator.serviceWorker.ready;
-      console.log('Service worker ready:', registration.scope);
 
       // Subscribe to push notifications
       const subscription = await registration.pushManager.subscribe({
@@ -124,7 +123,6 @@ export const usePushNotifications = () => {
         applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
       });
 
-      console.log('Push subscription created:', subscription.endpoint);
 
       // Get subscription details
       const subscriptionJson = subscription.toJSON();
