@@ -12,3 +12,25 @@ Allow: /
 
 User-agent: *
 Allow: /
+
+# Internal / authenticated app routes — keep out of search engines
+Disallow: /auth
+Disallow: /dashboard
+Disallow: /writing-letter
+Disallow: /financial-analysis
+Disallow: /projects
+Disallow: /hr-management
+Disallow: /create-document
+Disallow: /create-request
+Disallow: /our-life
+Disallow: /our-financial
+Disallow: /our-calendar
+Disallow: /our-todo
+Disallow: /install
+Disallow: /reset-password
+Disallow: /email
+Disallow: /customers
+Disallow: /subscriptions
+Disallow: /blog
+
+Sitemap: https://adrianidea.ir/sitemap.xml
