@@ -4,6 +4,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { HomeShell, PageHero, Field } from '@/components/home/shared';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { SEO } from '@/components/SEO';
 
 type Mode = 'signin' | 'signup' | 'forgot';
 

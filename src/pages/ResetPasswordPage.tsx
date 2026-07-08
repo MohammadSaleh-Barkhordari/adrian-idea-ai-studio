@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { HomeShell, PageHero, Field } from '@/components/home/shared';
+import { SEO } from '@/components/SEO';
 
 const ResetPasswordPage = () => {
   const [newPassword, setNewPassword] = useState('');

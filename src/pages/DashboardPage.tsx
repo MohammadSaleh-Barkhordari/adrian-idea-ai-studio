@@ -17,6 +17,7 @@ import { useToast } from '@/hooks/use-toast';
 import { TaskDetailOutcomeDialog } from '@/components/TaskDetailOutcomeDialog';
 import { RequestDetailDialog } from '@/components/RequestDetailDialog';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { SEO } from '@/components/SEO';
 const DashboardPage = () => {
   const { language } = useLanguage();
   const langPrefix = language === 'en' ? '/en' : '';
