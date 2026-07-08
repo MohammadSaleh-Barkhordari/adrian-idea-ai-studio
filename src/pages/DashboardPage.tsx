@@ -452,6 +452,7 @@ const DashboardPage = () => {
     return true;
   });
   return <div className="min-h-screen bg-background">
+      <SEO path="/dashboard" title="Dashboard — Adrian Idea" description="Adrian Idea internal workspace." robots="noindex, nofollow" />
       <Navigation />
       
       <main className="container mx-auto px-4 sm:px-6 py-16 sm:py-20" dir="ltr">

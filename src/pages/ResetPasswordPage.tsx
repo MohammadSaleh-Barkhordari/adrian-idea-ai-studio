@@ -45,6 +45,12 @@ const ResetPasswordPage = () => {
 
   return (
     <HomeShell>
+      <SEO
+        path="/reset-password"
+        title="Reset password — Adrian Idea"
+        description="Reset your Adrian Idea workspace password."
+        robots="noindex, nofollow"
+      />
       <PageHero
         crumb="Account"
         titleHtml={<>Reset<br /><span className="serif">password</span></>}

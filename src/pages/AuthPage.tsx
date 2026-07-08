@@ -83,6 +83,12 @@ const AuthPage = () => {
 
   return (
     <HomeShell>
+      <SEO
+        path="/auth"
+        title="Sign in — Adrian Idea"
+        description="Sign in to the Adrian Idea internal workspace."
+        robots="noindex, nofollow"
+      />
       <PageHero
         crumb="Account"
         titleHtml={<>Welcome<br /><span className="serif">back</span></>}
