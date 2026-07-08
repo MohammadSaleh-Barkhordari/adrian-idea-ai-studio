@@ -159,7 +159,7 @@ const BlogPostPage = () => {
       "name": "Adrian Idea",
       "logo": {
         "@type": "ImageObject",
-        "url": `${window.location.origin}/adrian-idea-favicon-512.png`
+        "url": `${window.location.origin}/favicon.png`
       }
     },
     "keywords": post.keywords?.join(', '),
