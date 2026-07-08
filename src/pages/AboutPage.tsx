@@ -1,6 +1,7 @@
 import { useLanguage } from '@/contexts/LanguageContext';
 import { homeCopy } from '@/translations/home';
 import { HomeShell, PageHero, SecHead, FinalCTA, Counter } from '@/components/home/shared';
+import { SEO } from '@/components/SEO';
 
 const AboutPage = () => {
   const { language } = useLanguage();
@@ -8,6 +9,12 @@ const AboutPage = () => {
 
   return (
     <HomeShell>
+      <SEO
+        path="/about"
+        lang={language}
+        title="About — Adrian Idea"
+        description="Meet Adrian Idea (آدرین ایده کوشا): our mission, vision, values, and the milestones shaping our practical AI studio for measurable business impact."
+      />
       <PageHero
         crumb={t.crumb}
         titleHtml={<>{t.titlePre}<br /><span className="serif">{t.titleSerif}</span></>}

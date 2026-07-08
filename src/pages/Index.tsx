@@ -511,7 +511,37 @@ const Index = () => {
 
   return (
     <div ref={rootRef} className="home-root" lang={langCode} dir={dir}>
+      <SEO
+        path="/"
+        lang={language}
+        title="Adrian Idea — Applied AI Studio | آدرین ایده"
+        description="Adrian Idea (آدرین ایده کوشا) — an applied AI studio building practical, secure, production-ready solutions engineered for measurable business results."
+        jsonLd={{
+          '@context': 'https://schema.org',
+          '@type': 'Organization',
+          name: 'Adrian Idea',
+          alternateName: 'آدرین ایده کوشا',
+          url: 'https://adrianidea.ir',
+          logo: 'https://adrianidea.ir/favicon.png',
+          image: 'https://adrianidea.ir/og.png',
+          email: 'Contact@AdrianIdea.ir',
+          telephone: '+98 912 563 3479',
+          address: {
+            '@type': 'PostalAddress',
+            streetAddress: 'No. 46, Maleki Street, Tajrish Square',
+            addressLocality: 'Tehran',
+            addressCountry: 'IR',
+          },
+          sameAs: [
+            'https://instagram.com/adrianidea',
+            'https://t.me/adrianidea',
+            'https://wa.me/989125633479',
+            'https://linkedin.com/company/adrianidea',
+          ],
+        }}
+      />
       {preloading && <Preloader onDone={() => setPreloading(false)} label={t.preLabel} />}
+
 
       {/* Cursor */}
       <div className="cursor-dot" aria-hidden="true" />
