@@ -97,7 +97,7 @@ export function EventDialog({
       const { data: existingEvents, error: fetchError } = await supabase
         .from('our_calendar')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('location', personName)
         .gte('start_time', `${dateStr}T00:00:00`)
         .lt('start_time', `${dateStr}T23:59:59`)
         .neq('id', editingEvent?.id || '00000000-0000-0000-0000-000000000000');
