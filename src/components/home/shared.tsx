@@ -407,7 +407,7 @@ export const HomeFooter = () => {
         <span>
           {t.footer.tag}
           <Link to="/auth" rel="nofollow" style={{ marginInlineStart: '1rem', opacity: 0.55 }}>
-            {lang === 'fa' ? 'ورود' : 'Sign in'}
+            {language === 'fa' ? 'ورود' : 'Sign in'}
           </Link>
         </span>
       </div>
