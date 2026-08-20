@@ -6,6 +6,7 @@ import Footer from '@/components/Footer';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Calculator, Calendar, CheckSquare, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { hasOurLifeAccess } from '@/lib/ourLifeAccess';
 
 const OurLifePage = () => {
   const [user, setUser] = useState<any>(null);
@@ -22,8 +23,7 @@ const OurLifePage = () => {
       setUser(session.user);
       
       // Check if user has access to this page
-      const allowedEmails = ['r.sattari@adrianidea.ir', 'm.barkhordari@adrianidea.ir'];
-      if (!allowedEmails.includes(session.user.email)) {
+      if (!hasOurLifeAccess(session.user.email)) {
         navigate('/dashboard');
         return;
       }

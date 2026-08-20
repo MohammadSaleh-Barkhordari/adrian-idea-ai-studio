@@ -404,8 +404,14 @@ export const HomeFooter = () => {
       </div>
       <div className="foot-bottom">
         <span>{t.footer.copy}</span>
-        <span>{t.footer.tag}</span>
+        <span>
+          {t.footer.tag}
+          <Link to="/auth" rel="nofollow" style={{ marginInlineStart: '1rem', opacity: 0.55 }}>
+            {language === 'fa' ? 'ورود' : 'Sign in'}
+          </Link>
+        </span>
       </div>
+
     </footer>
   );
 };

@@ -56,8 +56,7 @@ export function TimeSlotView({ selectedDate, personName }: TimeSlotViewProps) {
       const { data, error } = await supabase
         .from('our_calendar')
         .select('*')
-        .eq('user_id', user.id)
-        .eq('location', personName) // Using location to store person name
+        .eq('location', personName) // Using location to store person name (shared across Our Life users)
         .gte('start_time', `${dateStr}T00:00:00`)
         .lt('start_time', `${format(new Date(selectedDate.getTime() + 86400000), 'yyyy-MM-dd')}T00:00:00`)
         .order('start_time');

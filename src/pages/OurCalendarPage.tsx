@@ -6,6 +6,7 @@ import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { PersonalCalendarSection } from "@/components/PersonalCalendarSection";
+import { hasOurLifeAccess } from '@/lib/ourLifeAccess';
 
 export default function OurCalendarPage() {
   const [user, setUser] = useState<any>(null);
@@ -21,9 +22,8 @@ export default function OurCalendarPage() {
     }
 
     const userEmail = session.user.email;
-    const allowedEmails = ["r.sattari@adrianidea.ir", "m.barkhordari@adrianidea.ir"];
     
-    if (!allowedEmails.includes(userEmail)) {
+    if (!hasOurLifeAccess(userEmail)) {
       navigate("/dashboard");
       return;
     }
