@@ -11,6 +11,7 @@ import Navigation from "@/components/Navigation";
 import Footer from "@/components/Footer";
 import NewTodoDialog from "@/components/NewTodoDialog";
 import { sendNotification, getOtherOurLifeUser, getOurLifeUserName } from "@/lib/notifications";
+import { hasOurLifeAccess } from '@/lib/ourLifeAccess';
 
 interface Todo {
   id: string;
@@ -39,8 +40,7 @@ const OurTodoPage = () => {
       return;
     }
 
-    const allowedEmails = ['r.sattari@adrianidea.ir', 'm.barkhordari@adrianidea.ir'];
-    if (!allowedEmails.includes(session.user.email || '')) {
+    if (!hasOurLifeAccess(session.user.email)) {
       navigate('/dashboard');
       return;
     }

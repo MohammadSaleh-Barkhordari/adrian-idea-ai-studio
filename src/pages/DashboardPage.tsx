@@ -18,6 +18,7 @@ import { TaskDetailOutcomeDialog } from '@/components/TaskDetailOutcomeDialog';
 import { RequestDetailDialog } from '@/components/RequestDetailDialog';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { SEO } from '@/components/SEO';
+import { hasOurLifeAccess } from '@/lib/ourLifeAccess';
 const DashboardPage = () => {
   const { language } = useLanguage();
   const langPrefix = language === 'en' ? '/en' : '';
@@ -444,11 +445,11 @@ const DashboardPage = () => {
     path: '/our-life',
     color: 'text-rose-500',
     requiresAdmin: false,
-    specialAccess: ['r.sattari@adrianidea.ir', 'm.barkhordari@adrianidea.ir']
+    specialAccess: true
   }].filter(item => {
     if (item.requiresAdmin && userRole !== 'admin') return false;
     if (item.requiresRole && !userRole) return false;
-    if (item.specialAccess && !item.specialAccess.includes(user?.email)) return false;
+    if (item.specialAccess && !hasOurLifeAccess(user?.email)) return false;
     return true;
   });
   return <div className="min-h-screen bg-background">
